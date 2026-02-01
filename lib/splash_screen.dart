@@ -3,6 +3,7 @@ import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/features/auth/screens/cubit/auth_cubit_cubit.dart';
 import 'package:flosy/features/auth/screens/login_screen.dart';
+import 'package:flosy/features/home/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -95,17 +96,34 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 600));
     _textController.forward();
 
-    // Navigate to login after 3 seconds
+    // Navigate after 3 seconds
     await Future.delayed(const Duration(seconds: 3));
     if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => BlocProvider(
-            create: (context) => AuthCubitCubit(),
-            child: const LoginScreen(),
+      // Check if user is already logged in
+      final authCubit = context.read<AuthCubitCubit>();
+      final currentUser = await authCubit.getCurrentUser();
+
+      if (currentUser != null) {
+        // User is logged in, go to home
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => BlocProvider(
+              create: (context) => AuthCubitCubit(),
+              child: const HomeScreen(), // Change to your home screen
+            ),
           ),
-        ),
-      );
+        );
+      } else {
+        // User not logged in, go to login
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => BlocProvider(
+              create: (context) => AuthCubitCubit(),
+              child: const LoginScreen(),
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -119,13 +137,16 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    bool isDarkMode = AppTheme.isDarkMode(context);
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Colors.white, Colors.grey[50]!],
+            colors: isDarkMode
+                ? [Colors.white, Colors.grey[50]!]
+                : [Colors.black, Colors.white],
           ),
         ),
         child: Stack(

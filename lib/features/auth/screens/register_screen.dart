@@ -1,9 +1,11 @@
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/core/utils/custome_alert.dart';
 import 'package:flosy/features/auth/screens/cubit/auth_cubit_cubit.dart';
 import 'package:flosy/features/auth/screens/login_screen.dart';
+import 'package:flosy/features/home/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -17,14 +19,11 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final TextEditingController nameController = TextEditingController(
-  );
-  final TextEditingController emailController = TextEditingController(
-  );
-  final TextEditingController passwordController = TextEditingController(
-  );
-  final TextEditingController confirmPasswordController = TextEditingController(
-  );
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool isArabic = false;
   bool obscuredPassword = true;
@@ -42,6 +41,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    bool isDarkMode = AppTheme.isDarkMode(context);
     isArabic = context.locale.languageCode == 'ar';
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -67,13 +67,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // Header
-                    Text('create_account'.tr(), style: AppText.head24(context)),
+                    Text(
+                      'create_account'.tr(),
+                      style: AppText.head24(context).copyWith(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
                     SizedBox(height: 8.h),
                     Text(
                       'create_account_subtitle'.tr(),
-                      style: AppText.body16(
-                        context,
-                      ).copyWith(color: Colors.grey[600]),
+                      style: AppText.body16(context).copyWith(
+                        color: isDarkMode ? Colors.white : Colors.grey[600],
+                      ),
                     ),
                     SizedBox(height: 32.h),
 
@@ -263,6 +268,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         emailController.text,
                                         passwordController.text,
                                       );
+                                      Navigator.pushReplacement(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const HomeScreen(),
+                                        ),
+                                      );
                                     }
                                   }
                                 : null,
@@ -304,6 +315,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               return _buildSocialButton(
                                 icon: FontAwesomeIcons.google,
                                 text: 'continue_with_google'.tr(),
+
                                 onPressed: () {
                                   // Implement Google Sign-In
                                 },
@@ -325,6 +337,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             context,
                           ).copyWith(color: Colors.grey[600]),
                         ),
+
                         TextButton(
                           onPressed: () {
                             Navigator.pushReplacement(
@@ -365,13 +378,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     bool obscured = false,
     VoidCallback? onToggleVisibility,
     String? Function(String?)? validator,
+    bool isDarkMode = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: AppText.body16(context).copyWith(fontWeight: FontWeight.w600),
+          style: AppText.body16(context).copyWith(
+            fontWeight: FontWeight.w600,
+            color: isDarkMode ? Colors.black87 : Colors.white,
+          ),
         ),
         SizedBox(height: 8.h),
         TextFormField(
@@ -381,14 +398,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
           validator: validator,
           decoration: InputDecoration(
             hintText: hint,
-            prefixIcon: Icon(prefixIcon, color: Colors.grey[600], size: 22),
+            prefixIcon: Icon(
+              prefixIcon,
+              color: isDarkMode ? Colors.white : Colors.black87,
+              size: 22,
+            ),
             suffixIcon: isPassword
                 ? IconButton(
                     icon: Icon(
                       obscured
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined,
-                      color: Colors.grey[600],
+                      color: isDarkMode ? Colors.white : Colors.grey[600],
                     ),
                     onPressed: onToggleVisibility,
                   )
@@ -461,6 +482,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     required IconData icon,
     required String text,
     required VoidCallback onPressed,
+    bool isDarkMode = false,
   }) {
     return SizedBox(
       width: double.infinity,
@@ -480,9 +502,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             SizedBox(width: 12.w),
             Text(
               text,
-              style: AppText.body16(
-                context,
-              ).copyWith(fontWeight: FontWeight.w500),
+              style: AppText.body16(context).copyWith(
+                fontWeight: FontWeight.w500,
+                color: isDarkMode ? Colors.black : Colors.white,
+              ),
             ),
           ],
         ),

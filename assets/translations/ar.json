@@ -44,5 +44,41 @@
     "password_reset_email_sent": "تم إرسال بريد إعادة تعيين كلمة المرور بنجاح. يرجى التحقق من بريدك الإلكتروني.",
     "error_sending_email": "خطأ في إرسال بريد إعادة تعيين كلمة المرور. يرجى المحاولة مرة أخرى.",
     "money_moves_no_cap": "اداره المال بذكاء وامان",
-    "loading_your_bag": "جاري تحميل محفظتك..."
+    "loading_your_bag": "جاري تحميل محفظتك...",
+    "home": {
+        "greeting_morning": "صباح الخير،",
+        "greeting_afternoon": "مساء الخير،",
+        "greeting_evening": "مساء الخير،",
+        "user_name": "أحمد حجازي",
+        "total_balance": "الرصيد الإجمالي",
+        "monthly_limit": "الحد الشهري",
+        "income": "الدخل",
+        "expenses": "النفقات",
+        "this_month": "هذا الشهر",
+        "view_all": "عرض الكل",
+        "spent": "تم الإنفاق",
+        "recent_transactions": "المعاملات الأخيرة",
+        "no_transactions": "لا توجد معاملات حتى الآن"
+    },
+    "transaction": {
+        "add_transaction": "إضافة معاملة",
+        "reset": "إعادة تعيين",
+        "expense": "نفقة",
+        "income": "دخل",
+        "category": "الفئة",
+        "see_all": "عرض الكل",
+        "date": "التاريخ",
+        "note": "ملاحظة",
+        "what_is_this_for": "لماذا هذا؟",
+        "save_transaction": "حفظ المعاملة",
+        "please_enter_amount": "يرجى إدخال المبلغ",
+        "transaction_saved": "تم حفظ المعاملة!"
+    },
+    "settings": {
+        "language": "اللغة",
+        "select_language": "اختر اللغة",
+        "english": "English",
+        "arabic": "العربية",
+        "language_changed": "تم تغيير اللغة بنجاح"
+    }
 }

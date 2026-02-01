@@ -4,10 +4,13 @@ import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/auth/screens/cubit/auth_cubit_cubit.dart';
 import 'package:flosy/features/auth/screens/forget_screen.dart';
 import 'package:flosy/features/auth/screens/register_screen.dart';
+import 'package:flosy/features/home/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
+import '../../../core/theme/app_theme.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -34,6 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     isArabic = context.locale.languageCode == 'ar';
+    bool isDarkMode = AppTheme.isDarkMode(context);
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
@@ -54,13 +58,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
 
                     // Header
-                    Text('welcome_back'.tr(), style: AppText.head24(context)),
+                    Text(
+                      'welcome_back'.tr(),
+                      style: AppText.head24(context).copyWith(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
                     SizedBox(height: 8.h),
                     Text(
                       'please_login_to_your_account'.tr(),
-                      style: AppText.body16(
-                        context,
-                      ).copyWith(color: Colors.grey[600]),
+                      style: AppText.body16(context).copyWith(
+                        color: isDarkMode ? Colors.white : Colors.grey[600],
+                      ),
                     ),
                     SizedBox(height: 10.h),
 
@@ -71,6 +80,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       hint: 'enter_your_email'.tr(),
                       prefixIcon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'email_required'.tr();
+                        }
+                        if (!RegExp(
+                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                        ).hasMatch(value)) {
+                          return 'invalid_email'.tr();
+                        }
+                        return null;
+                      },
                     ),
                     SizedBox(height: 16.h),
 
@@ -84,6 +104,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       obscured: obscured,
                       onToggleVisibility: () {
                         setState(() => obscured = !obscured);
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'password_required'.tr();
+                        }
+                        if (value.length < 8) {
+                          return 'password_min_length'.tr();
+                        }
+                        return null;
                       },
                     ),
                     SizedBox(height: 12.h),
@@ -117,13 +146,49 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     SizedBox(height: 24.h),
 
-                    // Login Button
-                    _buildPrimaryButton(
-                      text: 'login'.tr(),
-                      isLoading: isLoading,
-                      onPressed: () {
-                        // Handle login
+                    // Login Button with BlocListener and BlocBuilder
+                    BlocListener<AuthCubitCubit, AuthCubitState>(
+                      listener: (context, state) {
+                        if (state is AuthCubitSuccess) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('login_success'.tr()),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                          // Navigate to home or next screen
+                          // Navigator.pushReplacementNamed(context, '/home');
+                        }
+                        if (state is AuthCubitError) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(state.message),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
                       },
+                      child: BlocBuilder<AuthCubitCubit, AuthCubitState>(
+                        builder: (context, state) {
+                          return _buildPrimaryButton(
+                            text: 'login'.tr(),
+                            isLoading: state is AuthCubitLoading,
+                            onPressed: () {
+                              if (_formKey.currentState!.validate()) {
+                                context.read<AuthCubitCubit>().login(
+                                  emailController.text,
+                                  passwordController.text,
+                                );
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => const HomeScreen(),
+                                  ),
+                                );
+                              }
+                            },
+                          );
+                        },
+                      ),
                     ),
                     SizedBox(height: 24.h),
 
@@ -138,6 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () {
                         // Handle Google sign in
                       },
+                      isDarkMode: isDarkMode,
                     ),
                     SizedBox(height: 32.h),
 
@@ -198,22 +264,39 @@ class _LoginScreenState extends State<LoginScreen> {
     bool isPassword = false,
     bool obscured = false,
     VoidCallback? onToggleVisibility,
+    String? Function(String?)? validator,
+    bool isDarkMode = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: AppText.body16(context).copyWith(fontWeight: FontWeight.w600),
+          style: AppText.body16(context).copyWith(
+            fontWeight: FontWeight.w600,
+            color: isDarkMode ? Colors.black87 : Colors.white,
+          ),
         ),
         SizedBox(height: 8.h),
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
           obscureText: isPassword ? obscured : false,
+          validator: validator,
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: Icon(prefixIcon, color: Colors.grey[600], size: 22),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(color: AppColors.colorButton, width: 2),
+            ),
             suffixIcon: isPassword
                 ? IconButton(
                     icon: Icon(
@@ -294,6 +377,7 @@ class _LoginScreenState extends State<LoginScreen> {
     required IconData icon,
     required String text,
     required VoidCallback onPressed,
+    bool isDarkMode = false,
   }) {
     return SizedBox(
       width: double.infinity,
@@ -313,9 +397,10 @@ class _LoginScreenState extends State<LoginScreen> {
             SizedBox(width: 12.w),
             Text(
               text,
-              style: AppText.body16(
-                context,
-              ).copyWith(fontWeight: FontWeight.w500),
+              style: AppText.body16(context).copyWith(
+                fontWeight: FontWeight.w500,
+                color: isDarkMode ? Colors.white : Colors.black87,
+              ),
             ),
           ],
         ),

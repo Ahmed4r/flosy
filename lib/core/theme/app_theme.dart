@@ -2,11 +2,25 @@ import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class AppTheme {
+  static bool isDarkMode(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark;
+  }
   ThemeData get lightTheme {
     return ThemeData(
       brightness: Brightness.light,
       scaffoldBackgroundColor: AppColors.whiteColor,
-
+      appBarTheme: AppBarTheme(
+        surfaceTintColor: Colors.white,
+        shadowColor: Colors.transparent,
+        backgroundColor: AppColors.whiteColor,
+        elevation: 0,
+        iconTheme: IconThemeData(color: AppColors.blackColor),
+        titleTextStyle: TextStyle(
+          color: AppColors.blackColor,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           minimumSize: const Size(300, 50),
@@ -45,6 +59,16 @@ class AppTheme {
     return ThemeData(
       brightness: Brightness.dark,
       scaffoldBackgroundColor: AppColors.blackColor,
+      appBarTheme: AppBarTheme(
+        backgroundColor: AppColors.blackColor,
+        elevation: 0,
+        iconTheme: IconThemeData(color: AppColors.whiteColor),
+        titleTextStyle: TextStyle(
+          color: AppColors.whiteColor,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           minimumSize: const Size(300, 50),
