@@ -19,7 +19,7 @@ class AppText {
         color: color,
       );
     } else {
-      return GoogleFonts.inter(
+      return GoogleFonts.poppins(
         fontSize: size,
         fontWeight: weight,
         color: color,
@@ -32,6 +32,12 @@ class AppText {
 
   static TextStyle body16(BuildContext context) =>
       _getFontStyle(context, 16, FontWeight.w400, const Color(0xff333333));
+  static TextStyle body12(BuildContext context) =>
+      _getFontStyle(context, 12, FontWeight.w400, const Color(0xff333333));
+  static TextStyle body14(BuildContext context) =>
+      _getFontStyle(context, 14, FontWeight.w400, const Color(0xff333333));
+  static TextStyle body12grey(BuildContext context) =>
+      _getFontStyle(context, 12, FontWeight.w400, const Color(0xff888888));
   static TextStyle textButton(BuildContext context) =>
       _getFontStyle(context, 22, FontWeight.bold, const Color(0xff333333));
 }
