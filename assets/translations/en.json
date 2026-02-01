@@ -1,4 +1,5 @@
 {
+    "flosy": "Flosy",
     "password": "Password",
     "enter_your_password": "Enter your Password",
     "forgot_password": "Forgot Password?",
@@ -41,5 +42,7 @@
     "auth_error": "Authentication error. Please try again.",
     "unexpected_error": "An unexpected error occurred. Please try again.",
     "password_reset_email_sent": "Password reset email sent successfully. Please check your email.",
-    "error_sending_email": "Error sending password reset email. Please try again."
+    "error_sending_email": "Error sending password reset email. Please try again.",
+    "money_moves_no_cap": "Manage money smartly and securely",
+    "loading_your_bag": "Loading your bag..."
 }
