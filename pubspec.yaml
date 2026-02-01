@@ -31,6 +31,16 @@ dependencies:
   flutter:
     sdk: flutter
   google_fonts: ^6.3.2
+  font_awesome_flutter: ^10.9.1
+  easy_localization: ^3.0.8
+  flutter_screenutil: ^5.9.3
+  flutter_bloc: ^9.1.1
+  shared_preferences: ^2.5.3
+  cloud_functions: ^6.0.6
+  firebase_core: ^4.4.0
+  cloud_firestore: ^6.1.2
+  firebase_auth: ^6.1.4
+  http: ^1.6.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -44,7 +54,7 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/icons/flosy_logo.png"
+  image_path: "assets/images/app_icon.png"
  
 
   # The "flutter_lints" package below contains a set of recommended lints to
@@ -69,6 +79,7 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+    - assets/translations/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

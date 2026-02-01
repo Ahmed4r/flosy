@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "760463806679",
+    "project_id": "flosyapp112",
+    "storage_bucket": "flosyapp112.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:760463806679:android:e33ae25b3f838a92dda092",
+        "android_client_info": {
+          "package_name": "com.example.flosy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC1YY7Ux6_DhYE4qJPfgre26cavCAw1Gzo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

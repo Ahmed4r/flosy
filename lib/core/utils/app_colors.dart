@@ -2,5 +2,7 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   static const whiteColor = Color(0xfff7f9f6);
+  static const blackColor = Color(0xff121212);
+  static const textFieldFill = Color.fromARGB(104, 215, 216, 214);
   static const colorButton = Color(0xff13ed5a);
 }
