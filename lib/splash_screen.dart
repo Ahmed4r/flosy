@@ -1,4 +1,11 @@
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flosy/core/theme/app_theme.dart';
+import 'package:flosy/core/utils/app_colors.dart';
+import 'package:flosy/features/auth/screens/cubit/auth_cubit_cubit.dart';
+import 'package:flosy/features/auth/screens/login_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'dart:math' as math;
 
 class SplashScreen extends StatefulWidget {
@@ -10,7 +17,6 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
-  late AnimationController _backgroundController;
   late AnimationController _logoController;
   late AnimationController _textController;
   late AnimationController _floatingController;
@@ -24,12 +30,6 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-
-    // Background gradient animation
-    _backgroundController = AnimationController(
-      duration: const Duration(seconds: 3),
-      vsync: this,
-    )..repeat(reverse: true);
 
     // Logo animation
     _logoController = AnimationController(
@@ -83,9 +83,9 @@ class _SplashScreenState extends State<SplashScreen>
     _floatingController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
-    )..repeat(reverse: true);
+    )..repeat(reverse: false);
 
-    // Start animations sequence
+    // Start animations sequence and navigate
     _startAnimations();
   }
 
@@ -94,11 +94,23 @@ class _SplashScreenState extends State<SplashScreen>
     _logoController.forward();
     await Future.delayed(const Duration(milliseconds: 600));
     _textController.forward();
+
+    // Navigate to login after 3 seconds
+    await Future.delayed(const Duration(seconds: 3));
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => BlocProvider(
+            create: (context) => AuthCubitCubit(),
+            child: const LoginScreen(),
+          ),
+        ),
+      );
+    }
   }
 
   @override
   void dispose() {
-    _backgroundController.dispose();
     _logoController.dispose();
     _textController.dispose();
     _floatingController.dispose();
@@ -108,42 +120,51 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: AnimatedBuilder(
-        animation: _backgroundController,
-        builder: (context, child) {
-          return Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color.lerp(
-                    const Color(0xFF1A1A2E),
-                    const Color(0xFF16213E),
-                    _backgroundController.value,
-                  )!,
-                  Color.lerp(
-                    const Color(0xFF0F0F1A),
-                    const Color(0xFF1A1A2E),
-                    _backgroundController.value,
-                  )!,
-                ],
-              ),
-            ),
-            child: child,
-          );
-        },
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.white, Colors.grey[50]!],
+          ),
+        ),
         child: Stack(
           children: [
             // Floating orbs background
-            ...List.generate(6, (index) => _buildFloatingOrb(index)),
+            ...List.generate(4, (index) => _buildFloatingOrb(index)),
 
             // Main content
             Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const SizedBox(height: 40),
+                  // Logo with scale and rotation animation
+                  AnimatedBuilder(
+                    animation: _logoController,
+                    builder: (context, child) {
+                      return Transform.scale(
+                        scale: _logoScale.value,
+                        child: Transform.rotate(
+                          angle: _logoRotation.value,
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: EdgeInsets.all(20.w),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.colorButton.withOpacity(0.1),
+                      ),
+                      child: Image.asset(
+                        'assets/icons/logo.png',
+                        height: 100.h,
+                        width: 100.w,
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: 40.h),
 
                   // App name with slide animation
                   AnimatedBuilder(
@@ -157,27 +178,18 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                       );
                     },
-                    child: ShaderMask(
-                      shaderCallback: (bounds) => const LinearGradient(
-                        colors: [
-                          Color(0xFF7C3AED),
-                          Color(0xFFEC4899),
-                          Color(0xFFF59E0B),
-                        ],
-                      ).createShader(bounds),
-                      child: const Text(
-                        'flosy',
-                        style: TextStyle(
-                          fontSize: 48,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: 2,
-                        ),
+                    child: Text(
+                      'flosy'.tr(),
+                      style: TextStyle(
+                        fontSize: 48.sp,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
+                        letterSpacing: 1.5,
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12.h),
 
                   // Tagline
                   AnimatedBuilder(
@@ -188,13 +200,13 @@ class _SplashScreenState extends State<SplashScreen>
                         child: child,
                       );
                     },
-                    child: const Text(
-                      'money moves, no cap 💸',
+                    child: Text(
+                      'money_moves_no_cap'.tr(),
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 16.sp,
                         fontWeight: FontWeight.w400,
-                        color: Color(0xFF9CA3AF),
-                        letterSpacing: 1.5,
+                        color: Colors.grey[600],
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ),
@@ -204,7 +216,7 @@ class _SplashScreenState extends State<SplashScreen>
 
             // Bottom loading indicator
             Positioned(
-              bottom: 80,
+              bottom: 80.h,
               left: 0,
               right: 0,
               child: AnimatedBuilder(
@@ -215,13 +227,13 @@ class _SplashScreenState extends State<SplashScreen>
                 child: Column(
                   children: [
                     _buildLoadingIndicator(),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'loading your bag...',
+                    SizedBox(height: 16.h),
+                    Text(
+                      'loading_your_bag'.tr(),
                       style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF6B7280),
-                        letterSpacing: 1,
+                        fontSize: 12.sp,
+                        color: Colors.grey[400],
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ],
@@ -240,20 +252,16 @@ class _SplashScreenState extends State<SplashScreen>
       const Alignment(0.9, -0.4),
       const Alignment(-0.6, 0.7),
       const Alignment(0.7, 0.5),
-      const Alignment(0.0, -0.8),
-      const Alignment(-0.3, 0.3),
     ];
 
     final colors = [
-      const Color(0xFF7C3AED),
-      const Color(0xFFEC4899),
-      const Color(0xFFF59E0B),
-      const Color(0xFF06B6D4),
-      const Color(0xFF8B5CF6),
-      const Color(0xFFEF4444),
+      AppColors.colorButton.withOpacity(0.05),
+      AppColors.colorButton.withOpacity(0.03),
+      AppColors.colorButton.withOpacity(0.04),
+      AppColors.colorButton.withOpacity(0.03),
     ];
 
-    final sizes = [60.0, 80.0, 50.0, 70.0, 45.0, 55.0];
+    final sizes = [80.0, 100.0, 70.0, 90.0];
 
     return AnimatedBuilder(
       animation: _floatingController,
@@ -271,12 +279,7 @@ class _SplashScreenState extends State<SplashScreen>
             height: sizes[index],
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  colors[index].withOpacity(0.3),
-                  colors[index].withOpacity(0.0),
-                ],
-              ),
+              color: colors[index],
             ),
           ),
         );
@@ -285,46 +288,35 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Widget _buildLoadingIndicator() {
-    return SizedBox(
-      width: 200,
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 60.w),
       child: AnimatedBuilder(
         animation: _floatingController,
         builder: (context, child) {
           return Stack(
             children: [
               Container(
-                height: 3,
+                height: 4.h,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2D2D3A),
+                  color: Colors.grey[200],
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              AnimatedBuilder(
-                animation: _floatingController,
-                builder: (context, child) {
-                  return FractionallySizedBox(
-                    widthFactor: 0.3 + (_floatingController.value * 0.7),
-                    child: Container(
-                      height: 3,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(2),
-                        gradient: const LinearGradient(
-                          colors: [
-                            Color(0xFF7C3AED),
-                            Color(0xFFEC4899),
-                            Color(0xFFF59E0B),
-                          ],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF7C3AED).withOpacity(0.5),
-                            blurRadius: 8,
-                          ),
-                        ],
+              FractionallySizedBox(
+                widthFactor: 0.3 + (_floatingController.value * 0.7),
+                child: Container(
+                  height: 4.h,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(2),
+                    color: AppColors.colorButton,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.colorButton.withOpacity(0.3),
+                        blurRadius: 8,
                       ),
-                    ),
-                  );
-                },
+                    ],
+                  ),
+                ),
               ),
             ],
           );
