@@ -387,7 +387,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           label,
           style: AppText.body16(context).copyWith(
             fontWeight: FontWeight.w600,
-            color: isDarkMode ? Colors.black87 : Colors.white,
+            color: isDarkMode ? Colors.white : Colors.black87,
           ),
         ),
         SizedBox(height: 8.h),
@@ -504,7 +504,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               text,
               style: AppText.body16(context).copyWith(
                 fontWeight: FontWeight.w500,
-                color: isDarkMode ? Colors.black : Colors.white,
+                color: isDarkMode ? Colors.white : Colors.black87,
               ),
             ),
           ],
