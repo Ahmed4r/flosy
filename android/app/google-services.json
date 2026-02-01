@@ -12,7 +12,12 @@
           "package_name": "com.example.flosy"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "760463806679-4j99t7skliblv3dbvc8r395h3nvb4qbn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyC1YY7Ux6_DhYE4qJPfgre26cavCAw1Gzo"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "760463806679-4j99t7skliblv3dbvc8r395h3nvb4qbn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
