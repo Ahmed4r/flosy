@@ -18,16 +18,12 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController nameController = TextEditingController(
-    text: 'ahmed',
   );
   final TextEditingController emailController = TextEditingController(
-    text: 'ahmed@gmail.com',
   );
   final TextEditingController passwordController = TextEditingController(
-    text: 'password123',
   );
   final TextEditingController confirmPasswordController = TextEditingController(
-    text: 'password123',
   );
   final _formKey = GlobalKey<FormState>();
   bool isArabic = false;
