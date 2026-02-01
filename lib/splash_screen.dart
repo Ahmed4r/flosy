@@ -145,8 +145,8 @@ class _SplashScreenState extends State<SplashScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: isDarkMode
-                ? [Colors.white, Colors.grey[50]!]
-                : [Colors.black, Colors.white],
+                ? [Colors.black, Colors.white]
+                : [Colors.white, Colors.grey[50]!],
           ),
         ),
         child: Stack(

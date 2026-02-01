@@ -274,7 +274,7 @@ class _LoginScreenState extends State<LoginScreen> {
           label,
           style: AppText.body16(context).copyWith(
             fontWeight: FontWeight.w600,
-            color: isDarkMode ? Colors.black87 : Colors.white,
+            color: isDarkMode ? Colors.white : Colors.black87,
           ),
         ),
         SizedBox(height: 8.h),
