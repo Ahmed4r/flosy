@@ -71,6 +71,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       hint: 'enter_your_email'.tr(),
                       prefixIcon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'email_required'.tr();
+                        }
+                        if (!RegExp(
+                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                        ).hasMatch(value)) {
+                          return 'invalid_email'.tr();
+                        }
+                        return null;
+                      },
                     ),
                     SizedBox(height: 16.h),
 
@@ -84,6 +95,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       obscured: obscured,
                       onToggleVisibility: () {
                         setState(() => obscured = !obscured);
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'password_required'.tr();
+                        }
+                        if (value.length < 8) {
+                          return 'password_min_length'.tr();
+                        }
+                        return null;
                       },
                     ),
                     SizedBox(height: 12.h),
@@ -117,13 +137,44 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     SizedBox(height: 24.h),
 
-                    // Login Button
-                    _buildPrimaryButton(
-                      text: 'login'.tr(),
-                      isLoading: isLoading,
-                      onPressed: () {
-                        // Handle login
+                    // Login Button with BlocListener and BlocBuilder
+                    BlocListener<AuthCubitCubit, AuthCubitState>(
+                      listener: (context, state) {
+                        if (state is AuthCubitSuccess) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('login_success'.tr()),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                          // Navigate to home or next screen
+                          // Navigator.pushReplacementNamed(context, '/home');
+                        }
+                        if (state is AuthCubitError) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(state.message),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
                       },
+                      child: BlocBuilder<AuthCubitCubit, AuthCubitState>(
+                        builder: (context, state) {
+                          return _buildPrimaryButton(
+                            text: 'login'.tr(),
+                            isLoading: state is AuthCubitLoading,
+                            onPressed: () {
+                              if (_formKey.currentState!.validate()) {
+                                context.read<AuthCubitCubit>().login(
+                                  emailController.text,
+                                  passwordController.text,
+                                );
+                              }
+                            },
+                          );
+                        },
+                      ),
                     ),
                     SizedBox(height: 24.h),
 
@@ -198,6 +249,7 @@ class _LoginScreenState extends State<LoginScreen> {
     bool isPassword = false,
     bool obscured = false,
     VoidCallback? onToggleVisibility,
+    String? Function(String?)? validator,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,9 +263,21 @@ class _LoginScreenState extends State<LoginScreen> {
           controller: controller,
           keyboardType: keyboardType,
           obscureText: isPassword ? obscured : false,
+          validator: validator,
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: Icon(prefixIcon, color: Colors.grey[600], size: 22),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(color: AppColors.colorButton, width: 2),
+            ),
             suffixIcon: isPassword
                 ? IconButton(
                     icon: Icon(
