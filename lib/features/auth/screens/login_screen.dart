@@ -4,10 +4,13 @@ import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/auth/screens/cubit/auth_cubit_cubit.dart';
 import 'package:flosy/features/auth/screens/forget_screen.dart';
 import 'package:flosy/features/auth/screens/register_screen.dart';
+import 'package:flosy/features/home/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
+import '../../../core/theme/app_theme.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -34,6 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     isArabic = context.locale.languageCode == 'ar';
+    bool isDarkMode = AppTheme.isDarkMode(context);
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
@@ -54,13 +58,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
 
                     // Header
-                    Text('welcome_back'.tr(), style: AppText.head24(context)),
+                    Text(
+                      'welcome_back'.tr(),
+                      style: AppText.head24(context).copyWith(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
                     SizedBox(height: 8.h),
                     Text(
                       'please_login_to_your_account'.tr(),
-                      style: AppText.body16(
-                        context,
-                      ).copyWith(color: Colors.grey[600]),
+                      style: AppText.body16(context).copyWith(
+                        color: isDarkMode ? Colors.white : Colors.grey[600],
+                      ),
                     ),
                     SizedBox(height: 10.h),
 
@@ -170,6 +179,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                   emailController.text,
                                   passwordController.text,
                                 );
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => const HomeScreen(),
+                                  ),
+                                );
                               }
                             },
                           );
@@ -189,6 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () {
                         // Handle Google sign in
                       },
+                      isDarkMode: isDarkMode,
                     ),
                     SizedBox(height: 32.h),
 
@@ -250,13 +265,17 @@ class _LoginScreenState extends State<LoginScreen> {
     bool obscured = false,
     VoidCallback? onToggleVisibility,
     String? Function(String?)? validator,
+    bool isDarkMode = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: AppText.body16(context).copyWith(fontWeight: FontWeight.w600),
+          style: AppText.body16(context).copyWith(
+            fontWeight: FontWeight.w600,
+            color: isDarkMode ? Colors.black87 : Colors.white,
+          ),
         ),
         SizedBox(height: 8.h),
         TextFormField(
@@ -358,6 +377,7 @@ class _LoginScreenState extends State<LoginScreen> {
     required IconData icon,
     required String text,
     required VoidCallback onPressed,
+    bool isDarkMode = false,
   }) {
     return SizedBox(
       width: double.infinity,
@@ -377,9 +397,10 @@ class _LoginScreenState extends State<LoginScreen> {
             SizedBox(width: 12.w),
             Text(
               text,
-              style: AppText.body16(
-                context,
-              ).copyWith(fontWeight: FontWeight.w500),
+              style: AppText.body16(context).copyWith(
+                fontWeight: FontWeight.w500,
+                color: isDarkMode ? Colors.white : Colors.black87,
+              ),
             ),
           ],
         ),
