@@ -4,13 +4,19 @@ import 'package:flosy/core/utils/app_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-Widget buildAmountCard(BuildContext context, Widget buildView()) {
+Widget buildAmountCard(
+  BuildContext context,
+  Widget buildPercentage(), // percentage chip
+  double totalBalance,
+  VoidCallback onEditBalance, // edit callback
+  double spentRatio, // 0.0 - 1.0
+) {
   return Container(
     width: double.infinity,
     height: 120.h,
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(20.r),
-      gradient: LinearGradient(
+      gradient: const LinearGradient(
         colors: [Color(0xff131f38), Color(0xff121f31), Color(0xff153b37)],
         begin: Alignment.centerLeft,
         end: Alignment.centerRight,
@@ -24,7 +30,9 @@ Widget buildAmountCard(BuildContext context, Widget buildView()) {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Row 1: label + percentage
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'home.total_balance'.tr(),
@@ -32,20 +40,33 @@ Widget buildAmountCard(BuildContext context, Widget buildView()) {
                   context,
                 ).copyWith(fontSize: 14.sp, color: Colors.white70),
               ),
-              Spacer(),
-              buildView(),
+              SizedBox(width: 8.w),
+              buildPercentage(), // <-- percentage next to label
             ],
           ),
-          Text(
-            '\$12,345.67',
-            style: AppText.head24(context).copyWith(color: Colors.white),
+          SizedBox(height: 6.h),
+          // Row 2: balance + edit icon
+          Row(
+            children: [
+              Text(
+                '\$${totalBalance.toStringAsFixed(2)}',
+                style: AppText.head24(context).copyWith(color: Colors.white),
+              ),
+              SizedBox(width: 8.w),
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                icon: const Icon(Icons.edit, color: Colors.white70, size: 18),
+                onPressed: onEditBalance,
+              ),
+            ],
           ),
           SizedBox(height: 10.h),
           Row(
             children: [
               Expanded(
                 child: LinearProgressIndicator(
-                  value: 0.7,
+                  value: spentRatio.clamp(0.0, 1.0), // <-- dynamic level
                   color: AppColors.greenColor,
                   backgroundColor: Colors.white24,
                   minHeight: 2.h,

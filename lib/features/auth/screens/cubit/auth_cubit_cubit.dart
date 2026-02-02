@@ -2,6 +2,7 @@ import 'package:bloc/bloc.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:meta/meta.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 part 'auth_cubit_state.dart';
 
@@ -12,13 +13,17 @@ class AuthCubitCubit extends Cubit<AuthCubitState> {
   Future<void> login(String username, String password) async {
     emit(AuthCubitLoading());
     try {
-      // Disable reCAPTCHA for development/testing
-      await auth.setSettings(appVerificationDisabledForTesting: true);
-
       await auth.signInWithEmailAndPassword(
         email: username,
         password: password,
       );
+
+      final user = auth.currentUser;
+      if (user != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_token', user.uid);
+      }
+
       emit(AuthCubitSuccess());
     } on FirebaseAuthException catch (e) {
       emit(AuthCubitError(_handleFirebaseAuthError(e.code)));
@@ -30,11 +35,17 @@ class AuthCubitCubit extends Cubit<AuthCubitState> {
   Future<void> register(String email, String password) async {
     emit(AuthCubitLoading());
     try {
-
       await auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
+
+      final user = auth.currentUser;
+      if (user != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_token', user.uid);
+      }
+
       emit(AuthCubitSuccess());
     } on FirebaseAuthException catch (e) {
       emit(AuthCubitError(_handleFirebaseAuthError(e.code)));
@@ -47,6 +58,10 @@ class AuthCubitCubit extends Cubit<AuthCubitState> {
     emit(AuthCubitLoading());
     try {
       await auth.signOut();
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('user_token');
+
       emit(AuthCubitSuccess());
     } on FirebaseAuthException catch (e) {
       emit(AuthCubitError(_handleFirebaseAuthError(e.code)));

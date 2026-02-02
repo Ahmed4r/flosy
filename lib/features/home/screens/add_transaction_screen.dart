@@ -5,9 +5,14 @@ import 'package:flosy/core/utils/app_text.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flosy/features/home/model/transaction_model.dart';
+import 'package:flosy/features/home/services/db.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // <-- add
 
 class AddTransactionScreen extends StatefulWidget {
-  const AddTransactionScreen({super.key});
+  final TransactionModel? transaction;
+
+  const AddTransactionScreen({super.key, this.transaction});
 
   @override
   State<AddTransactionScreen> createState() => _AddTransactionScreenState();
@@ -17,7 +22,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   late TextEditingController amountController;
   late TextEditingController noteController;
 
-  String selectedCategory = 'food'; // <-- stable id
+  String selectedCategory = 'food';
   bool isExpense = true;
   DateTime selectedDate = DateTime.now();
 
@@ -25,7 +30,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     {
       'id': 'food',
       'icon': FontAwesomeIcons.burger,
-      'labelKey': 'categories.food', // <-- change here
+      'labelKey': 'categories.food',
       'color': const Color(0xFF88B0D3),
     },
     {
@@ -71,6 +76,16 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     super.initState();
     amountController = TextEditingController();
     noteController = TextEditingController();
+
+    // Prefill when editing
+    if (widget.transaction != null) {
+      final tx = widget.transaction!;
+      isExpense = tx.type == TransactionType.expense;
+      selectedCategory = tx.category;
+      selectedDate = tx.date;
+      amountController.text = tx.amount.toStringAsFixed(2);
+      noteController.text = tx.title;
+    }
   }
 
   @override
@@ -80,7 +95,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     super.dispose();
   }
 
-  // ✅ THEME HELPER METHODS
   Color _getBackgroundColor(BuildContext context) {
     return Theme.of(context).brightness == Brightness.dark
         ? Color(0xFF1F1F1F)
@@ -348,8 +362,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     ),
                     SizedBox(height: 8.h),
                     Text(
-                      (category['labelKey'] as String)
-                          .tr(), // <-- translate here
+                      (category['labelKey'] as String).tr(),
                       style: AppText.body12(context).copyWith(
                         color: isSelected
                             ? Colors.white
@@ -522,20 +535,79 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       width: double.infinity,
       height: 56.h,
       child: ElevatedButton(
-        onPressed: () {
+        onPressed: () async {
           if (amountController.text.isEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('transaction.please_enter_amount'.tr())),
             );
             return;
           }
+
+          final amount = double.tryParse(amountController.text);
+          if (amount == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('transaction.invalid_amount'.tr())),
+            );
+            return;
+          }
+
+          final category = categories.firstWhere(
+            (c) => c['id'] == selectedCategory,
+          );
+          final iconData = category['icon'] as IconData;
+
+          final tx = TransactionModel(
+            id: widget.transaction?.id,
+            title: noteController.text.isNotEmpty
+                ? noteController.text
+                : (category['labelKey'] as String).tr(),
+            amount: amount,
+            type: isExpense ? TransactionType.expense : TransactionType.income,
+            date: selectedDate,
+            category: selectedCategory,
+            iconCodePoint: iconData.codePoint,
+            iconFontFamily: iconData.fontFamily ?? 'MaterialIcons',
+            iconFontPackage:
+                iconData.fontPackage, // <-- store package for FontAwesome
+          );
+
+          // Save to DB
+          if (widget.transaction == null) {
+            await dbService.addTransaction(tx);
+          } else {
+            await dbService.updateTransaction(tx);
+          }
+
+          // Update total balance in SharedPreferences
+          final prefs = await SharedPreferences.getInstance();
+          double current = prefs.getDouble('total_balance') ?? 0.0;
+
+          // effect of new transaction
+          final newDelta =
+              tx.amount * (tx.type == TransactionType.expense ? -1.0 : 1.0);
+
+          if (widget.transaction == null) {
+            // new transaction: just apply its effect
+            current += newDelta;
+          } else {
+            // editing: remove old effect, apply new one
+            final old = widget.transaction!;
+            final oldDelta =
+                old.amount * (old.type == TransactionType.expense ? -1.0 : 1.0);
+            current = current - oldDelta + newDelta;
+          }
+
+          await prefs.setDouble('total_balance', current);
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('transaction.transaction_saved'.tr()),
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.pop(context);
+
+          // return `true` so HomeScreen knows to refresh
+          Navigator.pop(context, true);
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.greenColor,

@@ -158,8 +158,12 @@ class _LoginScreenState extends State<LoginScreen> {
                               backgroundColor: Colors.green,
                             ),
                           );
-                          // Navigate to home or next screen
-                          // Navigator.pushReplacementNamed(context, '/home');
+                          // navigate to home on successful login
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (context) => const HomeScreen(),
+                            ),
+                          );
                         }
                         if (state is AuthCubitError) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -177,14 +181,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             isLoading: state is AuthCubitLoading,
                             onPressed: () {
                               if (_formKey.currentState!.validate()) {
+                                // <-- only trigger login; navigation happens in listener
                                 context.read<AuthCubitCubit>().login(
                                   emailController.text,
                                   passwordController.text,
-                                );
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (context) => const HomeScreen(),
-                                  ),
                                 );
                               }
                             },
