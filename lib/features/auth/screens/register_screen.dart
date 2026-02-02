@@ -41,7 +41,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    bool isDarkMode = AppTheme.isDarkMode(context);
+    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     isArabic = context.locale.languageCode == 'ar';
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -97,6 +97,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         }
                         return null;
                       },
+                      isDarkMode: isDarkMode,
                     ),
                     SizedBox(height: 16.h),
 
@@ -118,6 +119,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         }
                         return null;
                       },
+                      isDarkMode: isDarkMode,
                     ),
                     SizedBox(height: 16.h),
 
@@ -141,6 +143,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         }
                         return null;
                       },
+                      isDarkMode: isDarkMode,
                     ),
                     SizedBox(height: 16.h),
 
@@ -167,6 +170,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         }
                         return null;
                       },
+                      isDarkMode: isDarkMode,
                     ),
                     SizedBox(height: 16.h),
 
@@ -289,6 +293,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                     // Google Sign Up
                     _buildSocialButton(
+                      isDarkMode: isDarkMode,
                       icon: FontAwesomeIcons.google,
                       text: 'continue_with_google'.tr(),
                       onPressed: () {
@@ -315,7 +320,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               return _buildSocialButton(
                                 icon: FontAwesomeIcons.google,
                                 text: 'continue_with_google'.tr(),
-
+                                isDarkMode: isDarkMode,
                                 onPressed: () {
                                   // Implement Google Sign-In
                                 },
@@ -397,6 +402,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           obscureText: isPassword ? obscured : false,
           validator: validator,
           decoration: InputDecoration(
+            fillColor: isDarkMode
+                ? Colors.grey[800] // dark mode background
+                : Colors.grey[350], // light mode background
             hintText: hint,
             prefixIcon: Icon(
               prefixIcon,
@@ -436,7 +444,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.colorButton,
-          disabledBackgroundColor: Colors.grey[300],
+          disabledBackgroundColor: Colors.grey[400],
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16.r),
           ),
@@ -463,17 +471,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget _buildDivider() {
     return Row(
       children: [
-        Expanded(child: Divider(color: Colors.grey[300], thickness: 1)),
+        Expanded(child: Divider(color: Colors.grey[500], thickness: 1)),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: Text(
             'or_continue_with'.tr(),
             style: AppText.body16(
               context,
-            ).copyWith(color: Colors.grey[500], fontSize: 14.sp),
+            ).copyWith(color: Colors.grey[700], fontSize: 14.sp),
           ),
         ),
-        Expanded(child: Divider(color: Colors.grey[300], thickness: 1)),
+        Expanded(child: Divider(color: Colors.grey[500], thickness: 1)),
       ],
     );
   }
@@ -490,7 +498,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          side: BorderSide(color: Colors.grey[300]!),
+          side: BorderSide(color: Colors.grey[500]!),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16.r),
           ),
@@ -504,7 +512,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               text,
               style: AppText.body16(context).copyWith(
                 fontWeight: FontWeight.w500,
-                color: isDarkMode ? Colors.white : Colors.black87,
+                color: isDarkMode == true ? Colors.white : Colors.black87,
               ),
             ),
           ],

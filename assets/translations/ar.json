@@ -24,6 +24,15 @@
     "forgot_password_title": "نسيت كلمة المرور؟",
     "forgot_password_subtitle": "لا تقلق! أدخل بريدك الإلكتروني وسنرسل لك ايميل لإعادة تعيين كلمة المرور.",
     "send_code": "إرسال الرمز",
+    "password_required": "كلمة المرور مطلوبة",
+    "password_min_length": "يجب أن تكون كلمة المرور 8 أحرف على الأقل",
+    "login_success": "تم تسجيل الدخول بنجاح",
+    "email_required": "البريد الإلكتروني مطلوب",
+    "email_invalid": "البريد الإلكتروني غير صالح",
+    "name_required": "الاسم مطلوب",
+    "confirm_password_required": "تأكيد كلمة المرور مطلوب",
+    "name_min_length": "يجب أن يكون الاسم 3 أحرف على الأقل",
+    "passwords_not_match": "كلمتا المرور غير متطابقتين",
     "error": "خطأ",
     "ok": "حسناً",
     "registration_success": "تم التسجيل بنجاح",
@@ -80,5 +89,14 @@
         "english": "English",
         "arabic": "العربية",
         "language_changed": "تم تغيير اللغة بنجاح"
+    },
+    "categories": {
+        "food": "طعام",
+        "rent": "إيجار",
+        "transport": "مواصلات",
+        "shopping": "تسوق",
+        "fun": "ترفيه",
+        "health": "صحة",
+        "more": "المزيد"
     }
 }

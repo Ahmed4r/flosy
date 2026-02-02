@@ -37,7 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     isArabic = context.locale.languageCode == 'ar';
-    bool isDarkMode = AppTheme.isDarkMode(context);
+    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
@@ -80,6 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       hint: 'enter_your_email'.tr(),
                       prefixIcon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
+                      isDarkMode: isDarkMode,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'email_required'.tr();
@@ -102,6 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       prefixIcon: Icons.lock_outline,
                       isPassword: true,
                       obscured: obscured,
+                      isDarkMode: isDarkMode,
                       onToggleVisibility: () {
                         setState(() => obscured = !obscured);
                       },
@@ -284,14 +286,26 @@ class _LoginScreenState extends State<LoginScreen> {
           obscureText: isPassword ? obscured : false,
           validator: validator,
           decoration: InputDecoration(
+            filled: true, // <-- required for fillColor to work
+            fillColor: isDarkMode
+                ? Colors.grey[800] // dark mode background
+                : Colors.grey[350], // light mode background
             hintText: hint,
-            prefixIcon: Icon(prefixIcon, color: Colors.grey[600], size: 22),
+            hintStyle: TextStyle(
+              color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
+              fontSize: 14.sp,
+            ),
+            prefixIcon: Icon(
+              prefixIcon,
+              color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+              size: 22,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
-              borderSide: BorderSide(color: Colors.grey[300]!),
+              borderSide: BorderSide(color: Colors.grey[400]!),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
@@ -303,7 +317,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       obscured
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined,
-                      color: Colors.grey[600],
+                      color: Colors.grey[500],
                     ),
                     onPressed: onToggleVisibility,
                   )
@@ -385,7 +399,7 @@ class _LoginScreenState extends State<LoginScreen> {
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          side: BorderSide(color: Colors.grey[300]!),
+          side: BorderSide(color: Colors.grey[400]!),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16.r),
           ),
