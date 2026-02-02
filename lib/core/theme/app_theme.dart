@@ -5,6 +5,7 @@ class AppTheme {
   static bool isDarkMode(BuildContext context) {
     return Theme.of(context).brightness == Brightness.dark;
   }
+
   ThemeData get lightTheme {
     return ThemeData(
       brightness: Brightness.light,

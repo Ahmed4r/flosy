@@ -27,11 +27,15 @@ Widget buildChart(BuildContext context) {
     decoration: BoxDecoration(
       color: isDarkMode ? Colors.black54 : Colors.white,
       borderRadius: BorderRadius.circular(20.r),
+      border: Border.all(
+        color: isDarkMode ? Colors.white12 : Colors.grey.withOpacity(0.3),
+        width: 1,
+      ),
       boxShadow: [
         BoxShadow(
           color: isDarkMode
               ? Colors.white.withOpacity(0.1)
-              : Colors.grey.withOpacity(0.1),
+              : Colors.grey.withOpacity(0.8),
           blurRadius: 10,
           offset: Offset(0, 4),
         ),

@@ -26,6 +26,15 @@
     "send_code": "Send Code",
     "error": "Error",
     "ok": "OK",
+    "password_required": "Password is required",
+    "password_min_length": "Password must be at least 8 characters long",
+    "login_success": "Login Successful",
+    "email_required": "Email is required",
+    "email_invalid": "Invalid email address",
+    "name_required": "Name is required",
+    "confirm_password_required": "Confirm password is required",
+    "name_min_length": "Name must be at least 3 characters long",
+    "passwords_not_match": "Passwords do not match",
     "registration_success": "Registration Successful",
     "weak_password": "The password provided is too weak. Please use a stronger password (at least 8 characters).",
     "email_already_in_use": "The email address is already in use. Please use a different email or try logging in.",
@@ -80,5 +89,14 @@
         "english": "English",
         "arabic": "العربية",
         "language_changed": "Language changed successfully"
-    }
+    },
+    "categories": {
+        "food": "Food",
+        "rent": "Rent",
+        "transport": "Transport",
+        "shopping": "Shopping",
+        "fun": "Fun",
+        "health": "Health",
+        "more": "More"
+    }   
 }

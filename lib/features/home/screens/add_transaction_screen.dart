@@ -1,7 +1,4 @@
-import 'dart:ffi';
-
 import 'package:easy_localization/easy_localization.dart';
-import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
@@ -19,38 +16,54 @@ class AddTransactionScreen extends StatefulWidget {
 class _AddTransactionScreenState extends State<AddTransactionScreen> {
   late TextEditingController amountController;
   late TextEditingController noteController;
-  String selectedCategory = 'Food';
+
+  String selectedCategory = 'food'; // <-- stable id
   bool isExpense = true;
   DateTime selectedDate = DateTime.now();
 
   final List<Map<String, dynamic>> categories = [
     {
+      'id': 'food',
       'icon': FontAwesomeIcons.burger,
-      'label': 'Food',
-      'color': Color(0xFF88B0D3),
+      'labelKey': 'categories.food', // <-- change here
+      'color': const Color(0xFF88B0D3),
     },
     {
+      'id': 'rent',
       'icon': FontAwesomeIcons.house,
-      'label': 'Rent',
-      'color': Color(0xFF88B0D3),
+      'labelKey': 'categories.rent',
+      'color': const Color(0xFF88B0D3),
     },
     {
+      'id': 'transport',
       'icon': FontAwesomeIcons.car,
-      'label': 'Transport',
-      'color': Color(0xFF88B0D3),
+      'labelKey': 'categories.transport',
+      'color': const Color(0xFF88B0D3),
     },
     {
+      'id': 'shopping',
       'icon': FontAwesomeIcons.shoppingBag,
-      'label': 'Shopping',
-      'color': Color(0xFF88B0D3),
+      'labelKey': 'categories.shopping',
+      'color': const Color(0xFF88B0D3),
     },
-    {'icon': FontAwesomeIcons.film, 'label': 'Fun', 'color': Color(0xFF88B0D3)},
     {
-      'icon': FontAwesomeIcons.heartPulse,
-      'label': 'Health',
-      'color': Color(0xFF88B0D3),
+      'id': 'fun',
+      'icon': FontAwesomeIcons.film,
+      'labelKey': 'categories.fun',
+      'color': const Color(0xFF88B0D3),
     },
-    {'icon': Icons.more_horiz, 'label': 'More', 'color': Color(0xFF88B0D3)},
+    {
+      'id': 'health',
+      'icon': FontAwesomeIcons.heartPulse,
+      'labelKey': 'categories.health',
+      'color': const Color(0xFF88B0D3),
+    },
+    {
+      'id': 'more',
+      'icon': Icons.more_horiz,
+      'labelKey': 'categories.more',
+      'color': const Color(0xFF88B0D3),
+    },
   ];
 
   @override
@@ -94,7 +107,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    bool isDarkMode = AppTheme.isDarkMode(context);
+    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: _getBackgroundColor(context),
       appBar: AppBar(
@@ -121,7 +134,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               noteController.clear();
               setState(() {
                 isExpense = true;
-                selectedCategory = 'Food';
+                selectedCategory = 'food'; // not 'Food'
                 selectedDate = DateTime.now();
               });
             },
@@ -295,7 +308,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         SizedBox(height: 12.h),
         GridView.builder(
           shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
+          physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 4,
             crossAxisSpacing: 12.w,
@@ -304,23 +317,24 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           itemCount: categories.length,
           itemBuilder: (context, index) {
             final category = categories[index];
-            final isSelected = selectedCategory == category['label'];
+            final isSelected =
+                selectedCategory == category['id']; // <-- compare by id
 
             return GestureDetector(
-              onTap: () => setState(() => selectedCategory = category['label']),
+              onTap: () => setState(() => selectedCategory = category['id']),
               child: Container(
                 decoration: BoxDecoration(
                   color: isSelected
                       ? (Theme.of(context).brightness == Brightness.dark
-                            ? Color(0xFF1A1A2E)
-                            : Color.fromARGB(255, 2, 2, 26))
+                            ? const Color(0xFF1A1A2E)
+                            : const Color.fromARGB(255, 2, 2, 26))
                       : _getCardColor(context),
                   borderRadius: BorderRadius.circular(12.r),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.grey.withOpacity(0.1),
                       blurRadius: 8,
-                      offset: Offset(0, 2),
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
@@ -334,7 +348,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     ),
                     SizedBox(height: 8.h),
                     Text(
-                      category['label'],
+                      (category['labelKey'] as String)
+                          .tr(), // <-- translate here
                       style: AppText.body12(context).copyWith(
                         color: isSelected
                             ? Colors.white
