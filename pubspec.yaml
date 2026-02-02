@@ -36,10 +36,8 @@ dependencies:
   flutter_screenutil: ^5.9.3
   flutter_bloc: ^9.1.1
   shared_preferences: ^2.5.3
-  cloud_functions: ^6.0.6
-  firebase_core: ^4.4.0
-  cloud_firestore: ^6.1.2
-  firebase_auth: ^6.1.4
+  
+  firebase_auth: ^6.0.2
   http: ^1.6.0
   pie_chart: ^5.4.0
 
