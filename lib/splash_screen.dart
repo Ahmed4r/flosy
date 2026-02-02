@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'dart:math' as math;
+import 'package:shared_preferences/shared_preferences.dart'; // <-- add
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -98,32 +99,39 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Navigate after 3 seconds
     await Future.delayed(const Duration(seconds: 3));
-    if (mounted) {
-      // Check if user is already logged in
-      final authCubit = context.read<AuthCubitCubit>();
-      final currentUser = await authCubit.getCurrentUser();
+    if (!mounted) return;
+    await _navigateNext(); // <-- new
+  }
 
-      if (currentUser != null) {
-        // User is logged in, go to home
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => BlocProvider(
-              create: (context) => AuthCubitCubit(),
-              child: const HomeScreen(), // Change to your home screen
-            ),
+  Future<void> _navigateNext() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(
+      'user_token',
+    ); // <-- key you will set on login
+    final loggedIn = token != null && token.isNotEmpty;
+
+    if (!mounted) return;
+
+    if (loggedIn) {
+      // User has token, go to home
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => BlocProvider(
+            create: (context) => AuthCubitCubit(),
+            child: const HomeScreen(),
           ),
-        );
-      } else {
-        // User not logged in, go to login
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => BlocProvider(
-              create: (context) => AuthCubitCubit(),
-              child: const LoginScreen(),
-            ),
+        ),
+      );
+    } else {
+      // No token, go to login
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => BlocProvider(
+            create: (context) => AuthCubitCubit(),
+            child: const LoginScreen(),
           ),
-        );
-      }
+        ),
+      );
     }
   }
 

@@ -220,43 +220,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     BlocListener<AuthCubitCubit, AuthCubitState>(
                       listener: (context, state) {
                         if (state is AuthCubitSuccess) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('registration_success'.tr()),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                          Navigator.pushReplacement(
-                            context,
+                          // navigate to home after successful register
+                          Navigator.of(context).pushReplacement(
                             MaterialPageRoute(
-                              builder: (_) => const LoginScreen(),
+                              builder: (context) => const HomeScreen(),
                             ),
                           );
                         }
                         if (state is AuthCubitError) {
-                          showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return CustomeAlert(
-                                title: Text(
-                                  'Error'.tr(),
-                                  style: AppText.body16(
-                                    context,
-                                  ).copyWith(color: Colors.red),
-                                ),
-                                content: Text(
-                                  state.message,
-                                  style: AppText.body16(context),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.of(context).pop(),
-                                    child: Text('ok'.tr()),
-                                  ),
-                                ],
-                              );
-                            },
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(state.message),
+                              backgroundColor: Colors.red,
+                            ),
                           );
                         }
                       },
@@ -268,15 +244,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             onPressed: agreeToTerms
                                 ? () {
                                     if (_formKey.currentState!.validate()) {
+                                      // only trigger register; navigation happens in listener
                                       context.read<AuthCubitCubit>().register(
                                         emailController.text,
                                         passwordController.text,
-                                      );
-                                      Navigator.pushReplacement(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => const HomeScreen(),
-                                        ),
                                       );
                                     }
                                   }
@@ -347,9 +318,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           onPressed: () {
                             Navigator.pushReplacement(
                               context,
-                              MaterialPageRoute(
-                                builder: (_) => const LoginScreen(),
-                              ),
+                              MaterialPageRoute(builder: (_) => LoginScreen()),
                             );
                           },
                           child: Text(

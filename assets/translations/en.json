@@ -81,7 +81,8 @@
         "what_is_this_for": "What is this for?",
         "save_transaction": "Save Transaction",
         "please_enter_amount": "Please enter an amount",
-        "transaction_saved": "Transaction saved!"
+        "transaction_saved": "Transaction saved!",
+        "invalid_amount": "Please enter a valid amount"
     },
     "settings": {
         "language": "Language",
@@ -98,5 +99,8 @@
         "fun": "Fun",
         "health": "Health",
         "more": "More"
-    }   
+    },
+    "cancel": "Cancel",
+    "save": "Save",
+    "Set total balance": "Set total balance"
 }

@@ -81,7 +81,8 @@
         "what_is_this_for": "لماذا هذا؟",
         "save_transaction": "حفظ المعاملة",
         "please_enter_amount": "يرجى إدخال المبلغ",
-        "transaction_saved": "تم حفظ المعاملة!"
+        "transaction_saved": "تم حفظ المعاملة!",
+        "invalid_amount": "يرجى إدخال مبلغ صالح"
     },
     "settings": {
         "language": "اللغة",
@@ -98,5 +99,8 @@
         "fun": "ترفيه",
         "health": "صحة",
         "more": "المزيد"
-    }
+    },
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "Set total balance": "تعيين الرصيد الإجمالي"
 }
