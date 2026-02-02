@@ -1,0 +1,54 @@
+workflows:
+  ios-ipa-build:
+    name: 🎉 iOS Build
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    cache:
+      cache_paths:
+        - $FLUTTER_ROOT/.pub-cache
+        - $HOME/.pub-cache
+        - ios/Pods
+    scripts:
+      - name: Flutter pub get
+        script: |
+          flutter pub get
+
+      - name: Set iOS deployment target
+        script: |
+          cd ios
+          if ! grep -q "platform :ios, '15.5'" Podfile; then
+            echo "platform :ios, '15.5'" | cat - Podfile > temp && mv temp Podfile
+          fi
+          cd ..
+
+      - name: Clean and update CocoaPods
+        script: |
+          rm -f ios/Podfile.lock
+          cd ios
+          pod repo update
+          pod deintegrate
+          pod install
+          cd ..
+
+      - name: Build iOS (no signing)
+        script: |
+          flutter build ios --release --no-codesign
+
+      - name: Create Payload folder
+        working_directory: build/ios/iphoneos
+        script: mkdir Payload
+
+      - name: Move Runner.app into Payload
+        working_directory: build/ios/iphoneos
+        script: mv Runner.app/ Payload
+
+      - name: Zip output IPA
+        working_directory: build/ios/iphoneos
+        script: zip -qq -r -9 FlutterIpaExport.ipa Payload
+
+    artifacts:
+      - build/ios/iphoneos/FlutterIpaExport.ipa
