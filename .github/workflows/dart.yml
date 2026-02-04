@@ -10,24 +10,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache Flutter
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.pub-cache
-            ~/.flutter
-          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-flutter-
-
-      - name: Cache CocoaPods
-        uses: actions/cache@v4
-        with:
-          path: ios/Pods
-          key: ${{ runner.os }}-cocoapods-${{ hashFiles('ios/Podfile.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cocoapods-
-
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -41,39 +23,34 @@ jobs:
         run: |
           cd ios
           if ! grep -q "platform :ios, '15.5'" Podfile; then
-            echo "platform :ios, '15.5'" > Podfile.tmp
-            cat Podfile >> Podfile.tmp
-            mv Podfile.tmp Podfile
+            echo "platform :ios, '15.5'" | cat - Podfile > temp && mv temp Podfile
           fi
           cd ..
 
       - name: Clean and update CocoaPods
         run: |
+          rm -f ios/Podfile.lock
           cd ios
-          rm -f Podfile.lock
           pod repo update
           pod deintegrate
           pod install
           cd ..
 
-      - name: Disable Code Signing in Xcode
+      - name: Disable Code Signing
         run: |
-          cd ios
-          ruby -i -pe 'gsub(/DEVELOPMENT_TEAM = .*;/, "DEVELOPMENT_TEAM = \"\";")' Runner.xcodeproj/project.pbxproj
-          ruby -i -pe 'gsub(/CODE_SIGN_IDENTITY = .*;/, "CODE_SIGN_IDENTITY = \"\";")' Runner.xcodeproj/project.pbxproj
-          ruby -i -pe 'gsub(/CODE_SIGN_STYLE = .*;/, "CODE_SIGN_STYLE = Manual;")' Runner.xcodeproj/project.pbxproj
-          cd ..
+          sed -i '' 's/DEVELOPMENT_TEAM = .*/DEVELOPMENT_TEAM = "";/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/CODE_SIGN_IDENTITY = .*/CODE_SIGN_IDENTITY = "";/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*/PROVISIONING_PROFILE_SPECIFIER = "";/g' ios/Runner.xcodeproj/project.pbxproj
 
-      - name: Build iOS (simulator - no code signing needed)
+      - name: Build iOS (no signing)
         run: flutter build ios --release --no-codesign
 
       - name: Create IPA
+        working-directory: build/ios/iphoneos
         run: |
-          cd build/ios/iphoneos
           mkdir -p Payload
           mv Runner.app Payload/
           zip -qq -r -9 FlutterIpaExport.ipa Payload
-          ls -lh FlutterIpaExport.ipa
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
