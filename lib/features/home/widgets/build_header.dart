@@ -1,11 +1,8 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_text.dart';
-import 'package:flosy/features/auth/screens/cubit/auth_cubit_cubit.dart';
-import 'package:flosy/features/auth/screens/login_screen.dart';
-import 'package:flosy/features/settings/screens/language_settings_screen.dart';
+import 'package:flosy/features/settings/screens/main_setting_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 Widget buildHeader(BuildContext context, String Function() getGreetingMessage) {
@@ -38,62 +35,45 @@ Widget buildHeader(BuildContext context, String Function() getGreetingMessage) {
         ],
       ),
       const Spacer(),
-      IconButton(
-        icon: Icon(
-          Icons.language,
-          color: isDarkMode ? Colors.white : Colors.black,
-        ),
-        onPressed: () {
+      // Settings Icon
+      GestureDetector(
+        onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => const LanguageSettingsScreen(),
-            ),
+            MaterialPageRoute(builder: (context) => const MainSettingScreen()),
           );
         },
-      ),
-      // Logout Button
-      BlocListener<AuthCubitCubit, AuthCubitState>(
-        listener: (context, state) {
-          if (state is AuthCubitSuccess) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const LoginScreen()),
-            );
-          }
-          if (state is AuthCubitError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        },
-        child: BlocBuilder<AuthCubitCubit, AuthCubitState>(
-          builder: (context, state) {
-            return IconButton(
-              icon: Icon(
-                Icons.logout,
-                color: isDarkMode ? Colors.white : Colors.black,
-              ),
-              onPressed: state is AuthCubitLoading
-                  ? null
-                  : () {
-                      context.read<AuthCubitCubit>().logout();
-                    },
-            );
-          },
+        child: Container(
+          padding: EdgeInsets.all(8.w),
+          decoration: BoxDecoration(
+            color: isDarkMode ? Colors.black54 : Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: isDarkMode ? Colors.white12 : Colors.grey.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: Icon(
+            Icons.settings_outlined,
+            color: isDarkMode ? Colors.white : Colors.black,
+            size: 20.sp,
+          ),
         ),
       ),
+      SizedBox(width: 8.w),
+      // Notification Icon
       Container(
         padding: EdgeInsets.all(8.w),
         decoration: BoxDecoration(
-          color: isDarkMode ? Colors.black : Colors.white,
+          color: isDarkMode ? Colors.black54 : Colors.white,
           shape: BoxShape.circle,
+          border: Border.all(
+            color: isDarkMode ? Colors.white12 : Colors.grey.withOpacity(0.3),
+            width: 1,
+          ),
         ),
         child: Icon(
-          Icons.notifications,
+          Icons.notifications_outlined,
           color: isDarkMode ? Colors.white : Colors.black,
           size: 20.sp,
         ),
