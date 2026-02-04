@@ -18,33 +18,43 @@ workflows:
           set -e
           flutter pub get
 
-      - name: Set iOS deployment target
+      - name: Generate iOS project files
+        script: |
+          set -e
+          flutter build ios --config-only
+
+      - name: Set iOS deployment target in Podfile
         script: |
           set -e
           cd ios
-          if ! grep -q "platform :ios, '15.5'" Podfile; then
-            echo "platform :ios, '15.5'" > Podfile.tmp
-            cat Podfile >> Podfile.tmp
+          # Prepend platform version to Podfile
+          if ! grep -q "platform :ios, '15.0'" Podfile; then
+            echo "platform :ios, '15.0'" | cat - Podfile > Podfile.tmp
             mv Podfile.tmp Podfile
           fi
           cd ..
 
-      - name: Clean and update CocoaPods
+      - name: Install CocoaPods dependencies
         script: |
           set -e
           cd ios
-          rm -f Podfile.lock
-          pod repo update
-          pod deintegrate
           pod install
           cd ..
 
-      - name: Disable Code Signing
+      - name: Disable Code Signing for all targets
         script: |
           set -e
-          sed -i '' 's/DEVELOPMENT_TEAM = .*/DEVELOPMENT_TEAM = "";/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/CODE_SIGN_IDENTITY = .*/CODE_SIGN_IDENTITY = "";/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*/PROVISIONING_PROFILE_SPECIFIER = "";/g' ios/Runner.xcodeproj/project.pbxproj
+          # Set CODE_SIGN_STYLE to Manual for all build configurations
+          sed -i '' '/CODE_SIGN_STYLE = Automatic;/d' ios/Runner.xcodeproj/project.pbxproj
+          
+          # Add CODE_SIGN_STYLE = Manual; and disable code signing for all targets
+          sed -i '' '/buildSettings = {/a\
+                          CODE_SIGN_STYLE = Manual;\
+                          CODE_SIGNING_REQUIRED = NO;\
+                          CODE_SIGNING_ALLOWED = NO;\
+                          CODE_SIGN_IDENTITY = "";\
+                          DEVELOPMENT_TEAM = "";
+          ' ios/Runner.xcodeproj/project.pbxproj
 
       - name: Build iOS (release, no signing)
         script: |
