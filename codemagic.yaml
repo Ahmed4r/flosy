@@ -62,8 +62,3 @@ workflows:
 
     artifacts:
       - build/ios/iphoneos/FlutterIpaExport.ipa
-
-    post-publishing:
-      scripts:
-        - name: Notify on success
-          script: echo "✅ iOS IPA build completed successfully!"
