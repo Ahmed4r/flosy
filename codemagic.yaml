@@ -22,11 +22,8 @@ workflows:
         script: |
           set -e
           cd ios
-          DEPLOYMENT_TARGET="platform :ios, '15.0'"
-          if ! grep -q "platform :ios" Podfile; then
-            sed -i '' "1i\\
-          $DEPLOYMENT_TARGET
-          " Podfile
+          if ! grep -q "platform :ios, '15.5'" Podfile; then
+            sed -i '' '1s/^/platform :ios, '"'"'15.5'"'"'\n/' Podfile
           fi
           cd ..
 
@@ -36,22 +33,30 @@ workflows:
           cd ios
           rm -f Podfile.lock
           pod repo update
-          pod install --repo-update
+          pod deintegrate
+          pod install
           cd ..
 
-      - name: Build iOS App
+      - name: Disable Code Signing
+        script: |
+          set -e
+          sed -i '' 's/DEVELOPMENT_TEAM = .*/DEVELOPMENT_TEAM = "";/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/CODE_SIGN_IDENTITY = .*/CODE_SIGN_IDENTITY = "";/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*/PROVISIONING_PROFILE_SPECIFIER = "";/g' ios/Runner.xcodeproj/project.pbxproj
+
+      - name: Build iOS (no signing)
         script: |
           set -e
           flutter build ios --release --no-codesign
 
       - name: Create IPA
+        working_directory: build/ios/iphoneos
         script: |
           set -e
-          cd build/ios/iphoneos
           mkdir -p Payload
           mv Runner.app Payload/
-          zip -q -r FlutterApp.ipa Payload
-          ls -lh FlutterApp.ipa
+          zip -qq -r -9 FlutterIpaExport.ipa Payload
+          ls -lh FlutterIpaExport.ipa
 
     artifacts:
-      - build/ios/iphoneos/FlutterApp.ipa
+      - build/ios/iphoneos/FlutterIpaExport.ipa
