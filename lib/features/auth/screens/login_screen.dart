@@ -182,8 +182,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               if (_formKey.currentState!.validate()) {
                                 // <-- only trigger login; navigation happens in listener
                                 context.read<AuthCubitCubit>().login(
-                                  emailController.text,
-                                  passwordController.text,
+                                  emailController.text.trim(),
+                                  passwordController.text.trim(),
                                 );
                               }
                             },

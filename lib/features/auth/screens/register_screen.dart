@@ -244,8 +244,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     if (_formKey.currentState!.validate()) {
                                       // only trigger register; navigation happens in listener
                                       context.read<AuthCubitCubit>().register(
-                                        emailController.text,
-                                        passwordController.text,
+                                        emailController.text
+                                            .trim(), // Add .trim()
+                                        passwordController.text
+                                            .trim(), // Add .trim()
                                       );
                                     }
                                   }
@@ -316,7 +318,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           onPressed: () {
                             Navigator.pushReplacement(
                               context,
-                              MaterialPageRoute(builder: (_) => LoginScreen()),
+                              MaterialPageRoute(
+                                builder: (_) => BlocProvider(
+                                  create: (context) => AuthCubitCubit(),
+                                  child: const LoginScreen(),
+                                ),
+                              ),
                             );
                           },
                           child: Text(
