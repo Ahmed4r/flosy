@@ -18,20 +18,19 @@ workflows:
           set -e
           flutter pub get
 
-      - name: Disable Code Signing in project FIRST
+      - name: Disable Code Signing for RunnerTests target
         script: |
           set -e
-          # Remove CODE_SIGN_STYLE = Automatic; lines
-          sed -i '' '/CODE_SIGN_STYLE = Automatic;/d' ios/Runner.xcodeproj/project.pbxproj
+          # Change CODE_SIGN_STYLE from Automatic to Manual
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
           
-          # Add CODE_SIGN_STYLE = Manual; to all buildSettings blocks
-          sed -i '' '/buildSettings = {/a\
-                          CODE_SIGN_STYLE = Manual;\
+          # Add CODE_SIGNING_REQUIRED = NO after each CODE_SIGN_STYLE = Manual
+          sed -i '' '/CODE_SIGN_STYLE = Manual;/a\
                           CODE_SIGNING_REQUIRED = NO;\
                           CODE_SIGNING_ALLOWED = NO;
           ' ios/Runner.xcodeproj/project.pbxproj
           
-          echo "✅ Code signing disabled in project.pbxproj"
+          echo "✅ Code signing disabled for RunnerTests"
 
       - name: Generate iOS project files
         script: |
@@ -42,7 +41,6 @@ workflows:
         script: |
           set -e
           cd ios
-          # Prepend platform version to Podfile
           if ! grep -q "platform :ios, '15.0'" Podfile; then
             echo "platform :ios, '15.0'" | cat - Podfile > Podfile.tmp
             mv Podfile.tmp Podfile
@@ -56,13 +54,13 @@ workflows:
           pod install
           cd ..
 
-      - name: Re-apply code signing disable (in case Flutter reverted it)
+      - name: Re-disable Code Signing (after Flutter upgrade)
         script: |
           set -e
-          # Remove any CODE_SIGN_STYLE = Automatic; that might have reappeared
-          sed -i '' '/CODE_SIGN_STYLE = Automatic;/d' ios/Runner.xcodeproj/project.pbxproj
+          # Ensure CODE_SIGN_STYLE is Manual everywhere
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
           
-          # Ensure all targets have code signing disabled
+          # Disable code signing globally
           sed -i '' 's/CODE_SIGNING_REQUIRED = YES;/CODE_SIGNING_REQUIRED = NO;/g' ios/Runner.xcodeproj/project.pbxproj
           sed -i '' 's/CODE_SIGNING_ALLOWED = YES;/CODE_SIGNING_ALLOWED = NO;/g' ios/Runner.xcodeproj/project.pbxproj
           
