@@ -10,7 +10,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-import '../../../core/theme/app_theme.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -183,8 +182,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               if (_formKey.currentState!.validate()) {
                                 // <-- only trigger login; navigation happens in listener
                                 context.read<AuthCubitCubit>().login(
-                                  emailController.text,
-                                  passwordController.text,
+                                  emailController.text.trim(),
+                                  passwordController.text.trim(),
                                 );
                               }
                             },

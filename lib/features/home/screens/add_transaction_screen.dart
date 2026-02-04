@@ -276,7 +276,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   hintText: '0.00',
                   hintStyle: TextStyle(
                     fontSize: 48.sp,
-                    color: _getIconColor(context)?.withOpacity(0.4),
+                    color: _getIconColor(context).withOpacity(0.4),
                   ),
                   focusedBorder: InputBorder.none,
                   enabledBorder: InputBorder.none,
