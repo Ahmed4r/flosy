@@ -1,8 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
-import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
-import 'package:flosy/core/utils/custome_alert.dart';
 import 'package:flosy/features/auth/screens/cubit/auth_cubit_cubit.dart';
 import 'package:flosy/features/auth/screens/login_screen.dart';
 import 'package:flosy/features/home/screens/home_screen.dart';

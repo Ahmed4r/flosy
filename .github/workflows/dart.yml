@@ -1,10 +1,13 @@
-name: iOS-ipa-build
+name: Flutter iOS Simulator Build
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
-  build-ios:
+  build-ios-simulator:
     runs-on: macos-latest
 
     steps:
@@ -19,41 +22,17 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Set iOS deployment target
-        run: |
-          cd ios
-          if ! grep -q "platform :ios, '15.5'" Podfile; then
-            echo "platform :ios, '15.5'" | cat - Podfile > temp && mv temp Podfile
-          fi
-          cd ..
+      - name: Run Flutter analyzer
+        run: flutter analyze
 
-      - name: Clean and update CocoaPods
-        run: |
-          rm -f ios/Podfile.lock
-          cd ios
-          pod repo update
-          pod deintegrate
-          pod install
-          cd ..
+      - name: Run Flutter tests
+        run: flutter test
 
-      - name: Disable Code Signing
-        run: |
-          sed -i '' 's/DEVELOPMENT_TEAM = .*/DEVELOPMENT_TEAM = "";/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/CODE_SIGN_IDENTITY = .*/CODE_SIGN_IDENTITY = "";/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*/PROVISIONING_PROFILE_SPECIFIER = "";/g' ios/Runner.xcodeproj/project.pbxproj
+      - name: Build iOS for Simulator
+        run: flutter build ios --simulator --release
 
-      - name: Build iOS (no signing)
-        run: flutter build ios --release --no-codesign
-
-      - name: Create IPA
-        working-directory: build/ios/iphoneos
-        run: |
-          mkdir -p Payload
-          mv Runner.app Payload/
-          zip -qq -r -9 FlutterIpaExport.ipa Payload
-
-      - name: Upload IPA Artifact
+      - name: Upload iOS Simulator Build
         uses: actions/upload-artifact@v4
         with:
-          name: ios-ipa
-          path: build/ios/iphoneos/FlutterIpaExport.ipa
+          name: ios-simulator-build
+          path: build/ios/Release-iphonesimulator/Runner.app
