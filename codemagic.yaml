@@ -23,7 +23,9 @@ workflows:
           set -e
           cd ios
           if ! grep -q "platform :ios, '15.5'" Podfile; then
-            sed -i '' '1s/^/platform :ios, '"'"'15.5'"'"'\n/' Podfile
+            echo "platform :ios, '15.5'" > Podfile.tmp
+            cat Podfile >> Podfile.tmp
+            mv Podfile.tmp Podfile
           fi
           cd ..
 
@@ -44,7 +46,7 @@ workflows:
           sed -i '' 's/CODE_SIGN_IDENTITY = .*/CODE_SIGN_IDENTITY = "";/g' ios/Runner.xcodeproj/project.pbxproj
           sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*/PROVISIONING_PROFILE_SPECIFIER = "";/g' ios/Runner.xcodeproj/project.pbxproj
 
-      - name: Build iOS (no signing)
+      - name: Build iOS (release, no signing)
         script: |
           set -e
           flutter build ios --release --no-codesign
@@ -60,3 +62,8 @@ workflows:
 
     artifacts:
       - build/ios/iphoneos/FlutterIpaExport.ipa
+
+    post-publishing:
+      scripts:
+        - name: Notify on success
+          script: echo "✅ iOS IPA build completed successfully!"
