@@ -30,14 +30,14 @@ workflows:
           
           echo "✅ Code signing disabled before Flutter build"
 
-      - name: Generate Podfile with flutter build ios-framework
+      - name: Generate iOS files
         script: |
           set -e
-          flutter build ios-framework --no-debug --no-profile --output=./build/ios/framework
+          flutter build ios-framework --no-debug --no-profile --no-tree-shake-icons --output=./build/ios/framework
           
           cd ios
           if [ ! -f "Podfile" ]; then
-            flutter build ios --config-only || true
+            flutter build ios --config-only --no-tree-shake-icons || true
           fi
           cd ..
 
