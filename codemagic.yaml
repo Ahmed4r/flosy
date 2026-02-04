@@ -15,40 +15,43 @@ workflows:
     scripts:
       - name: Flutter pub get
         script: |
+          set -e
           flutter pub get
 
       - name: Set iOS deployment target
         script: |
+          set -e
           cd ios
-          if ! grep -q "platform :ios, '15.5'" Podfile; then
-            echo "platform :ios, '15.5'" | cat - Podfile > temp && mv temp Podfile
+          DEPLOYMENT_TARGET="platform :ios, '15.0'"
+          if ! grep -q "platform :ios" Podfile; then
+            sed -i '' "1i\\
+          $DEPLOYMENT_TARGET
+          " Podfile
           fi
           cd ..
 
       - name: Clean and update CocoaPods
         script: |
-          rm -f ios/Podfile.lock
+          set -e
           cd ios
+          rm -f Podfile.lock
           pod repo update
-          pod deintegrate
-          pod install
+          pod install --repo-update
           cd ..
 
-      - name: Build iOS (no signing)
+      - name: Build iOS App
         script: |
+          set -e
           flutter build ios --release --no-codesign
 
-      - name: Create Payload folder
-        working_directory: build/ios/iphoneos
-        script: mkdir Payload
-
-      - name: Move Runner.app into Payload
-        working_directory: build/ios/iphoneos
-        script: mv Runner.app/ Payload
-
-      - name: Zip output IPA
-        working_directory: build/ios/iphoneos
-        script: zip -qq -r -9 FlutterIpaExport.ipa Payload
+      - name: Create IPA
+        script: |
+          set -e
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          mv Runner.app Payload/
+          zip -q -r FlutterApp.ipa Payload
+          ls -lh FlutterApp.ipa
 
     artifacts:
-      - build/ios/iphoneos/FlutterIpaExport.ipa
+      - build/ios/iphoneos/FlutterApp.ipa
