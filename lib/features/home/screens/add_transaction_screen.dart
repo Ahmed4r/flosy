@@ -22,7 +22,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   late TextEditingController amountController;
   late TextEditingController noteController;
 
-  String selectedCategory = 'food';
+  String selectedCategory = '';
   bool isExpense = true;
   DateTime selectedDate = DateTime.now();
 
@@ -61,6 +61,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       'id': 'health',
       'icon': FontAwesomeIcons.heartPulse,
       'labelKey': 'categories.health',
+      'color': const Color(0xFF88B0D3),
+    },
+    {
+      'id': 'salary',
+      'icon': Icons.attach_money,
+      'labelKey': 'categories.salary',
       'color': const Color(0xFF88B0D3),
     },
     {
@@ -148,7 +154,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               noteController.clear();
               setState(() {
                 isExpense = true;
-                selectedCategory = 'food'; // not 'Food'
+                selectedCategory = ''; // not 'Food'
                 selectedDate = DateTime.now();
               });
             },

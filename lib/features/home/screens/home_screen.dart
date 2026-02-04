@@ -43,6 +43,8 @@ class _HomeScreenState extends State<HomeScreen> {
         return 'categories.fun'.tr();
       case 'health':
         return 'categories.health'.tr();
+      case 'salary':
+        return 'categories.salary'.tr();
       case 'more':
         return 'categories.more'.tr();
       default:
@@ -114,6 +116,34 @@ class _HomeScreenState extends State<HomeScreen> {
     return pct.clamp(0, 999); // avoid crazy huge values
   }
 
+  double get monthlyExpenses {
+    // calculate total expenses for the current month
+    final now = DateTime.now();
+    final monthlyExpenses = _transactions
+        .where(
+          (t) =>
+              t.type == TransactionType.expense &&
+              t.date.year == now.year &&
+              t.date.month == now.month,
+        )
+        .fold(0.0, (sum, t) => sum + t.amount);
+    return monthlyExpenses;
+  }
+
+  Map<String, double> get expensesByCategoryAndPercentages {
+    // calculate expenses by category for the current month
+    final now = DateTime.now();
+    final Map<String, double> categoryMap = {};
+    for (var t in _transactions) {
+      if (t.type == TransactionType.expense &&
+          t.date.year == now.year &&
+          t.date.month == now.month) {
+        categoryMap[t.category] = (categoryMap[t.category] ?? 0) + t.amount;
+      }
+    }
+    return categoryMap;
+  }
+
   @override
   Widget build(BuildContext context) {
     bool isDarkMode = AppTheme.isDarkMode(context);
@@ -160,7 +190,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 SizedBox(height: 20.h),
                 buildTracks(context, totalIncome, totalExpenses),
                 SizedBox(height: 20.h),
-                buildChart(context),
+                buildChart(
+                  context,
+                  expenses: monthlyExpenses,
+                  categories: expensesByCategoryAndPercentages,
+                  isArabic: isArabicLocale(context),
+                ),
                 SizedBox(height: 10.h),
                 buildRecentTransactions(isDarkMode),
               ],
@@ -244,11 +279,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
-  }
-
-  String getValue() {
-    // no longer used anywhere; can be removed if you want
-    return '+2.5%';
   }
 
   Widget buildRecentTransactions(bool isDarkMode) {

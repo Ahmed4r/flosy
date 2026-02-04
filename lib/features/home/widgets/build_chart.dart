@@ -2,18 +2,57 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
+import 'package:flosy/features/home/screens/detailed_chart_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:pie_chart/pie_chart.dart';
 
-Widget buildChart(BuildContext context) {
+Widget buildChart(
+  BuildContext context, {
+  required double expenses,
+  required Map<String, double> categories,
+  bool isArabic = false,
+}) {
   bool isDarkMode = AppTheme.isDarkMode(context);
-  final Map<String, double> dataMap = {
-    "Food": 40,
-    "Transport": 25,
-    "Shopping": 20,
-    "Utilities": 15,
-  };
+
+  // Check if categories is empty
+  if (categories.isEmpty) {
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: isDarkMode ? Colors.black54 : Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(
+          color: isDarkMode ? Colors.white12 : Colors.grey.withOpacity(0.3),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDarkMode
+                ? Colors.white.withOpacity(0.1)
+                : Colors.grey.withOpacity(0.8),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.pie_chart_outline, size: 48.sp, color: Colors.grey),
+            SizedBox(height: 8.h),
+            Text(
+              'No transactions yet',
+              style: AppText.body16(context).copyWith(color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  final dataMap = categories;
 
   final total = dataMap.values.fold<double>(0, (sum, val) => sum + val);
   final percentageMap = <String, String>{};
@@ -56,7 +95,16 @@ Widget buildChart(BuildContext context) {
               ),
             ),
             GestureDetector(
-              onTap: () {},
+              onTap: () {
+                // Navigate to detailed chart screen
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        DetailedChartScreen(isArabic: isArabic),
+                  ),
+                );
+              },
               child: Row(
                 children: [
                   Text(
@@ -112,7 +160,7 @@ Widget buildChart(BuildContext context) {
                       ),
                       SizedBox(height: 4.h),
                       Text(
-                        '\$${total.toStringAsFixed(0)}',
+                        '\$${expenses.toStringAsFixed(0)}',
                         style: AppText.body16(context).copyWith(
                           fontWeight: FontWeight.bold,
                           color: isDarkMode ? Colors.white : Colors.black,
@@ -159,7 +207,7 @@ Widget buildChart(BuildContext context) {
                             SizedBox(width: 10.w),
                             Expanded(
                               child: Text(
-                                category,
+                                'categories.$category'.tr(),
                                 style: AppText.body14(context).copyWith(
                                   fontWeight: FontWeight.w500,
                                   color: isDarkMode

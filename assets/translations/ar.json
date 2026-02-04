@@ -67,7 +67,15 @@
         "view_all": "عرض الكل",
         "spent": "تم الإنفاق",
         "recent_transactions": "المعاملات الأخيرة",
-        "no_transactions": "لا توجد معاملات حتى الآن"
+        "no_transactions": "لا توجد معاملات حتى الآن",
+        "detailed_chart": "مخطط تفصيلي",
+        "total_expenses": "إجمالي النفقات",
+        "total_income": "إجمالي الدخل",
+        "transactions": "المعاملات",
+        "no_expenses": "لا توجد نفقات هذا الشهر",
+        "expense_distribution": "توزيع النفقات",
+        "total": "الإجمالي",
+        "category_breakdown": "تفصيل الفئات"
     },
     "transaction": {
         "add_transaction": "إضافة معاملة",
@@ -98,9 +106,11 @@
         "shopping": "تسوق",
         "fun": "ترفيه",
         "health": "صحة",
+        "salary": "راتب",
         "more": "المزيد"
     },
     "cancel": "إلغاء",
     "save": "حفظ",
-    "Set total balance": "تعيين الرصيد الإجمالي"
+    "Set total balance": "تعيين الرصيد الإجمالي",
+    "of_total": "بنسبة"
 }

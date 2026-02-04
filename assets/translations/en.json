@@ -67,7 +67,15 @@
         "view_all": "View All",
         "spent": "SPENT",
         "recent_transactions": "Recent Transactions",
-        "no_transactions": "No transactions yet"
+        "no_transactions": "No transactions yet",
+        "detailed_chart": "Detailed Chart",
+        "total_expenses": "Total Expenses",
+        "total_income": "Total Income",
+        "transactions": "Transactions",
+        "no_expenses": "No expenses this month",
+        "expense_distribution": "Expense Distribution",
+        "total": "Total",
+        "category_breakdown": "Category Breakdown"
     },
     "transaction": {
         "add_transaction": "Add Transaction",
@@ -98,9 +106,11 @@
         "shopping": "Shopping",
         "fun": "Fun",
         "health": "Health",
+        "salary": "Salary",
         "more": "More"
     },
     "cancel": "Cancel",
     "save": "Save",
-    "Set total balance": "Set total balance"
+    "Set total balance": "Set total balance",
+    "of_total": "of total"
 }
