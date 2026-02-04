@@ -18,6 +18,21 @@ workflows:
           set -e
           flutter pub get
 
+      - name: Disable Code Signing in project FIRST
+        script: |
+          set -e
+          # Remove CODE_SIGN_STYLE = Automatic; lines
+          sed -i '' '/CODE_SIGN_STYLE = Automatic;/d' ios/Runner.xcodeproj/project.pbxproj
+          
+          # Add CODE_SIGN_STYLE = Manual; to all buildSettings blocks
+          sed -i '' '/buildSettings = {/a\
+                          CODE_SIGN_STYLE = Manual;\
+                          CODE_SIGNING_REQUIRED = NO;\
+                          CODE_SIGNING_ALLOWED = NO;
+          ' ios/Runner.xcodeproj/project.pbxproj
+          
+          echo "✅ Code signing disabled in project.pbxproj"
+
       - name: Generate iOS project files
         script: |
           set -e
@@ -41,20 +56,17 @@ workflows:
           pod install
           cd ..
 
-      - name: Disable Code Signing for all targets
+      - name: Re-apply code signing disable (in case Flutter reverted it)
         script: |
           set -e
-          # Set CODE_SIGN_STYLE to Manual for all build configurations
+          # Remove any CODE_SIGN_STYLE = Automatic; that might have reappeared
           sed -i '' '/CODE_SIGN_STYLE = Automatic;/d' ios/Runner.xcodeproj/project.pbxproj
           
-          # Add CODE_SIGN_STYLE = Manual; and disable code signing for all targets
-          sed -i '' '/buildSettings = {/a\
-                          CODE_SIGN_STYLE = Manual;\
-                          CODE_SIGNING_REQUIRED = NO;\
-                          CODE_SIGNING_ALLOWED = NO;\
-                          CODE_SIGN_IDENTITY = "";\
-                          DEVELOPMENT_TEAM = "";
-          ' ios/Runner.xcodeproj/project.pbxproj
+          # Ensure all targets have code signing disabled
+          sed -i '' 's/CODE_SIGNING_REQUIRED = YES;/CODE_SIGNING_REQUIRED = NO;/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/CODE_SIGNING_ALLOWED = YES;/CODE_SIGNING_ALLOWED = NO;/g' ios/Runner.xcodeproj/project.pbxproj
+          
+          echo "✅ Code signing still disabled"
 
       - name: Build iOS (release, no signing)
         script: |
