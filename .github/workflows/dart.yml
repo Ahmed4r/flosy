@@ -19,38 +19,34 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Generate iOS configuration
+      - name: Disable Code Signing FIRST (before any build)
+        run: |
+          # Change Automatic to Manual code signing for all targets
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
+          # Clear development team
+          sed -i '' 's/DEVELOPMENT_TEAM = [^;]*;/DEVELOPMENT_TEAM = "";/g' ios/Runner.xcodeproj/project.pbxproj
+          # Remove code sign identity requirements
+          sed -i '' 's/"CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]" = "iPhone Developer";/"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";/g' ios/Runner.xcodeproj/project.pbxproj
+
+      - name: Generate iOS configuration files
         run: flutter build ios --config-only
 
-      - name: Update Podfile platform version
+      - name: Update Podfile iOS version
         run: |
           cd ios
           if [ -f "Podfile" ]; then
             sed -i '' "s/platform :ios, '[0-9.]*'/platform :ios, '15.0'/g" Podfile
-            if ! grep -q "platform :ios" Podfile; then
-              sed -i '' "1s/^/platform :ios, '15.0'\n/" Podfile
-            fi
           fi
 
-      - name: Install CocoaPods dependencies
+      - name: Install Pods
         run: |
           cd ios
           pod install
-          cd ..
-
-      - name: Disable Code Signing for all targets
-        run: |
-          # Set manual code signing and clear identities
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/DEVELOPMENT_TEAM = [^;]*;/DEVELOPMENT_TEAM = "";/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' '/CODE_SIGN_IDENTITY = /d' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' '/PROVISIONING_PROFILE_SPECIFIER = /d' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/"CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]" = "iPhone Developer"/"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = ""/g' ios/Runner.xcodeproj/project.pbxproj
 
       - name: Build iOS without code signing
         run: flutter build ios --release --no-codesign
 
-      - name: Create IPA
+      - name: Create IPA file
         run: |
           cd build/ios/iphoneos
           mkdir Payload
