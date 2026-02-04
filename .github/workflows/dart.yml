@@ -1,4 +1,4 @@
-name: iOS-ipa-build
+﻿name: iOS-ipa-build
 
 on:
   workflow_dispatch:
@@ -19,40 +19,45 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Set iOS deployment target
-        run: |
-          cd ios
-          if ! grep -q "platform :ios, '15.5'" Podfile; then
-            echo "platform :ios, '15.5'" | cat - Podfile > temp && mv temp Podfile
-          fi
-          cd ..
+      - name: Generate iOS configuration
+        run: flutter build ios --config-only
 
-      - name: Clean and update CocoaPods
+      - name: Update Podfile platform version
         run: |
-          rm -f ios/Podfile.lock
           cd ios
-          pod repo update
-          pod deintegrate
+          if [ -f "Podfile" ]; then
+            sed -i '' "s/platform :ios, '[0-9.]*'/platform :ios, '15.0'/g" Podfile
+            if ! grep -q "platform :ios" Podfile; then
+              sed -i '' "1s/^/platform :ios, '15.0'\n/" Podfile
+            fi
+          fi
+
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios
           pod install
           cd ..
 
-      - name: Disable Code Signing
+      - name: Disable Code Signing for all targets
         run: |
-          sed -i '' 's/DEVELOPMENT_TEAM = .*/DEVELOPMENT_TEAM = "";/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/CODE_SIGN_IDENTITY = .*/CODE_SIGN_IDENTITY = "";/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*/PROVISIONING_PROFILE_SPECIFIER = "";/g' ios/Runner.xcodeproj/project.pbxproj
+          # Set manual code signing and clear identities
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/DEVELOPMENT_TEAM = [^;]*;/DEVELOPMENT_TEAM = "";/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' '/CODE_SIGN_IDENTITY = /d' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' '/PROVISIONING_PROFILE_SPECIFIER = /d' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/"CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]" = "iPhone Developer"/"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = ""/g' ios/Runner.xcodeproj/project.pbxproj
 
-      - name: Build iOS (no signing)
+      - name: Build iOS without code signing
         run: flutter build ios --release --no-codesign
 
       - name: Create IPA
-        working-directory: build/ios/iphoneos
         run: |
-          mkdir -p Payload
-          mv Runner.app Payload/
-          zip -qq -r -9 FlutterIpaExport.ipa Payload
+          cd build/ios/iphoneos
+          mkdir Payload
+          cp -r Runner.app Payload/
+          zip -r FlutterIpaExport.ipa Payload
 
-      - name: Upload IPA Artifact
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: ios-ipa
