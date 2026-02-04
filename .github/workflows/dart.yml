@@ -19,11 +19,15 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
+      - name: Change CODE_SIGN_STYLE to Manual
+        run: |
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
+
       - name: Set iOS deployment target
         run: |
           cd ios
-          if ! grep -q "platform :ios, '15.5'" Podfile; then
-            echo "platform :ios, '15.5'" | cat - Podfile > temp && mv temp Podfile
+          if ! grep -q "platform :ios, '15.0'" Podfile; then
+            echo "platform :ios, '15.0'" | cat - Podfile > temp && mv temp Podfile
           fi
           cd ..
 
@@ -43,7 +47,7 @@ jobs:
           sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*/PROVISIONING_PROFILE_SPECIFIER = "";/g' ios/Runner.xcodeproj/project.pbxproj
 
       - name: Build iOS (no signing)
-        run: flutter build ios --release --no-codesign
+        run: flutter build ios --release --no-codesign --no-tree-shake-icons
 
       - name: Create IPA
         working-directory: build/ios/iphoneos
