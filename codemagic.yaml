@@ -18,65 +18,114 @@ workflows:
           set -e
           flutter pub get
 
-      - name: Disable Code Signing for RunnerTests target
+      - name: Generate Flutter build files (without iOS)
         script: |
           set -e
-          # Change CODE_SIGN_STYLE from Automatic to Manual
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
-          
-          # Add CODE_SIGNING_REQUIRED = NO after each CODE_SIGN_STYLE = Manual
-          sed -i '' '/CODE_SIGN_STYLE = Manual;/a\
-                          CODE_SIGNING_REQUIRED = NO;\
-                          CODE_SIGNING_ALLOWED = NO;
-          ' ios/Runner.xcodeproj/project.pbxproj
-          
-          echo "✅ Code signing disabled for RunnerTests"
+          # Generate the GeneratedPluginRegistrant and other Flutter files
+          flutter precache --ios
+          flutter packages get
+          cd ios
+          # Create Runner.xcworkspace if it doesn't exist by running pod install prep
+          cd ..
 
-      - name: Generate iOS project files
-        script: |
-          set -e
-          flutter build ios --config-only
-
-      - name: Set iOS deployment target in Podfile
+      - name: Manually create Podfile if missing
         script: |
           set -e
           cd ios
-          if ! grep -q "platform :ios, '15.0'" Podfile; then
-            echo "platform :ios, '15.0'" | cat - Podfile > Podfile.tmp
-            mv Podfile.tmp Podfile
+          if [ ! -f "Podfile" ]; then
+            cat > Podfile << 'EOF'
+          # Uncomment this line to define a global platform for your project
+          platform :ios, '15.0'
+
+          # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
+          ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+          project 'Runner', {
+            'Debug' => :debug,
+            'Profile' => :release,
+            'Release' => :release,
+          }
+
+          def flutter_root
+            generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+            unless File.exist?(generated_xcode_build_settings_path)
+              raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
+            end
+
+            File.foreach(generated_xcode_build_settings_path) do |line|
+              matches = line.match(/FLUTTER_ROOT\=(.*)/)
+              return matches[1].strip if matches
+            end
+            raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
+          end
+
+          require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+          flutter_ios_podfile_setup
+
+          target 'Runner' do
+            use_frameworks!
+            use_modular_headers!
+
+            flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+          end
+
+          post_install do |installer|
+            installer.pods_project.targets.each do |target|
+              flutter_additional_ios_build_settings(target)
+              target.build_configurations.each do |config|
+                config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
+                config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+                config.build_settings['CODE_SIGN_IDENTITY'] = ''
+              end
+            end
+          end
+          EOF
           fi
           cd ..
 
-      - name: Install CocoaPods dependencies
+      - name: Disable Code Signing in Xcode project
+        script: |
+          set -e
+          # Change all CODE_SIGN_STYLE to Manual
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
+          
+          # Add code signing disable to all buildSettings blocks
+          perl -i -pe 'BEGIN{undef $/;} s/(buildSettings = \{)/$1\n\t\t\t\tCODE_SIGNING_REQUIRED = NO;\n\t\t\t\tCODE_SIGNING_ALLOWED = NO;\n\t\t\t\tCODE_SIGN_IDENTITY = "";/smg' ios/Runner.xcodeproj/project.pbxproj
+          
+          echo "✅ Code signing disabled in project"
+
+      - name: Install CocoaPods
         script: |
           set -e
           cd ios
           pod install
           cd ..
 
-      - name: Re-disable Code Signing (after Flutter upgrade)
+      - name: Build with xcodebuild (no code signing)
         script: |
           set -e
-          # Ensure CODE_SIGN_STYLE is Manual everywhere
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
-          
-          # Disable code signing globally
-          sed -i '' 's/CODE_SIGNING_REQUIRED = YES;/CODE_SIGNING_REQUIRED = NO;/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/CODE_SIGNING_ALLOWED = YES;/CODE_SIGNING_ALLOWED = NO;/g' ios/Runner.xcodeproj/project.pbxproj
-          
-          echo "✅ Code signing still disabled"
-
-      - name: Build iOS (release, no signing)
-        script: |
-          set -e
-          flutter build ios --release --no-codesign
+          cd ios
+          xcodebuild -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -sdk iphoneos \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            PROVISIONING_PROFILE="" \
+            -allowProvisioningUpdates \
+            BUILD_DIR=../build/ios \
+            CONFIGURATION_BUILD_DIR=../build/ios/iphoneos \
+            clean build
+          cd ..
 
       - name: Create IPA
         working_directory: build/ios/iphoneos
         script: |
           set -e
           mkdir -p Payload
-          mv Runner.app Payload/
+          cp -r Runner.app Payload/
           zip -qq -r -9 FlutterIpaExport.ipa Payload
           ls -lh FlutterIpaExport.ipa
 
