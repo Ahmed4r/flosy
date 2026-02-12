@@ -158,7 +158,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return categoryMap;
   }
 
-
   @override
   Widget build(BuildContext context) {
     bool isDarkMode = AppTheme.isDarkMode(context);
@@ -192,7 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ? CrossAxisAlignment.start
                   : CrossAxisAlignment.end,
               children: [
-                SizedBox(height: 10.h),
+                SizedBox(height: 20.h),
                 buildHeader(context, getGreetingMessage),
                 SizedBox(height: 10.h),
                 buildAmountCard(
@@ -201,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   _totalBalance,
                   _showEditBalanceDialog,
                   _percentChange / 100, // <-- pass ratio for progress bar
-              
+
                   isDarkMode,
                   // <-- pass currency symbol
                 ),

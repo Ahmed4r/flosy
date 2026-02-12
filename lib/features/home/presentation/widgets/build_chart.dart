@@ -22,7 +22,7 @@ Widget buildChart(
       child: Container(
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: isDarkMode ? Colors.black54 : Colors.white,
+          color: isDarkMode ? Colors.black54 : AppColors.whiteColor,
           borderRadius: BorderRadius.circular(20.r),
           border: Border.all(
             color: isDarkMode ? Colors.white12 : Colors.grey.withOpacity(0.3),
@@ -128,7 +128,7 @@ Widget buildChart(
           ],
         ),
         SizedBox(height: 16.h),
-  
+
         // Chart and Legend Row - CONSTRAINED WIDTH
         SizedBox(
           height: 150.h,
@@ -178,7 +178,7 @@ Widget buildChart(
                 ),
               ),
               SizedBox(width: 16.w),
-  
+
               // Custom Legend - FLEXIBLE
               Expanded(
                 child: SingleChildScrollView(
@@ -194,7 +194,7 @@ Widget buildChart(
                       final colorIndex = dataMap.keys.toList().indexOf(
                         category,
                       );
-  
+
                       return Padding(
                         padding: EdgeInsets.only(bottom: 12.h),
                         child: Row(
@@ -223,9 +223,7 @@ Widget buildChart(
                               percentageMap[category] ?? '0%',
                               style: AppText.body14(context).copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: isDarkMode
-                                    ? Colors.white
-                                    : Colors.black,
+                                color: isDarkMode ? Colors.white : Colors.black,
                               ),
                             ),
                           ],

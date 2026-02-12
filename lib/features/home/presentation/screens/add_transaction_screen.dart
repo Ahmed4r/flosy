@@ -7,7 +7,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flosy/features/home/data/model/transaction_model.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // <-- add
 
 class AddTransactionScreen extends StatefulWidget {
   final TransactionModel? transaction;
