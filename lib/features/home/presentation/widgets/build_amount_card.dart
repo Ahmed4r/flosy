@@ -8,100 +8,188 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 Widget buildAmountCard(
   BuildContext context,
-  Widget Function() buildPercentage, // percentage chip
+  Widget Function() buildPercentage,
   double totalBalance,
-  VoidCallback onEditBalance, // edit callback
-  double spentRatio, // 0.0 - 1.0
-  bool isDarkMode, // dark mode flag
+  VoidCallback onEditBalance,
+  double spentRatio,
+  bool isDarkMode,
 ) {
   return Container(
     width: double.infinity,
-    height: 120.h,
     decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(20.r),
+      borderRadius: BorderRadius.circular(24.r),
       gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
         colors: isDarkMode
             ? [
-                AppColors.greenColor.withOpacity(0.1),
-                Colors.blue.withOpacity(0.05),
+                const Color(0xFF1A2E1A),
+                const Color(0xFF0D1F1A),
+                const Color(0xFF162A22),
               ]
-            : [
-                Color.fromARGB(255, 212, 230, 205),
-                Color.fromARGB(255, 165, 184, 157),
-                Color.fromARGB(255, 212, 230, 205),
-              ],
-        begin: isDarkMode ? Alignment.centerLeft : Alignment.topRight,
-        end: isDarkMode ? Alignment.centerRight : Alignment.topLeft,
-        tileMode: TileMode.decal,
+            : [Colors.white, Colors.white.withOpacity(0.9)],
       ),
+      boxShadow: [
+        BoxShadow(
+          color: AppColors.greenColor.withOpacity(isDarkMode ? 0.15 : 0.3),
+          blurRadius: 24,
+          offset: const Offset(0, 8),
+          spreadRadius: -4,
+        ),
+      ],
     ),
-    child: Padding(
-      padding: EdgeInsets.all(20.w),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(24.r),
+      child: Stack(
         children: [
-          // Row 1: label + percentage
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'home.total_balance'.tr(),
-                style: AppText.body12grey(
-                  context,
-                ).copyWith(fontSize: 14.sp, color: Colors.white70),
+          // Decorative circles
+          Positioned(
+            right: -30.w,
+            top: -30.h,
+            child: Container(
+              width: 120.w,
+              height: 120.h,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.06),
               ),
-              SizedBox(width: 8.w),
-              buildPercentage(), // <-- percentage next to label
-            ],
+            ),
           ),
-          SizedBox(height: 6.h),
-          // Row 2: balance + edit icon
-          Row(
-            children: [
-              BlocBuilder<SettingsCubit, SettingsState>(
-                builder: (context, state) {
-                  String currency = 'EGP';
-                  if (state is SettingsLoaded) {
-                    currency = state.selectedCurrency;
-                  }
-                  return Text(
-                    '$currency ${totalBalance.toStringAsFixed(2)}',
-                    style: AppText.head24(
-                      context,
-                    ).copyWith(color: Colors.white),
-                  );
-                },
+          Positioned(
+            left: -20.w,
+            bottom: -40.h,
+            child: Container(
+              width: 100.w,
+              height: 100.h,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.04),
               ),
-              SizedBox(width: 8.w),
-              IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                icon: const Icon(Icons.edit, color: Colors.white70, size: 18),
-                onPressed: onEditBalance,
-              ),
-            ],
+            ),
           ),
-          SizedBox(height: 10.h),
-          Row(
-            children: [
-              Expanded(
-                child: LinearProgressIndicator(
-                  value: spentRatio.clamp(0.0, 1.0), // <-- dynamic level
-                  color: AppColors.greenColor,
-                  backgroundColor: Colors.white24,
-                  minHeight: 2.h,
+
+          // Content
+          Padding(
+            padding: EdgeInsets.all(22.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top row: label + percentage badge
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'home.total_balance'.tr(),
+                      style: AppText.body14(context).copyWith(
+                        color: isDarkMode
+                            ? Colors.white.withOpacity(0.7)
+                            : Colors.black.withOpacity(0.7),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    buildPercentage(),
+                  ],
                 ),
-              ),
-              SizedBox(width: 10.w),
-              Text(
-                'home.monthly_limit'.tr(),
-                style: AppText.body12grey(
-                  context,
-                ).copyWith(fontSize: 10.sp, color: Colors.white70),
-              ),
-            ],
+                SizedBox(height: 10.h),
+
+                // Balance amount
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: BlocBuilder<SettingsCubit, SettingsState>(
+                        builder: (context, state) {
+                          String currency = 'EGP';
+                          if (state is SettingsLoaded) {
+                            currency = state.selectedCurrency;
+                          }
+                          return FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              '$currency ${totalBalance.toStringAsFixed(2)}',
+                              style: AppText.head32(context).copyWith(
+                                color: isDarkMode ? Colors.white : Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
+                    GestureDetector(
+                      onTap: onEditBalance,
+                      child: Container(
+                        width: 34.w,
+                        height: 34.h,
+                        decoration: BoxDecoration(
+                          color: isDarkMode
+                              ? Colors.white.withOpacity(0.15)
+                              : Colors.black.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                        child: Icon(
+                          Icons.edit_outlined,
+                          color: isDarkMode
+                              ? Colors.white.withOpacity(0.8)
+                              : Colors.black.withOpacity(0.8),
+                          size: 16.sp,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                SizedBox(height: 16.h),
+
+                // Progress bar
+                Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'home.monthly_limit'.tr(),
+                          style: AppText.body12(context).copyWith(
+                            color: isDarkMode
+                                ? Colors.white.withOpacity(0.7)
+                                : Colors.black.withOpacity(0.7),
+                            fontSize: 11.sp,
+                          ),
+                        ),
+                        Text(
+                          '${(spentRatio.clamp(0.0, 1.0) * 100).toStringAsFixed(0)}%',
+                          style: AppText.body12(context).copyWith(
+                            color: isDarkMode
+                                ? Colors.white.withOpacity(0.7)
+                                : Colors.black.withOpacity(0.7),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11.sp,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8.h),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6.r),
+                      child: LinearProgressIndicator(
+                        value: spentRatio.clamp(0.0, 1.0),
+                        minHeight: 6.h,
+                        backgroundColor: isDarkMode
+                            ? Colors.white.withOpacity(0.15)
+                            : Colors.black.withOpacity(0.15),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          spentRatio > 0.8
+                              ? Colors.redAccent
+                              : Colors.white.withOpacity(0.9),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),

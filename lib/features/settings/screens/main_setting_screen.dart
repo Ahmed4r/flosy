@@ -47,13 +47,7 @@ class _MainSettingView extends StatelessWidget {
             : AppColors.whiteColor,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: isDarkMode ? Colors.white : Colors.black,
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
+
         title: Text(
           'settings.settings'.tr(),
           style: AppText.body16(context).copyWith(
