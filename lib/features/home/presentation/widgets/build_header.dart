@@ -12,7 +12,7 @@ Widget buildHeader(BuildContext context, String Function() getGreetingMessage) {
   bool isDarkMode = AppTheme.isDarkMode(context);
 
   return Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    mainAxisAlignment: MainAxisAlignment.start,
     children: [
       Container(
         decoration: BoxDecoration(
@@ -44,7 +44,7 @@ Widget buildHeader(BuildContext context, String Function() getGreetingMessage) {
           ),
         ),
       ),
-      SizedBox(width: 15.w),
+      SizedBox(width: 12.w),
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -58,34 +58,7 @@ Widget buildHeader(BuildContext context, String Function() getGreetingMessage) {
           ),
         ],
       ),
-      const Spacer(),
-      // Settings Icon
-      GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const MainSettingScreen()),
-          );
-        },
-        child: Container(
-          padding: EdgeInsets.all(8.w),
-          decoration: BoxDecoration(
-            color: isDarkMode ? Colors.black54 : Colors.white,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: isDarkMode ? Colors.white12 : Colors.grey.withOpacity(0.3),
-              width: 1,
-            ),
-          ),
-          child: Icon(
-            Icons.settings_outlined,
-            color: isDarkMode ? Colors.white : Colors.black,
-            size: 20.sp,
-          ),
-        ),
-      ),
-      SizedBox(width: 8.w),
-      // Notification Icon
+      Spacer(),
       Container(
         padding: EdgeInsets.all(8.w),
         decoration: BoxDecoration(

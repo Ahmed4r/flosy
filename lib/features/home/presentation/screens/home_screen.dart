@@ -162,26 +162,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     bool isDarkMode = AppTheme.isDarkMode(context);
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AddTransactionScreen(),
-            ),
-          );
-          if (result == true) {
-            await _loadTransactions();
-            await _loadBalance();
-          }
-        },
-        backgroundColor: AppColors.greenColor,
-        foregroundColor: Colors.black,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(25.r),
-        ),
-        child: Icon(Icons.add, size: 24.sp, color: AppColors.blackColor),
-      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Center(
@@ -215,6 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 SizedBox(height: 10.h),
                 buildRecentTransactions(isDarkMode),
+                SizedBox(height: 90.h), // Bottom padding for nav bar
               ],
             ),
           ),

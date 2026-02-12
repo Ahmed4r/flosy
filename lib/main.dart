@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/features/auth/screens/cubit/auth_cubit_cubit.dart';
+import 'package:flosy/features/budget/screens/budget_screen.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flosy/firebase_options.dart';
@@ -58,7 +59,7 @@ class Flosy extends StatelessWidget {
                 theme: appTheme.lightTheme,
                 darkTheme: appTheme.darkTheme,
                 themeMode: themeMode,
-                home: const SplashScreen(),
+                home: SplashScreen(),
               );
             },
           ),

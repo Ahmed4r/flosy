@@ -6,6 +6,7 @@ import 'package:flosy/features/auth/screens/biometric_prompt_screen.dart';
 import 'package:flosy/features/auth/screens/cubit/auth_cubit_cubit.dart';
 import 'package:flosy/features/auth/screens/login_screen.dart';
 import 'package:flosy/features/home/presentation/screens/home_screen.dart';
+import 'package:flosy/features/navigation/main_nav_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -137,7 +138,7 @@ class _SplashScreenState extends State<SplashScreen>
       MaterialPageRoute(
         builder: (_) => BlocProvider(
           create: (context) => AuthCubitCubit(),
-          child: const HomeScreen(),
+          child: const MainNavScreen(),
         ),
       ),
     );
