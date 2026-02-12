@@ -10,7 +10,6 @@ import 'package:flosy/features/home/presentation/widgets/build_header.dart';
 import 'package:flosy/features/home/presentation/widgets/build_tracks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -32,17 +31,20 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  HomeScreenState createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  // Use DB-backed list
+class HomeScreenState extends State<HomeScreen> {
+  Future<void> refresh() async {
+    if (!mounted) return;
+    await _refresh();
+  }
+
   List<TransactionModel> _transactions = [];
-
-  // Persisted total balance
   double _totalBalance = 0.0;
+  bool _isLoading = true;
+  bool _showAllTransactions = false;
 
-  // Map stored category ids to localized labels
   String _getCategoryLabel(String id) {
     switch (id) {
       case 'food':
@@ -69,30 +71,35 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadBalance();
-    _loadTransactions();
+    _loadAll();
+  }
+
+  Future<void> _loadAll() async {
+    await Future.wait([_loadBalance(), _loadTransactions()]);
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  Future<void> _refresh() async {
+    setState(() => _isLoading = true);
+    await _loadAll();
   }
 
   Future<void> _loadTransactions() async {
     final data = await dbService.getTransactions();
-    setState(() {
-      _transactions = data;
-    });
+    if (mounted) setState(() => _transactions = data);
   }
 
   Future<void> _loadBalance() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _totalBalance = prefs.getDouble('total_balance') ?? 0.0;
-    });
+    if (mounted) {
+      setState(() => _totalBalance = prefs.getDouble('total_balance') ?? 0.0);
+    }
   }
 
   Future<void> _setBalance(double value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('total_balance', value);
-    setState(() {
-      _totalBalance = value;
-    });
+    if (mounted) setState(() => _totalBalance = value);
   }
 
   bool isArabicLocale(BuildContext context) {
@@ -101,39 +108,30 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String getGreetingMessage() {
     final hour = DateTime.now().hour;
-    if (hour < 12) {
-      return 'home.greeting_morning'.tr();
-    } else if (hour < 17) {
-      return 'home.greeting_afternoon'.tr();
-    } else {
-      return 'home.greeting_evening'.tr();
-    }
+    if (hour < 12) return 'home.greeting_morning'.tr();
+    if (hour < 17) return 'home.greeting_afternoon'.tr();
+    return 'home.greeting_evening'.tr();
   }
 
   double get totalIncome => _transactions
       .where((t) => t.type == TransactionType.income)
-      .fold(0, (sum, t) => sum + t.amount);
+      .fold(0.0, (sum, t) => sum + t.amount);
 
   double get totalExpenses => _transactions
       .where((t) => t.type == TransactionType.expense)
-      .fold(0, (sum, t) => sum + t.amount);
+      .fold(0.0, (sum, t) => sum + t.amount);
 
   double get _netChange => totalIncome - totalExpenses;
 
-  // percentage of the *starting* balance that has been spent
   double get _percentChange {
-    // reconstruct starting balance:
-    // start = currentBalance + expenses - income
     final startingBalance = _totalBalance + totalExpenses - totalIncome;
     if (startingBalance <= 0) return 0;
-    final pct = (totalExpenses / startingBalance) * 100;
-    return pct.clamp(0, 999); // avoid crazy huge values
+    return ((totalExpenses / startingBalance) * 100).clamp(0, 999);
   }
 
   double get monthlyExpenses {
-    // calculate total expenses for the current month
     final now = DateTime.now();
-    final monthlyExpenses = _transactions
+    return _transactions
         .where(
           (t) =>
               t.type == TransactionType.expense &&
@@ -141,11 +139,9 @@ class _HomeScreenState extends State<HomeScreen> {
               t.date.month == now.month,
         )
         .fold(0.0, (sum, t) => sum + t.amount);
-    return monthlyExpenses;
   }
 
   Map<String, double> get expensesByCategoryAndPercentages {
-    // calculate expenses by category for the current month
     final now = DateTime.now();
     final Map<String, double> categoryMap = {};
     for (var t in _transactions) {
@@ -158,44 +154,471 @@ class _HomeScreenState extends State<HomeScreen> {
     return categoryMap;
   }
 
+  // Group transactions by date label
+  String _getDateLabel(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final txDay = DateTime(date.year, date.month, date.day);
+
+    if (txDay == today) return 'Today';
+    if (txDay == today.subtract(const Duration(days: 1))) return 'Yesterday';
+    if (now.difference(txDay).inDays < 7) {
+      return DateFormat('EEEE').format(date); // e.g. "Monday"
+    }
+    return DateFormat('MMM d, yyyy').format(date);
+  }
+
   @override
   Widget build(BuildContext context) {
     bool isDarkMode = AppTheme.isDarkMode(context);
-    return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Center(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: isArabicLocale(context)
-                  ? CrossAxisAlignment.start
-                  : CrossAxisAlignment.end,
-              children: [
-                SizedBox(height: 20.h),
-                buildHeader(context, getGreetingMessage),
-                SizedBox(height: 10.h),
-                buildAmountCard(
-                  context,
-                  buildView,
-                  _totalBalance,
-                  _showEditBalanceDialog,
-                  _percentChange / 100, // <-- pass ratio for progress bar
 
-                  isDarkMode,
-                  // <-- pass currency symbol
+    return Scaffold(
+      backgroundColor: isDarkMode
+          ? const Color(0xFF0A0A0A)
+          : const Color(0xFFF5F5F5),
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _refresh,
+          color: AppColors.greenColor,
+          displacement: 40,
+          child: _isLoading
+              ? _buildLoadingShimmer(isDarkMode)
+              : SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 20.w),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 8.h),
+                      buildHeader(context, getGreetingMessage),
+                      SizedBox(height: 20.h),
+                      buildAmountCard(
+                        context,
+                        _buildPercentageChip,
+                        _totalBalance,
+                        _showEditBalanceDialog,
+                        _percentChange / 100,
+                        isDarkMode,
+                      ),
+                      SizedBox(height: 20.h),
+                      buildTracks(context, totalIncome, totalExpenses),
+                      SizedBox(height: 16.h),
+                      buildChart(
+                        context,
+                        expenses: monthlyExpenses,
+                        categories: expensesByCategoryAndPercentages,
+                        isArabic: isArabicLocale(context),
+                      ),
+                      SizedBox(height: 20.h),
+                      _buildRecentTransactions(isDarkMode),
+                      SizedBox(height: 100.h),
+                    ],
+                  ),
                 ),
-                SizedBox(height: 10.h),
-                buildTracks(context, totalIncome, totalExpenses),
-                SizedBox(height: 10.h),
-                buildChart(
-                  context,
-                  expenses: monthlyExpenses,
-                  categories: expensesByCategoryAndPercentages,
-                  isArabic: isArabicLocale(context),
+        ),
+      ),
+    );
+  }
+
+  // ─── PERCENTAGE CHIP ─────────────────────────────────
+
+  Widget _buildPercentageChip() {
+    final pct = _percentChange;
+    final isPositive = _netChange >= 0;
+    final color = isPositive ? AppColors.greenColor : Colors.redAccent;
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isPositive ? Icons.trending_up : Icons.trending_down,
+            size: 14.sp,
+            color: color,
+          ),
+          SizedBox(width: 4.w),
+          Text(
+            '${pct.toStringAsFixed(1)}%',
+            style: TextStyle(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── LOADING SHIMMER ─────────────────────────────────
+
+  Widget _buildLoadingShimmer(bool isDarkMode) {
+    final shimmerColor = isDarkMode ? Colors.grey[800]! : Colors.grey[200]!;
+    final baseColor = isDarkMode ? Colors.grey[900]! : Colors.grey[100]!;
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.symmetric(horizontal: 20.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: 16.h),
+          // Header shimmer
+          Row(
+            children: [
+              CircleAvatar(radius: 22.r, backgroundColor: shimmerColor),
+              SizedBox(width: 14.w),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 80.w,
+                    height: 12.h,
+                    decoration: BoxDecoration(
+                      color: shimmerColor,
+                      borderRadius: BorderRadius.circular(6.r),
+                    ),
+                  ),
+                  SizedBox(height: 6.h),
+                  Container(
+                    width: 120.w,
+                    height: 16.h,
+                    decoration: BoxDecoration(
+                      color: shimmerColor,
+                      borderRadius: BorderRadius.circular(6.r),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          SizedBox(height: 20.h),
+          // Balance card shimmer
+          Container(
+            width: double.infinity,
+            height: 150.h,
+            decoration: BoxDecoration(
+              color: baseColor,
+              borderRadius: BorderRadius.circular(24.r),
+            ),
+          ),
+          SizedBox(height: 16.h),
+          // Track cards shimmer
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 110.h,
+                  decoration: BoxDecoration(
+                    color: baseColor,
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
                 ),
-                SizedBox(height: 10.h),
-                buildRecentTransactions(isDarkMode),
-                SizedBox(height: 90.h), // Bottom padding for nav bar
+              ),
+              SizedBox(width: 14.w),
+              Expanded(
+                child: Container(
+                  height: 110.h,
+                  decoration: BoxDecoration(
+                    color: baseColor,
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16.h),
+          // Chart shimmer
+          Container(
+            width: double.infinity,
+            height: 200.h,
+            decoration: BoxDecoration(
+              color: baseColor,
+              borderRadius: BorderRadius.circular(20.r),
+            ),
+          ),
+          SizedBox(height: 20.h),
+          // Transaction shimmer
+          ...List.generate(
+            3,
+            (i) => Padding(
+              padding: EdgeInsets.only(bottom: 10.h),
+              child: Container(
+                height: 70.h,
+                decoration: BoxDecoration(
+                  color: baseColor,
+                  borderRadius: BorderRadius.circular(16.r),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── RECENT TRANSACTIONS ─────────────────────────────
+
+  Widget _buildRecentTransactions(bool isDarkMode) {
+    final displayTransactions = _showAllTransactions
+        ? _transactions
+        : _transactions.take(5).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section header
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'home.recent_transactions'.tr(),
+              style: AppText.body18(context).copyWith(
+                fontWeight: FontWeight.w700,
+                color: isDarkMode ? Colors.white : Colors.black,
+              ),
+            ),
+            if (_transactions.length > 5)
+              GestureDetector(
+                onTap: () => setState(
+                  () => _showAllTransactions = !_showAllTransactions,
+                ),
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 12.w,
+                    vertical: 6.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Text(
+                    _showAllTransactions ? 'Show Less' : 'See All',
+                    style: AppText.body12(context).copyWith(
+                      color: AppColors.greenColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        SizedBox(height: 14.h),
+
+        // Transactions grouped by day
+        if (_transactions.isEmpty)
+          _buildEmptyTransactions(isDarkMode)
+        else
+          _buildGroupedTransactions(displayTransactions, isDarkMode),
+      ],
+    );
+  }
+
+  Widget _buildEmptyTransactions(bool isDarkMode) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(vertical: 40.h),
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDarkMode ? 0.2 : 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 64.w,
+            height: 64.h,
+            decoration: BoxDecoration(
+              color: AppColors.greenColor.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.receipt_long_outlined,
+              size: 30.sp,
+              color: AppColors.greenColor,
+            ),
+          ),
+          SizedBox(height: 14.h),
+          Text(
+            'home.no_transactions'.tr(),
+            style: AppText.body16(context).copyWith(
+              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(height: 4.h),
+          Text(
+            'Tap + to add your first transaction',
+            style: AppText.body12(context).copyWith(color: Colors.grey[400]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGroupedTransactions(
+    List<TransactionModel> transactions,
+    bool isDarkMode,
+  ) {
+    // Group by date label
+    final Map<String, List<TransactionModel>> grouped = {};
+    for (final tx in transactions) {
+      final label = _getDateLabel(tx.date);
+      grouped.putIfAbsent(label, () => []).add(tx);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: grouped.entries.map((entry) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Date label
+            Padding(
+              padding: EdgeInsets.only(bottom: 8.h, left: 4.w),
+              child: Text(
+                entry.key,
+                style: AppText.body12(context).copyWith(
+                  color: isDarkMode ? Colors.grey[500] : Colors.grey[500],
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+            // Transaction items
+            ...entry.value.map((tx) => _buildTransactionTile(tx, isDarkMode)),
+            SizedBox(height: 12.h),
+          ],
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildTransactionTile(TransactionModel transaction, bool isDarkMode) {
+    final isExpense = transaction.type == TransactionType.expense;
+    final catColor = TransactionColors.values
+        .firstWhere(
+          (c) => c.name == transaction.category,
+          orElse: () => TransactionColors.more,
+        )
+        .color;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8.h),
+      child: Dismissible(
+        key: ValueKey(transaction.id ?? transaction.hashCode),
+        direction: DismissDirection.endToStart,
+        background: Container(
+          alignment: Alignment.centerRight,
+          padding: EdgeInsets.only(right: 24.w),
+          decoration: BoxDecoration(
+            color: Colors.red.withOpacity(0.9),
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          child: Icon(Icons.delete_outline, color: Colors.white, size: 24.sp),
+        ),
+        onDismissed: (_) async {
+          final prefs = await SharedPreferences.getInstance();
+          double current = prefs.getDouble('total_balance') ?? 0.0;
+          final delta = transaction.amount * (isExpense ? -1.0 : 1.0);
+          current -= delta;
+          await prefs.setDouble('total_balance', current);
+          final idx = _transactions.indexOf(transaction);
+          setState(() {
+            _totalBalance = current;
+            if (idx >= 0) _transactions.removeAt(idx);
+          });
+          if (transaction.id != null) {
+            await dbService.deleteTransaction(transaction.id!);
+          }
+        },
+        child: GestureDetector(
+          onTap: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => AddTransactionScreen(transaction: transaction),
+              ),
+            );
+            if (result == true) {
+              await _loadTransactions();
+              await _loadBalance();
+            }
+          },
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+            decoration: BoxDecoration(
+              color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+              borderRadius: BorderRadius.circular(16.r),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDarkMode ? 0.15 : 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                // Category icon
+                Container(
+                  width: 46.w,
+                  height: 46.h,
+                  decoration: BoxDecoration(
+                    color: catColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(14.r),
+                  ),
+                  child: Icon(transaction.icon, color: catColor, size: 20.sp),
+                ),
+                SizedBox(width: 14.w),
+
+                // Title & category
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        transaction.title,
+                        style: AppText.body16(context).copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: isDarkMode ? Colors.white : Colors.black,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 2.h),
+                      Text(
+                        _getCategoryLabel(transaction.category),
+                        style: AppText.body12(context).copyWith(
+                          color: isDarkMode
+                              ? Colors.grey[500]
+                              : Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Amount
+                Text(
+                  '${isExpense ? '-' : '+'}\$${transaction.amount.toStringAsFixed(2)}',
+                  style: AppText.body16(context).copyWith(
+                    color: isExpense ? Colors.redAccent : AppColors.greenColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ],
             ),
           ),
@@ -204,41 +627,84 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ─── EDIT BALANCE DIALOG ─────────────────────────────
+
   Future<void> _showEditBalanceDialog() async {
+    bool isDarkMode = AppTheme.isDarkMode(context);
     final controller = TextEditingController(
       text: _totalBalance.toStringAsFixed(2),
     );
+
     final result = await showDialog<double>(
       context: context,
-      builder: (context) {
+      builder: (ctx) {
         return AlertDialog(
-          title: Text('Set total balance'.tr()),
+          backgroundColor: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.r),
+          ),
+          title: Text(
+            'Set total balance'.tr(),
+            style: AppText.body18(context).copyWith(
+              fontWeight: FontWeight.w700,
+              color: isDarkMode ? Colors.white : Colors.black,
+            ),
+          ),
           content: TextField(
             controller: controller,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(hintText: ''),
+            style: AppText.body16(
+              context,
+            ).copyWith(color: isDarkMode ? Colors.white : Colors.black),
+            decoration: InputDecoration(
+              hintText: '0.00',
+              hintStyle: TextStyle(color: Colors.grey[500]),
+              filled: true,
+              fillColor: isDarkMode ? Colors.grey[850] : Colors.grey[100],
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16.w,
+                vertical: 14.h,
+              ),
+            ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('cancel'.tr()),
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(
+                'cancel'.tr(),
+                style: TextStyle(color: Colors.grey[500]),
+              ),
             ),
             TextButton(
               onPressed: () {
                 final value = double.tryParse(controller.text);
                 if (value == null) {
-                  Navigator.pop(context);
+                  Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('transaction.invalid_amount'.tr()),
                       backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
                     ),
                   );
                   return;
                 }
-                Navigator.pop(context, value);
+                Navigator.pop(ctx, value);
               },
-              child: Text('save'.tr()),
+              child: Text(
+                'save'.tr(),
+                style: TextStyle(
+                  color: AppColors.greenColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ],
         );
@@ -247,179 +713,5 @@ class _HomeScreenState extends State<HomeScreen> {
     if (result != null) {
       await _setBalance(result);
     }
-  }
-
-  Widget buildView() {
-    // percentage chip only
-    final pct = _percentChange;
-    final isPositive = _netChange >= 0; // arrow based on net change
-    final arrowIcon = isPositive
-        ? FontAwesomeIcons.arrowUp
-        : FontAwesomeIcons.arrowDown;
-    final color = isPositive ? AppColors.greenColor : Colors.red;
-    final pctText = '${pct.toStringAsFixed(1)}%';
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
-      decoration: BoxDecoration(
-        color: const Color.fromARGB(41, 255, 255, 255),
-        borderRadius: BorderRadius.circular(20.r),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FaIcon(arrowIcon, size: 12.sp, color: color),
-          SizedBox(width: 4.w),
-          Text(
-            pctText,
-            style: AppText.body12grey(context).copyWith(color: color),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget buildRecentTransactions(bool isDarkMode) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'home.recent_transactions'.tr(),
-          style: AppText.body16(context).copyWith(
-            fontWeight: FontWeight.bold,
-            color: isDarkMode ? Colors.white : Colors.black,
-          ),
-        ),
-        buildTransactionsList(),
-      ],
-    );
-  }
-
-  Widget buildTransactionsList() {
-    bool isDarkMode = AppTheme.isDarkMode(context);
-    if (_transactions.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 32.h),
-          child: Column(
-            children: [
-              Text(
-                'home.no_transactions'.tr(),
-                style: AppText.body14(context).copyWith(color: Colors.grey),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: _transactions.length,
-      separatorBuilder: (context, index) => SizedBox(height: 8.h),
-      itemBuilder: (context, index) {
-        final transaction = _transactions[index];
-        final isExpense = transaction.type == TransactionType.expense;
-
-        return Dismissible(
-          key: ValueKey(transaction.id ?? index),
-          direction: DismissDirection.endToStart,
-          background: Container(
-            alignment: Alignment.centerRight,
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
-            decoration: BoxDecoration(
-              color: Colors.red,
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: Icon(Icons.delete, color: Colors.white),
-          ),
-          onDismissed: (_) async {
-            // update balance when deleting
-            final prefs = await SharedPreferences.getInstance();
-            double current = prefs.getDouble('total_balance') ?? 0.0;
-            final delta =
-                transaction.amount *
-                (isExpense ? -1.0 : 1.0); // effect of this tx
-            current -= delta; // remove its effect
-            await prefs.setDouble('total_balance', current);
-            setState(() {
-              _totalBalance = current;
-              _transactions.removeAt(index);
-            });
-            // also delete from DB
-            if (transaction.id != null) {
-              await dbService.deleteTransaction(transaction.id!);
-            }
-          },
-          child: ListTile(
-            tileColor: isDarkMode ? Colors.black12 : Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.r),
-              side: BorderSide(color: Colors.grey[200]!, width: 1),
-            ),
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 16.w,
-              vertical: 5.h,
-            ),
-            leading: Container(
-              width: 40.w,
-              height: 40.h,
-              decoration: BoxDecoration(
-                color: TransactionColors.values
-                    .firstWhere(
-                      (c) => c.name == transaction.category,
-                      orElse: () => TransactionColors.more,
-                    )
-                    .color
-                    .withOpacity(0.2),
-                borderRadius: BorderRadius.circular(10.r),
-              ),
-              child: Icon(
-                transaction.icon,
-                color: TransactionColors.values
-                    .firstWhere(
-                      (c) => c.name == transaction.category,
-                      orElse: () => TransactionColors.more,
-                    )
-                    .color,
-              ),
-            ),
-            title: Text(
-              transaction.title,
-              style: AppText.body16(
-                context,
-              ).copyWith(color: isDarkMode ? Colors.white : Colors.black),
-            ),
-            subtitle: Text(
-              '${_getCategoryLabel(transaction.category)} • '
-              '${transaction.date.day}/${transaction.date.month}/${transaction.date.year}',
-              style: AppText.body12grey(context).copyWith(
-                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-              ),
-            ),
-            trailing: Text(
-              '${isExpense ? '-' : '+'}\$${transaction.amount.toStringAsFixed(2)}',
-              style: AppText.body16(context).copyWith(
-                color: isExpense ? Colors.red : Colors.green,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            onTap: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      AddTransactionScreen(transaction: transaction),
-                ),
-              );
-              if (result == true) {
-                await _loadTransactions();
-              }
-            },
-          ),
-        );
-      },
-    );
   }
 }

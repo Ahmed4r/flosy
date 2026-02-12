@@ -16,7 +16,7 @@ class DatabaseService {
     final dir = await getApplicationDocumentsDirectory();
     _database = await openDatabase(
       '${dir.path}/flosy.db',
-      version: 3,
+      version: 6, // Increment version
       onCreate: (Database db, int version) async {
         await db.execute('''
           CREATE TABLE Transactions (
@@ -34,8 +34,11 @@ class DatabaseService {
         await db.execute('''
           CREATE TABLE Budgets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            category TEXT UNIQUE,
+            category TEXT,
             limitAmount REAL,
+            period TEXT,
+            startDate INTEGER,
+            endDate INTEGER,
             iconCodePoint INTEGER,
             iconFontFamily TEXT,
             iconFontPackage TEXT,
@@ -67,6 +70,119 @@ class DatabaseService {
               createdAt INTEGER
             )
           ''');
+        }
+        if (oldVersion < 5) {
+          // Add missing columns to Budgets table
+          final result = await db.rawQuery('PRAGMA table_info(Budgets)');
+          final columnNames = result
+              .map((col) => col['name'] as String)
+              .toList();
+
+          if (!columnNames.contains('iconCodePoint')) {
+            await db.execute(
+              'ALTER TABLE Budgets ADD COLUMN iconCodePoint INTEGER',
+            );
+          }
+          if (!columnNames.contains('iconFontFamily')) {
+            await db.execute(
+              'ALTER TABLE Budgets ADD COLUMN iconFontFamily TEXT',
+            );
+          }
+          if (!columnNames.contains('iconFontPackage')) {
+            await db.execute(
+              'ALTER TABLE Budgets ADD COLUMN iconFontPackage TEXT',
+            );
+          }
+          if (!columnNames.contains('notifyAtThreshold')) {
+            await db.execute(
+              'ALTER TABLE Budgets ADD COLUMN notifyAtThreshold INTEGER DEFAULT 1',
+            );
+          }
+          if (!columnNames.contains('notifyPercent')) {
+            await db.execute(
+              'ALTER TABLE Budgets ADD COLUMN notifyPercent REAL DEFAULT 80',
+            );
+          }
+          if (!columnNames.contains('isRecurring')) {
+            await db.execute(
+              'ALTER TABLE Budgets ADD COLUMN isRecurring INTEGER DEFAULT 1',
+            );
+          }
+        }
+        if (oldVersion < 6) {
+          // Check if column exists and rename it or add it
+          final result = await db.rawQuery('PRAGMA table_info(Budgets)');
+          final columnNames = result
+              .map((col) => col['name'] as String)
+              .toList();
+
+          // Check if we have the old column name
+          if (columnNames.contains('limit_amount') &&
+              !columnNames.contains('limitAmount')) {
+            // Rename the column by recreating the table
+            await db.execute('ALTER TABLE Budgets RENAME TO Budgets_old');
+
+            await db.execute('''
+              CREATE TABLE Budgets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                category TEXT,
+                limitAmount REAL,
+                period TEXT,
+                startDate INTEGER,
+                endDate INTEGER,
+                iconCodePoint INTEGER,
+                iconFontFamily TEXT,
+                iconFontPackage TEXT,
+                notifyAtThreshold INTEGER DEFAULT 1,
+                notifyPercent REAL DEFAULT 80,
+                isRecurring INTEGER DEFAULT 1,
+                createdAt INTEGER
+              )
+            ''');
+
+            // Copy data from old table
+            await db.execute('''
+              INSERT INTO Budgets (id, category, limitAmount, period, startDate, endDate)
+              SELECT id, category, limit_amount, period, startDate, endDate FROM Budgets_old
+            ''');
+
+            await db.execute('DROP TABLE Budgets_old');
+          } else if (!columnNames.contains('limitAmount')) {
+            // Just add the column if it doesn't exist
+            await db.execute('ALTER TABLE Budgets ADD COLUMN limitAmount REAL');
+          }
+
+          // Add other missing columns
+          if (!columnNames.contains('iconCodePoint')) {
+            await db.execute(
+              'ALTER TABLE Budgets ADD COLUMN iconCodePoint INTEGER',
+            );
+          }
+          if (!columnNames.contains('iconFontFamily')) {
+            await db.execute(
+              'ALTER TABLE Budgets ADD COLUMN iconFontFamily TEXT',
+            );
+          }
+          if (!columnNames.contains('iconFontPackage')) {
+            await db.execute(
+              'ALTER TABLE Budgets ADD COLUMN iconFontPackage TEXT',
+            );
+          }
+          if (!columnNames.contains('notifyAtThreshold')) {
+            await db.execute(
+              'ALTER TABLE Budgets ADD COLUMN notifyAtThreshold INTEGER DEFAULT 1',
+            );
+          }
+          if (!columnNames.contains('notifyPercent')) {
+            await db.execute(
+              'ALTER TABLE Budgets ADD COLUMN notifyPercent REAL DEFAULT 80',
+            );
+          }
+          if (!columnNames.contains('isRecurring')) {
+            await db.execute(
+              'ALTER TABLE Budgets ADD COLUMN isRecurring INTEGER DEFAULT 1',
+            );
+          }
         }
       },
     );

@@ -5,11 +5,11 @@ import 'package:flosy/features/auth/screens/cubit/auth_cubit_cubit.dart';
 import 'package:flosy/features/auth/screens/forget_screen.dart';
 import 'package:flosy/features/auth/screens/register_screen.dart';
 import 'package:flosy/features/home/presentation/screens/home_screen.dart';
+import 'package:flosy/features/navigation/main_nav_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -160,7 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           // navigate to home on successful login
                           Navigator.of(context).pushReplacement(
                             MaterialPageRoute(
-                              builder: (context) => const HomeScreen(),
+                              builder: (context) => const MainNavScreen(),
                             ),
                           );
                         }

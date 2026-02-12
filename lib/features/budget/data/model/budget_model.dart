@@ -4,6 +4,9 @@ class BudgetModel {
   int? id;
   final String category;
   final double limitAmount;
+  final String period;
+  final DateTime startDate;
+  final DateTime endDate;
   final int iconCodePoint;
   final String iconFontFamily;
   final String? iconFontPackage;
@@ -16,6 +19,9 @@ class BudgetModel {
     this.id,
     required this.category,
     required this.limitAmount,
+    required this.period,
+    required this.startDate,
+    required this.endDate,
     required this.iconCodePoint,
     required this.iconFontFamily,
     this.iconFontPackage,
@@ -36,6 +42,9 @@ class BudgetModel {
       'id': id,
       'category': category,
       'limitAmount': limitAmount,
+      'period': period,
+      'startDate': startDate.millisecondsSinceEpoch,
+      'endDate': endDate.millisecondsSinceEpoch,
       'iconCodePoint': iconCodePoint,
       'iconFontFamily': iconFontFamily,
       'iconFontPackage': iconFontPackage,
@@ -51,6 +60,9 @@ class BudgetModel {
       id: map['id'] as int?,
       category: map['category'] as String,
       limitAmount: (map['limitAmount'] as num).toDouble(),
+      period: map['period'] as String,
+      startDate: DateTime.fromMillisecondsSinceEpoch(map['startDate'] as int),
+      endDate: DateTime.fromMillisecondsSinceEpoch(map['endDate'] as int),
       iconCodePoint: map['iconCodePoint'] as int,
       iconFontFamily: map['iconFontFamily'] as String,
       iconFontPackage: map['iconFontPackage'] as String?,
@@ -65,6 +77,9 @@ class BudgetModel {
     int? id,
     String? category,
     double? limitAmount,
+    String? period,
+    DateTime? startDate,
+    DateTime? endDate,
     int? iconCodePoint,
     String? iconFontFamily,
     String? iconFontPackage,
@@ -77,6 +92,9 @@ class BudgetModel {
       id: id ?? this.id,
       category: category ?? this.category,
       limitAmount: limitAmount ?? this.limitAmount,
+      period: period ?? this.period,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
       iconCodePoint: iconCodePoint ?? this.iconCodePoint,
       iconFontFamily: iconFontFamily ?? this.iconFontFamily,
       iconFontPackage: iconFontPackage ?? this.iconFontPackage,

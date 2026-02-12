@@ -28,42 +28,37 @@ class _BudgetScreenState extends State<BudgetScreen> {
   // Category display metadata
   static final Map<String, Map<String, dynamic>> categoryMeta = {
     'food': {
-      'label': 'Food & Dining',
+      'labelKey': 'transaction.categories.food',
       'icon': FontAwesomeIcons.burger,
       'color': Colors.orange,
     },
     'shopping': {
-      'label': 'Shopping',
+      'labelKey': 'transaction.categories.shopping',
       'icon': FontAwesomeIcons.bagShopping,
       'color': Colors.purple,
     },
     'transport': {
-      'label': 'Transportation',
+      'labelKey': 'transaction.categories.transport',
       'icon': FontAwesomeIcons.car,
       'color': Colors.blue,
     },
     'fun': {
-      'label': 'Entertainment',
+      'labelKey': 'transaction.categories.fun',
       'icon': FontAwesomeIcons.film,
       'color': Colors.pink,
     },
     'rent': {
-      'label': 'Rent',
+      'labelKey': 'transaction.categories.rent',
       'icon': FontAwesomeIcons.house,
       'color': Colors.teal,
     },
-    'bills': {
-      'label': 'Bills & Utilities',
-      'icon': FontAwesomeIcons.bolt,
-      'color': Colors.amber,
-    },
     'health': {
-      'label': 'Health',
+      'labelKey': 'transaction.categories.health',
       'icon': FontAwesomeIcons.heartPulse,
       'color': Colors.red,
     },
     'salary': {
-      'label': 'Salary',
+      'labelKey': 'transaction.categories.salary',
       'icon': Icons.attach_money,
       'color': Colors.green,
     },
@@ -140,7 +135,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                         physics: const AlwaysScrollableScrollPhysics(
                           parent: BouncingScrollPhysics(),
                         ),
-                        padding: EdgeInsets.all(20.w),
+                        padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 100.h),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -148,7 +143,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                             SizedBox(height: 20.h),
                             if (_budgets.isNotEmpty) ...[
                               _buildMonthlySummaryCard(),
-                              SizedBox(height: 30.h),
+                              SizedBox(height: 24.h),
                               _buildLimitsSection(),
                             ] else
                               _buildEmptyState(),
@@ -161,7 +156,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
         ),
       ),
       floatingActionButton: _buildNewBudgetButton(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
@@ -172,16 +166,10 @@ class _BudgetScreenState extends State<BudgetScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            'Budgets',
-            style: AppText.head32(
-              context,
-            ).copyWith(fontWeight: FontWeight.bold, color: _textPrimary),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: Icon(
-              Icons.settings_outlined,
-              size: 26.sp,
+            'budget.title'.tr(),
+            style: TextStyle(
+              fontSize: 28.sp,
+              fontWeight: FontWeight.bold,
               color: _textPrimary,
             ),
           ),
@@ -213,17 +201,14 @@ class _BudgetScreenState extends State<BudgetScreen> {
         }
       },
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
         decoration: BoxDecoration(
-          color: _cardColor,
-          borderRadius: BorderRadius.circular(16.r),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          color: AppColors.greenColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: AppColors.greenColor.withOpacity(0.3),
+            width: 1,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -231,20 +216,22 @@ class _BudgetScreenState extends State<BudgetScreen> {
             Icon(
               Icons.calendar_today,
               color: AppColors.greenColor,
-              size: 18.sp,
+              size: 16.sp,
             ),
-            SizedBox(width: 10.w),
+            SizedBox(width: 8.w),
             Text(
               DateFormat('MMMM yyyy').format(selectedDate),
-              style: AppText.body16(
-                context,
-              ).copyWith(fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+                color: AppColors.greenColor,
+              ),
             ),
             SizedBox(width: 6.w),
             Icon(
               Icons.keyboard_arrow_down,
-              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-              size: 20.sp,
+              color: AppColors.greenColor,
+              size: 18.sp,
             ),
           ],
         ),
@@ -261,10 +248,10 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(24.w),
+      padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         color: _cardColor,
-        borderRadius: BorderRadius.circular(24.r),
+        borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
@@ -281,14 +268,15 @@ class _BudgetScreenState extends State<BudgetScreen> {
             children: [
               Text(
                 'MONTHLY SUMMARY',
-                style: AppText.body12(context).copyWith(
+                style: TextStyle(
+                  fontSize: 11.sp,
                   color: Colors.grey[500],
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.5,
                 ),
               ),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
                 decoration: BoxDecoration(
                   color: isOnTrack
                       ? AppColors.greenColor.withOpacity(0.15)
@@ -297,7 +285,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 ),
                 child: Text(
                   isOnTrack ? 'On Track' : 'Over Budget',
-                  style: AppText.body12(context).copyWith(
+                  style: TextStyle(
+                    fontSize: 11.sp,
                     color: isOnTrack ? AppColors.greenColor : Colors.orange,
                     fontWeight: FontWeight.bold,
                   ),
@@ -307,26 +296,25 @@ class _BudgetScreenState extends State<BudgetScreen> {
           ),
           SizedBox(height: 16.h),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
             children: [
               Text(
-                '\$${spent.toStringAsFixed(0)}',
+                '\$${spent.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
                 style: TextStyle(
-                  fontSize: 44.sp,
+                  fontSize: 42.sp,
                   fontWeight: FontWeight.bold,
                   color: _textPrimary,
                   height: 1,
                 ),
               ),
               SizedBox(width: 8.w),
-              Padding(
-                padding: EdgeInsets.only(bottom: 6.h),
-                child: Text(
-                  '/ \$${budget.toStringAsFixed(0)}',
-                  style: AppText.body18(context).copyWith(
-                    color: Colors.grey[500],
-                    fontWeight: FontWeight.w500,
-                  ),
+              Text(
+                '/ \$${budget.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: Colors.grey[400],
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -337,15 +325,19 @@ class _BudgetScreenState extends State<BudgetScreen> {
             children: [
               Text(
                 'Total Spent',
-                style: AppText.body14(context).copyWith(
-                  color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               Text(
                 '$percentage%',
-                style: AppText.body14(
-                  context,
-                ).copyWith(fontWeight: FontWeight.bold, color: _textPrimary),
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
+                  color: _textPrimary,
+                ),
               ),
             ],
           ),
@@ -361,15 +353,17 @@ class _BudgetScreenState extends State<BudgetScreen> {
               ),
             ),
           ),
-          SizedBox(height: 14.h),
+          SizedBox(height: 12.h),
           Center(
             child: Text(
               remaining >= 0
                   ? 'You have \$${remaining.toStringAsFixed(0)} left to spend'
                   : 'You are \$${remaining.abs().toStringAsFixed(0)} over budget',
-              style: AppText.body14(
-                context,
-              ).copyWith(color: remaining >= 0 ? Colors.grey[500] : Colors.red),
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: remaining >= 0 ? Colors.grey[500] : Colors.red,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -383,19 +377,22 @@ class _BudgetScreenState extends State<BudgetScreen> {
       children: [
         Text(
           'Your Limits',
-          style: AppText.head24(context).copyWith(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 20.sp,
+            fontWeight: FontWeight.bold,
+            color: _textPrimary,
+          ),
         ),
         SizedBox(height: 16.h),
         ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: _budgets.length,
-          separatorBuilder: (_, __) => SizedBox(height: 14.h),
+          separatorBuilder: (_, __) => SizedBox(height: 12.h),
           itemBuilder: (context, index) {
             return _buildBudgetLimitCard(_budgets[index]);
           },
         ),
-        SizedBox(height: 100.h),
       ],
     );
   }
@@ -408,36 +405,43 @@ class _BudgetScreenState extends State<BudgetScreen> {
     final isNearLimit = percentage >= 90;
     final isOver = spent > limit;
 
-    // Get display info from metadata, fallback to stored icon
     final meta = categoryMeta[budget.category];
     final displayIcon = meta != null ? meta['icon'] as IconData : budget.icon;
     final displayColor = meta != null
         ? meta['color'] as Color
         : AppColors.greenColor;
-    final displayLabel = meta?['label'] ?? budget.category;
+    final displayLabel = meta != null
+        ? (meta['labelKey'] as String).tr()
+        : budget.category;
 
     return Dismissible(
       key: Key('budget_${budget.id}'),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
-        padding: EdgeInsets.only(right: 24.w),
+        padding: EdgeInsets.only(right: 20.w),
         decoration: BoxDecoration(
           color: Colors.red.withOpacity(0.9),
           borderRadius: BorderRadius.circular(20.r),
         ),
-        child: Icon(Icons.delete_outline, color: Colors.white, size: 28.sp),
+        child: Icon(Icons.delete_outline, color: Colors.white, size: 24.sp),
       ),
       confirmDismiss: (_) async {
         return await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Delete Budget'),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.r),
+            ),
+            title: Text('Delete Budget'),
             content: Text('Remove the $displayLabel budget?'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
@@ -465,14 +469,14 @@ class _BudgetScreenState extends State<BudgetScreen> {
           if (result == true) _loadData();
         },
         child: Container(
-          padding: EdgeInsets.all(18.w),
+          padding: EdgeInsets.all(16.w),
           decoration: BoxDecoration(
             color: _cardColor,
             borderRadius: BorderRadius.circular(20.r),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 12,
                 offset: const Offset(0, 2),
               ),
             ],
@@ -482,11 +486,11 @@ class _BudgetScreenState extends State<BudgetScreen> {
               Row(
                 children: [
                   Container(
-                    width: 52.w,
-                    height: 52.h,
+                    width: 48.w,
+                    height: 48.h,
                     decoration: BoxDecoration(
                       color: displayColor.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(16.r),
+                      borderRadius: BorderRadius.circular(14.r),
                     ),
                     child: Icon(displayIcon, color: displayColor, size: 22.sp),
                   ),
@@ -497,16 +501,19 @@ class _BudgetScreenState extends State<BudgetScreen> {
                       children: [
                         Text(
                           displayLabel,
-                          style: AppText.body16(
-                            context,
-                          ).copyWith(fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.bold,
+                            color: _textPrimary,
+                          ),
                         ),
-                        SizedBox(height: 2.h),
+                        SizedBox(height: 4.h),
                         Text(
                           budget.isRecurring ? 'Resets monthly' : 'One-time',
-                          style: AppText.body12(
-                            context,
-                          ).copyWith(color: Colors.grey[500]),
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: Colors.grey[500],
+                          ),
                         ),
                       ],
                     ),
@@ -516,16 +523,18 @@ class _BudgetScreenState extends State<BudgetScreen> {
                     children: [
                       Text(
                         '\$${spent.toStringAsFixed(0)}',
-                        style: AppText.body16(context).copyWith(
+                        style: TextStyle(
+                          fontSize: 18.sp,
                           fontWeight: FontWeight.bold,
                           color: isOver ? Colors.red : _textPrimary,
                         ),
                       ),
                       Text(
                         'of \$${limit.toStringAsFixed(0)}',
-                        style: AppText.body12(
-                          context,
-                        ).copyWith(color: Colors.grey[500]),
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          color: Colors.grey[500],
+                        ),
                       ),
                     ],
                   ),
@@ -533,7 +542,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
               ),
               SizedBox(height: 14.h),
               ClipRRect(
-                borderRadius: BorderRadius.circular(10.r),
+                borderRadius: BorderRadius.circular(8.r),
                 child: LinearProgressIndicator(
                   value: limit > 0 ? (spent / limit).clamp(0.0, 1.0) : 0,
                   minHeight: 8.h,
@@ -553,54 +562,45 @@ class _BudgetScreenState extends State<BudgetScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  if (isOver)
-                    Row(
-                      children: [
+                  Row(
+                    children: [
+                      if (isOver)
                         Icon(
-                          Icons.error_outline,
+                          Icons.warning_rounded,
                           color: Colors.red,
                           size: 14.sp,
-                        ),
-                        SizedBox(width: 4.w),
-                        Text(
-                          'Over budget',
-                          style: AppText.body12(context).copyWith(
-                            color: Colors.red,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    )
-                  else if (isNearLimit)
-                    Row(
-                      children: [
+                        )
+                      else if (isNearLimit)
                         Icon(
                           Icons.warning_amber_rounded,
                           color: Colors.orange,
                           size: 14.sp,
                         ),
-                        SizedBox(width: 4.w),
-                        Text(
-                          'Near Limit',
-                          style: AppText.body12(context).copyWith(
-                            color: Colors.orange,
-                            fontWeight: FontWeight.w600,
-                          ),
+                      if (isOver || isNearLimit) SizedBox(width: 4.w),
+                      Text(
+                        isOver
+                            ? 'Over Budget'
+                            : isNearLimit
+                            ? 'Near Limit'
+                            : '$percentage% Used',
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          color: isOver
+                              ? Colors.red
+                              : isNearLimit
+                              ? Colors.orange
+                              : Colors.grey[600],
+                          fontWeight: FontWeight.w600,
                         ),
-                      ],
-                    )
-                  else
-                    Text(
-                      '$percentage% used',
-                      style: AppText.body12(
-                        context,
-                      ).copyWith(color: Colors.grey[600]),
-                    ),
+                      ),
+                    ],
+                  ),
                   Text(
                     remaining >= 0
                         ? '\$${remaining.toStringAsFixed(0)} left'
                         : '\$${remaining.abs().toStringAsFixed(0)} over',
-                    style: AppText.body12(context).copyWith(
+                    style: TextStyle(
+                      fontSize: 12.sp,
                       color: isOver
                           ? Colors.red
                           : isNearLimit
@@ -624,25 +624,37 @@ class _BudgetScreenState extends State<BudgetScreen> {
       child: Center(
         child: Column(
           children: [
-            Icon(
-              FontAwesomeIcons.chartPie,
-              size: 64.sp,
-              color: Colors.grey[400],
+            Container(
+              width: 80.w,
+              height: 80.h,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.pie_chart_outline_rounded,
+                size: 40.sp,
+                color: Colors.grey[400],
+              ),
             ),
             SizedBox(height: 20.h),
             Text(
               'No budgets yet',
-              style: AppText.head24(
-                context,
-              ).copyWith(color: Colors.grey[500], fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 20.sp,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w600,
+              ),
             ),
             SizedBox(height: 8.h),
             Text(
               'Tap "New Budget" to create\nyour first spending limit',
               textAlign: TextAlign.center,
-              style: AppText.body14(
-                context,
-              ).copyWith(color: Colors.grey[400], height: 1.5),
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.grey[500],
+                height: 1.5,
+              ),
             ),
           ],
         ),
@@ -652,7 +664,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
   Widget _buildNewBudgetButton() {
     return Container(
-      margin: EdgeInsets.only(bottom: 70.h),
+      margin: EdgeInsets.only(bottom: 80.h, right: 4.w),
       child: FloatingActionButton.extended(
         heroTag: 'new_budget',
         onPressed: () async {
@@ -663,14 +675,26 @@ class _BudgetScreenState extends State<BudgetScreen> {
           );
           if (result == true) _loadData();
         },
-        backgroundColor: AppColors.greenColor,
+        backgroundColor: Colors.black,
         elevation: 8,
-        icon: Icon(Icons.add, color: Colors.white, size: 22.sp),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30.r),
+        ),
+        icon: Container(
+          padding: EdgeInsets.all(2.w),
+          decoration: BoxDecoration(
+            color: AppColors.greenColor,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(Icons.add, color: Colors.white, size: 18.sp),
+        ),
         label: Text(
           'New Budget',
-          style: AppText.body16(
-            context,
-          ).copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 15.sp,
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );

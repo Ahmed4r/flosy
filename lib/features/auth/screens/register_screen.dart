@@ -4,6 +4,7 @@ import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/auth/screens/cubit/auth_cubit_cubit.dart';
 import 'package:flosy/features/auth/screens/login_screen.dart';
 import 'package:flosy/features/home/presentation/screens/home_screen.dart';
+import 'package:flosy/features/navigation/main_nav_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -221,7 +222,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           // navigate to home after successful register
                           Navigator.of(context).pushReplacement(
                             MaterialPageRoute(
-                              builder: (context) => const HomeScreen(),
+                              builder: (context) => const MainNavScreen(),
                             ),
                           );
                         }

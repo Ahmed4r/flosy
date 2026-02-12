@@ -7,6 +7,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:pie_chart/pie_chart.dart';
 
+// Dynamic color map matching TransactionColors
+const Map<String, Color> _categoryColors = {
+  'food': Colors.orange,
+  'rent': Colors.blue,
+  'transport': Colors.green,
+  'shopping': Colors.purple,
+  'fun': Colors.red,
+  'health': Colors.teal,
+  'salary': Colors.indigo,
+  'bills': Colors.amber,
+  'more': Colors.grey,
+};
+
+Color _getCategoryColor(String category, int fallbackIndex) {
+  return _categoryColors[category] ??
+      [
+        AppColors.greenColor,
+        Colors.blue,
+        Colors.purple,
+        Colors.orange,
+        Colors.teal,
+        Colors.pink,
+        Colors.amber,
+        Colors.cyan,
+      ][fallbackIndex % 8];
+}
+
 Widget buildChart(
   BuildContext context, {
   required double expenses,
@@ -15,74 +42,57 @@ Widget buildChart(
 }) {
   bool isDarkMode = AppTheme.isDarkMode(context);
 
-  // Check if categories is empty
   if (categories.isEmpty) {
-    return SizedBox(
-      height: 200.h,
-      child: Container(
-        padding: EdgeInsets.all(16.w),
-        decoration: BoxDecoration(
-          color: isDarkMode ? Colors.black54 : AppColors.whiteColor,
-          borderRadius: BorderRadius.circular(20.r),
-          border: Border.all(
-            color: isDarkMode ? Colors.white12 : Colors.grey.withOpacity(0.3),
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: isDarkMode
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.grey.withOpacity(0.8),
-              blurRadius: 10,
-              offset: Offset(0, 4),
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(vertical: 40.h, horizontal: 16.w),
+      decoration: _cardDecoration(isDarkMode),
+      child: Column(
+        children: [
+          Container(
+            width: 64.w,
+            height: 64.h,
+            decoration: BoxDecoration(
+              color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
+              shape: BoxShape.circle,
             ),
-          ],
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.pie_chart_outline, size: 48.sp, color: Colors.grey),
-              SizedBox(height: 8.h),
-              Text(
-                'home.no_transactions'.tr(),
-                style: AppText.body16(context).copyWith(color: Colors.grey),
-              ),
-            ],
+            child: Icon(
+              Icons.pie_chart_outline,
+              size: 32.sp,
+              color: Colors.grey[400],
+            ),
           ),
-        ),
+          SizedBox(height: 14.h),
+          Text(
+            'home.no_transactions'.tr(),
+            style: AppText.body16(
+              context,
+            ).copyWith(color: Colors.grey[500], fontWeight: FontWeight.w500),
+          ),
+          SizedBox(height: 4.h),
+          Text(
+            'Add expenses to see your chart',
+            style: AppText.body12(context).copyWith(color: Colors.grey[400]),
+          ),
+        ],
       ),
     );
   }
 
   final dataMap = categories;
-
   final total = dataMap.values.fold<double>(0, (sum, val) => sum + val);
-  final percentageMap = <String, String>{};
-  dataMap.forEach((key, value) {
-    final percentage = ((value / total) * 100).toStringAsFixed(1);
-    percentageMap[key] = '$percentage%';
-  });
+
+  // Build color list matching category order
+  final colorList = <Color>[];
+  int i = 0;
+  for (final key in dataMap.keys) {
+    colorList.add(_getCategoryColor(key, i));
+    i++;
+  }
 
   return Container(
-    padding: EdgeInsets.all(16.w),
-    decoration: BoxDecoration(
-      color: isDarkMode ? Colors.black54 : Colors.white,
-      borderRadius: BorderRadius.circular(20.r),
-      border: Border.all(
-        color: isDarkMode ? Colors.white12 : Colors.grey.withOpacity(0.3),
-        width: 1,
-      ),
-      boxShadow: [
-        BoxShadow(
-          color: isDarkMode
-              ? Colors.white.withOpacity(0.1)
-              : Colors.grey.withOpacity(0.8),
-          blurRadius: 10,
-          offset: Offset(0, 4),
-        ),
-      ],
-    ),
+    padding: EdgeInsets.all(20.w),
+    decoration: _cardDecoration(isDarkMode),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -93,143 +103,143 @@ Widget buildChart(
             Text(
               'home.this_month'.tr(),
               style: AppText.body16(context).copyWith(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w700,
                 color: isDarkMode ? Colors.white : Colors.black,
               ),
             ),
             GestureDetector(
               onTap: () {
-                // Navigate to detailed chart screen
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        DetailedChartScreen(isArabic: isArabic),
+                    builder: (_) => DetailedChartScreen(isArabic: isArabic),
                   ),
                 );
               },
-              child: Row(
-                children: [
-                  Text(
-                    'home.view_all'.tr(),
-                    style: AppText.body12grey(context).copyWith(
-                      color: isDarkMode ? Colors.white : Colors.black54,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                decoration: BoxDecoration(
+                  color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'home.view_all'.tr(),
+                      style: AppText.body12(context).copyWith(
+                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                  SizedBox(width: 4.w),
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    size: 8.sp,
-                    color: isDarkMode ? Colors.white : AppColors.greyColor,
-                  ),
-                ],
+                    SizedBox(width: 4.w),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 10.sp,
+                      color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
         ),
-        SizedBox(height: 16.h),
+        SizedBox(height: 20.h),
 
-        // Chart and Legend Row - CONSTRAINED WIDTH
+        // Chart + Legend
         SizedBox(
-          height: 150.h,
+          height: 140.h,
           child: Row(
             children: [
-              // Pie Chart - FIXED WIDTH
+              // Pie Chart
               SizedBox(
-                width: 120.w,
-                height: 120.h,
+                width: 130.w,
+                height: 130.h,
                 child: PieChart(
                   dataMap: dataMap,
-                  animationDuration: Duration(milliseconds: 800),
-                  chartRadius: 100.r,
-                  colorList: [
-                    AppColors.greenColor,
-                    Colors.blue,
-                    Colors.purple,
-                    Colors.orange,
-                  ],
-                  initialAngleInDegree: 0,
+                  animationDuration: const Duration(milliseconds: 1000),
+                  chartRadius: 110.r,
+                  colorList: colorList,
+                  initialAngleInDegree: -90,
                   chartType: ChartType.ring,
-                  ringStrokeWidth: 8,
+                  ringStrokeWidth: 10,
                   centerWidget: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         'home.spent'.tr(),
-                        style: AppText.body12grey(context).copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: isDarkMode ? Colors.white : Colors.black54,
+                        style: AppText.body12(context).copyWith(
+                          color: isDarkMode
+                              ? Colors.grey[400]
+                              : Colors.grey[500],
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                      SizedBox(height: 4.h),
+                      SizedBox(height: 2.h),
                       Text(
                         '\$${expenses.toStringAsFixed(0)}',
-                        style: AppText.body16(context).copyWith(
-                          fontWeight: FontWeight.bold,
+                        style: AppText.body18(context).copyWith(
+                          fontWeight: FontWeight.w800,
                           color: isDarkMode ? Colors.white : Colors.black,
                         ),
                       ),
                     ],
                   ),
-                  legendOptions: LegendOptions(showLegends: false),
-                  chartValuesOptions: ChartValuesOptions(
+                  legendOptions: const LegendOptions(showLegends: false),
+                  chartValuesOptions: const ChartValuesOptions(
                     showChartValues: false,
                   ),
                 ),
               ),
-              SizedBox(width: 16.w),
+              SizedBox(width: 20.w),
 
-              // Custom Legend - FLEXIBLE
+              // Legend
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: dataMap.keys.map((category) {
-                      final colors = [
-                        AppColors.greenColor,
-                        Colors.blue,
-                        Colors.purple,
-                        Colors.orange,
-                      ];
-                      final colorIndex = dataMap.keys.toList().indexOf(
-                        category,
-                      );
+                    children: List.generate(dataMap.length, (index) {
+                      final key = dataMap.keys.elementAt(index);
+                      final value = dataMap[key]!;
+                      final pct = ((value / total) * 100).toStringAsFixed(1);
 
                       return Padding(
-                        padding: EdgeInsets.only(bottom: 12.h),
+                        padding: EdgeInsets.only(bottom: 10.h),
                         child: Row(
                           children: [
                             Container(
-                              width: 12.w,
-                              height: 12.w,
+                              width: 10.w,
+                              height: 10.w,
                               decoration: BoxDecoration(
-                                color: colors[colorIndex],
-                                shape: BoxShape.circle,
+                                color: colorList[index],
+                                borderRadius: BorderRadius.circular(3.r),
                               ),
                             ),
                             SizedBox(width: 10.w),
                             Expanded(
                               child: Text(
-                                'categories.$category'.tr(),
+                                'categories.$key'.tr(),
                                 style: AppText.body14(context).copyWith(
                                   fontWeight: FontWeight.w500,
                                   color: isDarkMode
-                                      ? Colors.white
-                                      : Colors.black,
+                                      ? Colors.grey[300]
+                                      : Colors.grey[700],
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             Text(
-                              percentageMap[category] ?? '0%',
+                              '$pct%',
                               style: AppText.body14(context).copyWith(
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w700,
                                 color: isDarkMode ? Colors.white : Colors.black,
                               ),
                             ),
                           ],
                         ),
                       );
-                    }).toList(),
+                    }),
                   ),
                 ),
               ),
@@ -238,5 +248,19 @@ Widget buildChart(
         ),
       ],
     ),
+  );
+}
+
+BoxDecoration _cardDecoration(bool isDarkMode) {
+  return BoxDecoration(
+    color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+    borderRadius: BorderRadius.circular(20.r),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withOpacity(isDarkMode ? 0.2 : 0.05),
+        blurRadius: 12,
+        offset: const Offset(0, 4),
+      ),
+    ],
   );
 }

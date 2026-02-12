@@ -586,22 +586,16 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             type: isExpense ? TransactionType.expense : TransactionType.income,
             iconCodePoint: categoryIcon.codePoint,
             iconFontFamily: categoryIcon.fontFamily ?? 'MaterialIcons',
+            iconFontPackage: categoryIcon.fontPackage, // Add this line
           );
 
           await DatabaseService().addTransaction(transaction);
 
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('transaction.transaction_saved'.tr()),
-                backgroundColor: AppColors.greenColor,
-                duration: const Duration(seconds: 2),
-              ),
-            );
-            Navigator.pop(context, true);
+          if (mounted) {
+            Navigator.of(context).pop(true); // Return true on success
           }
         } catch (e) {
-          if (context.mounted) {
+          if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('transaction.invalid_amount'.tr()),

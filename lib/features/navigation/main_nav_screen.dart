@@ -1,7 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
-import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/budget/screens/budget_screen.dart';
 import 'package:flosy/features/home/presentation/screens/add_transaction_screen.dart';
 import 'package:flosy/features/home/presentation/screens/detailed_chart_screen.dart';
@@ -11,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'dart:math' as math;
 
 class MainNavScreen extends StatefulWidget {
   const MainNavScreen({super.key});
@@ -27,26 +25,29 @@ class _MainNavScreenState extends State<MainNavScreen>
   late final AnimationController _fabAnimController;
   late final Animation<double> _fabScaleAnim;
 
-  final List<_NavItem> _navItems = [
+  // Key to access HomeScreen's state
+  final _homeKey = GlobalKey<HomeScreenState>();
+
+  List<_NavItem> get _navItems => [
     _NavItem(
       icon: FontAwesomeIcons.house,
       activeIcon: FontAwesomeIcons.house,
-      label: 'Home',
+      label: 'nav.home'.tr(),
     ),
     _NavItem(
       icon: FontAwesomeIcons.chartPie,
       activeIcon: FontAwesomeIcons.chartPie,
-      label: 'Budget',
+      label: 'nav.budget'.tr(),
     ),
     _NavItem(
       icon: FontAwesomeIcons.chartLine,
       activeIcon: FontAwesomeIcons.chartLine,
-      label: 'Analytics',
+      label: 'nav.analytics'.tr(),
     ),
     _NavItem(
       icon: FontAwesomeIcons.gear,
       activeIcon: FontAwesomeIcons.gear,
-      label: 'Settings',
+      label: 'nav.settings'.tr(),
     ),
   ];
 
@@ -97,7 +98,7 @@ class _MainNavScreenState extends State<MainNavScreen>
         physics: const NeverScrollableScrollPhysics(),
         onPageChanged: (i) => setState(() => _currentIndex = i),
         children: [
-          const HomeScreen(),
+          HomeScreen(key: _homeKey),
           const BudgetScreen(),
           DetailedChartScreen(isArabic: _isArabic(context)),
           const MainSettingScreen(),
@@ -138,9 +139,9 @@ class _MainNavScreenState extends State<MainNavScreen>
             transitionDuration: const Duration(milliseconds: 400),
           ),
         );
-        if (result == true && _currentIndex == 0) {
-          // Trigger refresh on home screen
-          setState(() {});
+        if (result == true && mounted) {
+          // Await the refresh and check if widget is still mounted
+          await _homeKey.currentState?.refresh();
         }
       },
       child: Container(
