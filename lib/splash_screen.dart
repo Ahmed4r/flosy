@@ -1,14 +1,16 @@
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flosy/core/services/biometric_service_helper.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
+import 'package:flosy/features/auth/screens/biometric_prompt_screen.dart';
 import 'package:flosy/features/auth/screens/cubit/auth_cubit_cubit.dart';
 import 'package:flosy/features/auth/screens/login_screen.dart';
-import 'package:flosy/features/home/screens/home_screen.dart';
+import 'package:flosy/features/home/presentation/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'dart:math' as math;
-import 'package:shared_preferences/shared_preferences.dart'; // <-- add
+import 'package:shared_preferences/shared_preferences.dart'; // <-- add Add this import
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -105,34 +107,66 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _navigateNext() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(
-      'user_token',
-    ); // <-- key you will set on login
+    final token = prefs.getString('user_token');
     final loggedIn = token != null && token.isNotEmpty;
 
     if (!mounted) return;
 
     if (loggedIn) {
-      // User has token, go to home
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => BlocProvider(
-            create: (context) => AuthCubitCubit(),
-            child: const HomeScreen(),
-          ),
-        ),
-      );
+      // Check if Face ID is enabled before navigating to home
+      final faceIdEnabled = await BiometricService.isFaceIdEnabled();
+
+      if (faceIdEnabled) {
+        // Show Face ID prompt
+        final authenticated = await _showFaceIdPrompt();
+
+        if (authenticated) {
+          // Face ID successful, navigate to home
+          _navigateToHome();
+        } else {
+          // Face ID failed, navigate to login
+          _navigateToLogin();
+        }
+      } else {
+        // Face ID not enabled, go directly to home
+        _navigateToHome();
+      }
     } else {
       // No token, go to login
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => BlocProvider(
-            create: (context) => AuthCubitCubit(),
-            child: const LoginScreen(),
-          ),
-        ),
-      );
+      _navigateToLogin();
     }
+  }
+
+  Future<bool> _showFaceIdPrompt() async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => const BiometricPromptScreen(),
+        fullscreenDialog: true,
+      ),
+    );
+    return result ?? false;
+  }
+
+  void _navigateToHome() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => BlocProvider(
+          create: (context) => AuthCubitCubit(),
+          child: const HomeScreen(),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToLogin() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => BlocProvider(
+          create: (context) => AuthCubitCubit(),
+          child: const LoginScreen(),
+        ),
+      ),
+    );
   }
 
   @override

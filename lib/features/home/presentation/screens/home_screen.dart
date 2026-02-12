@@ -2,16 +2,16 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
-import 'package:flosy/features/home/model/transaction_model.dart';
-import 'package:flosy/features/home/screens/add_transaction_screen.dart';
-import 'package:flosy/features/home/widgets/build_amount_card.dart';
-import 'package:flosy/features/home/widgets/build_chart.dart';
-import 'package:flosy/features/home/widgets/build_header.dart';
-import 'package:flosy/features/home/widgets/build_tracks.dart';
+import 'package:flosy/features/home/data/model/transaction_model.dart';
+import 'package:flosy/features/home/presentation/screens/add_transaction_screen.dart';
+import 'package:flosy/features/home/presentation/widgets/build_amount_card.dart';
+import 'package:flosy/features/home/presentation/widgets/build_chart.dart';
+import 'package:flosy/features/home/presentation/widgets/build_header.dart';
+import 'package:flosy/features/home/presentation/widgets/build_tracks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:flosy/features/home/services/db.dart';
+import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -57,6 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadBalance();
     _loadTransactions();
+    getPreferredCurrency();
   }
 
   Future<void> _loadTransactions() async {
@@ -144,6 +145,12 @@ class _HomeScreenState extends State<HomeScreen> {
     return categoryMap;
   }
 
+  String currency = '';
+  Future<void> getPreferredCurrency() async {
+    final prefs = await SharedPreferences.getInstance();
+    currency = prefs.getString('selected_currency') ?? 'USD';
+  }
+
   @override
   Widget build(BuildContext context) {
     bool isDarkMode = AppTheme.isDarkMode(context);
@@ -186,6 +193,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   _totalBalance,
                   _showEditBalanceDialog,
                   _percentChange / 100, // <-- pass ratio for progress bar
+                  currency,
+                  // <-- pass currency symbol
                 ),
                 SizedBox(height: 20.h),
                 buildTracks(context, totalIncome, totalExpenses),
@@ -218,7 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
           content: TextField(
             controller: controller,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(hintText: '0.00'),
+            decoration: InputDecoration(hintText: ''),
           ),
           actions: [
             TextButton(
