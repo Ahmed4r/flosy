@@ -10,6 +10,7 @@ Widget buildAmountCard(
   double totalBalance,
   VoidCallback onEditBalance, // edit callback
   double spentRatio, // 0.0 - 1.0
+  String currencySymbol, // currency symbol
 ) {
   return Container(
     width: double.infinity,
@@ -49,7 +50,7 @@ Widget buildAmountCard(
           Row(
             children: [
               Text(
-                '\$${totalBalance.toStringAsFixed(2)}',
+                '${totalBalance.toStringAsFixed(2)} $currencySymbol',
                 style: AppText.head24(context).copyWith(color: Colors.white),
               ),
               SizedBox(width: 8.w),

@@ -17,36 +17,39 @@ Widget buildChart(
 
   // Check if categories is empty
   if (categories.isEmpty) {
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: isDarkMode ? Colors.black54 : Colors.white,
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(
-          color: isDarkMode ? Colors.white12 : Colors.grey.withOpacity(0.3),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isDarkMode
-                ? Colors.white.withOpacity(0.1)
-                : Colors.grey.withOpacity(0.8),
-            blurRadius: 10,
-            offset: Offset(0, 4),
+    return SizedBox(
+      height: 200.h,
+      child: Container(
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: isDarkMode ? Colors.black54 : Colors.white,
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(
+            color: isDarkMode ? Colors.white12 : Colors.grey.withOpacity(0.3),
+            width: 1,
           ),
-        ],
-      ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.pie_chart_outline, size: 48.sp, color: Colors.grey),
-            SizedBox(height: 8.h),
-            Text(
-              'No transactions yet',
-              style: AppText.body16(context).copyWith(color: Colors.grey),
+          boxShadow: [
+            BoxShadow(
+              color: isDarkMode
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.grey.withOpacity(0.8),
+              blurRadius: 10,
+              offset: Offset(0, 4),
             ),
           ],
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.pie_chart_outline, size: 48.sp, color: Colors.grey),
+              SizedBox(height: 8.h),
+              Text(
+                'home.no_transactions'.tr(),
+                style: AppText.body16(context).copyWith(color: Colors.grey),
+              ),
+            ],
+          ),
         ),
       ),
     );
