@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/features/auth/screens/cubit/auth_cubit_cubit.dart';
 import 'package:flosy/features/home/services/db.dart';
+import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flosy/firebase_options.dart';
 import 'package:flosy/splash_screen.dart';
 import 'package:flutter/material.dart';
@@ -38,17 +39,29 @@ class Flosy extends StatelessWidget {
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (_, child) {
-        return BlocProvider(
-          create: (context) => AuthCubitCubit(),
-          child: MaterialApp(
-            localizationsDelegates: context.localizationDelegates,
-            supportedLocales: context.supportedLocales,
-            locale: context.locale,
-            debugShowCheckedModeBanner: false,
-            theme: appTheme.lightTheme,
-            darkTheme: appTheme.darkTheme,
-            themeMode: ThemeMode.system,
-            home: const SplashScreen(),
+        return MultiBlocProvider(
+          providers: [
+            BlocProvider(create: (context) => AuthCubitCubit()),
+            BlocProvider(create: (context) => SettingsCubit()..loadSettings()),
+          ],
+          child: BlocBuilder<SettingsCubit, SettingsState>(
+            builder: (context, state) {
+              ThemeMode themeMode = ThemeMode.system;
+              if (state is SettingsLoaded) {
+                themeMode = state.themeMode;
+              }
+
+              return MaterialApp(
+                localizationsDelegates: context.localizationDelegates,
+                supportedLocales: context.supportedLocales,
+                locale: context.locale,
+                debugShowCheckedModeBanner: false,
+                theme: appTheme.lightTheme,
+                darkTheme: appTheme.darkTheme,
+                themeMode: themeMode,
+                home: const SplashScreen(),
+              );
+            },
           ),
         );
       },
