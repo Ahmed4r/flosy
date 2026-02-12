@@ -12,15 +12,15 @@ class SettingsLoaded extends SettingsState {
   final bool isDarkMode;
   final bool faceIdEnabled;
   final String selectedCurrency;
-
+  final File? profileImage;
   SettingsLoaded({
     required this.themeMode,
     required this.isDarkMode,
     required this.faceIdEnabled,
     required this.selectedCurrency,
+    this.profileImage,
   });
 }
-
 class SettingsError extends SettingsState {
   final String message;
   SettingsError(this.message);

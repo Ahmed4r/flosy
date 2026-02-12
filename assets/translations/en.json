@@ -58,7 +58,7 @@
         "greeting_morning": "Good Morning,",
         "greeting_afternoon": "Good Afternoon,",
         "greeting_evening": "Good Evening,",
-        "user_name": "Ahmed Hegazy",
+        "user_name": "user",
         "total_balance": "Total Balance",
         "monthly_limit": "Monthly Limit",
         "income": "Income",
@@ -133,7 +133,17 @@
         "update_failed": "Failed to update profile",
         "biometric_not_available": "Biometric authentication is not available on this device",
         "authentication_failed": "Authentication failed. Please try again",
-        "coming_soon": "Coming soon!"
+        "coming_soon": "Coming soon!",
+        "storage_permission": "Storage Permission",
+        "storage_permission_required": "Storage permission is required to export data",
+        "storage_permission_denied": "We need storage permission to save the PDF file. Please allow storage access.",
+        "storage_permission_permanently_denied": "Storage permission has been permanently denied. Please go to Settings and enable storage permission for this app.",
+        "open_settings": "Open Settings",
+        "no_transactions": "No transactions to export",
+        "pdf_exported": "PDF exported successfully",
+        "pdf_exported_android": "PDF exported successfully to Downloads",
+        "pdf_exported_ios": "PDF exported successfully to Files app",
+        "view": "View"
     },
     "categories": {
         "food": "Food",

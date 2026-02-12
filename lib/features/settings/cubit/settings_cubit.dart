@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,6 +15,9 @@ class SettingsCubit extends Cubit<SettingsState> {
   bool _isDarkMode = false;
   bool _faceIdEnabled = false;
   String _selectedCurrency = 'USD';
+  File? _image;
+  File? get profileImage => _image;
+  late SharedPreferences _prefs;
 
   ThemeMode get currentThemeMode => _currentThemeMode;
   bool get isDarkMode => _isDarkMode;
@@ -20,18 +25,20 @@ class SettingsCubit extends Cubit<SettingsState> {
   String get selectedCurrency => _selectedCurrency;
 
   Future<void> loadSettings() async {
-    emit(SettingsLoading());
     try {
-      final prefs = await SharedPreferences.getInstance();
+      _prefs = await SharedPreferences.getInstance();
 
       // Load theme mode
-      final themeModeIndex = prefs.getInt('theme_mode') ?? 0;
+      final themeModeIndex = _prefs.getInt('theme_mode') ?? 0;
       _currentThemeMode = ThemeMode.values[themeModeIndex];
-      _isDarkMode = prefs.getBool('is_dark_mode') ?? false;
+      _isDarkMode = _prefs.getBool('is_dark_mode') ?? false;
 
       // Load other settings
-      _faceIdEnabled = prefs.getBool('face_id_enabled') ?? false;
-      _selectedCurrency = prefs.getString('selected_currency') ?? 'USD';
+      _faceIdEnabled = _prefs.getBool('face_id_enabled') ?? false;
+      _selectedCurrency = _prefs.getString('selected_currency') ?? 'USD';
+      _image = _prefs.getString('profile_image') != null
+          ? File(_prefs.getString('profile_image')!)
+          : null;
 
       emit(
         SettingsLoaded(
@@ -39,6 +46,7 @@ class SettingsCubit extends Cubit<SettingsState> {
           isDarkMode: _isDarkMode,
           faceIdEnabled: _faceIdEnabled,
           selectedCurrency: _selectedCurrency,
+          profileImage: _image,
         ),
       );
     } catch (e) {
@@ -46,14 +54,46 @@ class SettingsCubit extends Cubit<SettingsState> {
     }
   }
 
+  Future<void> updateProfileImage(File? image) async {
+    if (state is SettingsLoaded) {
+      final currentState = state as SettingsLoaded;
+
+      // Update the instance variable
+      _image = image;
+
+      // Force a new emission by creating a completely new state
+      emit(SettingsLoading()); // Emit loading first
+
+      // Save to SharedPreferences with the correct key
+      if (image != null) {
+        await _prefs.setString(
+          'profile_image',
+          image.path,
+        ); // Changed from 'profile_image_path'
+      } else {
+        await _prefs.remove('profile_image');
+      }
+
+      // Emit the new state
+      emit(
+        SettingsLoaded(
+          selectedCurrency: currentState.selectedCurrency,
+          isDarkMode: currentState.isDarkMode,
+          faceIdEnabled: currentState.faceIdEnabled,
+          profileImage: image,
+          themeMode: _currentThemeMode,
+        ),
+      );
+    }
+  }
+
   Future<void> toggleTheme(bool isDark) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       _isDarkMode = isDark;
       _currentThemeMode = isDark ? ThemeMode.dark : ThemeMode.light;
 
-      await prefs.setBool('is_dark_mode', _isDarkMode);
-      await prefs.setInt('theme_mode', _currentThemeMode.index);
+      await _prefs.setBool('is_dark_mode', _isDarkMode);
+      await _prefs.setInt('theme_mode', _currentThemeMode.index);
 
       emit(
         SettingsLoaded(
@@ -61,6 +101,7 @@ class SettingsCubit extends Cubit<SettingsState> {
           isDarkMode: _isDarkMode,
           faceIdEnabled: _faceIdEnabled,
           selectedCurrency: _selectedCurrency,
+          profileImage: _image,
         ),
       );
     } catch (e) {
@@ -126,6 +167,7 @@ class SettingsCubit extends Cubit<SettingsState> {
               isDarkMode: _isDarkMode,
               faceIdEnabled: _faceIdEnabled,
               selectedCurrency: _selectedCurrency,
+              profileImage: _image,
             ),
           );
           return;
@@ -142,6 +184,7 @@ class SettingsCubit extends Cubit<SettingsState> {
           isDarkMode: _isDarkMode,
           faceIdEnabled: _faceIdEnabled,
           selectedCurrency: _selectedCurrency,
+          profileImage: _image,
         ),
       );
     } catch (e) {
@@ -151,16 +194,15 @@ class SettingsCubit extends Cubit<SettingsState> {
 
   Future<void> changeCurrency(String currency) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       _selectedCurrency = currency;
-      await prefs.setString('selected_currency', _selectedCurrency);
-
+      await _prefs.setString('selected_currency', _selectedCurrency);
       emit(
         SettingsLoaded(
           themeMode: _currentThemeMode,
           isDarkMode: _isDarkMode,
           faceIdEnabled: _faceIdEnabled,
           selectedCurrency: _selectedCurrency,
+          profileImage: _image,
         ),
       );
     } catch (e) {

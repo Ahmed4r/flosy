@@ -15,6 +15,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:permission_handler/permission_handler.dart';
+import 'package:printing/printing.dart';
 
 class MainSettingScreen extends StatelessWidget {
   const MainSettingScreen({super.key});
@@ -59,14 +63,26 @@ class _MainSettingView extends StatelessWidget {
         ),
       ),
       body: BlocBuilder<SettingsCubit, SettingsState>(
+        buildWhen: (previous, current) {
+          // Rebuild whenever state changes
+          if (previous is SettingsLoaded && current is SettingsLoaded) {
+            return previous.profileImage?.path != current.profileImage?.path;
+          }
+          return true;
+        },
         builder: (context, state) {
+          File? profileImage;
+          if (state is SettingsLoaded) {
+            profileImage = state.profileImage;
+          }
+
           return SingleChildScrollView(
             padding: EdgeInsets.all(16.w),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // User Profile Card
-                _buildProfileCard(context, isDarkMode, user),
+                _buildProfileCard(context, isDarkMode, user, profileImage),
                 SizedBox(height: 24.h),
 
                 // Preferences Section
@@ -116,7 +132,12 @@ class _MainSettingView extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileCard(BuildContext context, bool isDarkMode, User? user) {
+  Widget _buildProfileCard(
+    BuildContext context,
+    bool isDarkMode,
+    User? user,
+    File? profileImage,
+  ) {
     return GestureDetector(
       onTap: () async {
         final result = await Navigator.push(
@@ -149,26 +170,44 @@ class _MainSettingView extends StatelessWidget {
             // Avatar
             Stack(
               children: [
-                CircleAvatar(
-                  radius: 30.r,
-                  backgroundColor: AppColors.greenColor,
-                  child: user?.photoURL != null
-                      ? ClipOval(
-                          child: Image.network(
-                            user!.photoURL!,
-                            width: 60.r,
-                            height: 60.r,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Icon(
-                                Icons.person,
-                                size: 30.sp,
-                                color: Colors.white,
-                              );
-                            },
-                          ),
-                        )
-                      : Icon(Icons.person, size: 30.sp, color: Colors.white),
+                BlocBuilder<SettingsCubit, SettingsState>(
+                  bloc: context.read<SettingsCubit>(),
+                  builder: (context, state) {
+                    File? profileImage;
+
+                    if (state is SettingsLoaded) {
+                      profileImage = state.profileImage;
+                    }
+
+                    return CircleAvatar(
+                      radius: 30.r,
+                      backgroundColor: AppColors.greenColor,
+                      child: profileImage != null
+                          ? ClipOval(
+                              child: Image.file(
+                                profileImage,
+                                key: ValueKey(
+                                  profileImage.path,
+                                ), // Add unique key
+                                width: 60.r,
+                                height: 60.r,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Icon(
+                                    Icons.person,
+                                    size: 30.sp,
+                                    color: Colors.white,
+                                  );
+                                },
+                              ),
+                            )
+                          : Icon(
+                              Icons.person,
+                              size: 30.sp,
+                              color: Colors.white,
+                            ),
+                    );
+                  },
                 ),
                 Positioned(
                   bottom: 0,
@@ -508,6 +547,37 @@ class _MainSettingView extends StatelessWidget {
 
   Future<void> _exportData(BuildContext context) async {
     try {
+      // Request storage permission (Android only)
+      if (Platform.isAndroid) {
+        PermissionStatus status = await Permission.storage.status;
+
+        // Check if permission is denied
+        if (status.isDenied) {
+          status = await Permission.storage.request();
+        }
+
+        // If still denied, show dialog to open settings
+        if (status.isDenied || status.isPermanentlyDenied) {
+          if (context.mounted) {
+            _showPermissionDialog(context, status.isPermanentlyDenied);
+          }
+          return;
+        }
+
+        // If permission not granted, return
+        if (!status.isGranted) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('settings.storage_permission_required'.tr()),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+      }
+
       // Show loading
       showDialog(
         context: context,
@@ -520,49 +590,226 @@ class _MainSettingView extends StatelessWidget {
       // Get all transactions from database
       final transactions = await dbService.getTransactions();
 
-      // Create CSV content
-      final csvContent = StringBuffer();
-      csvContent.writeln('Date,Title,Category,Type,Amount');
-
-      for (var transaction in transactions) {
-        csvContent.writeln(
-          '${transaction.date.toIso8601String()},'
-          '${transaction.title},'
-          '${transaction.category},'
-          '${transaction.type.name},'
-          '${transaction.amount}',
-        );
+      if (transactions.isEmpty) {
+        Navigator.pop(context);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('settings.no_transactions'.tr()),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
       }
 
-      // Get directory to save file
-      final directory = await getApplicationDocumentsDirectory();
-      final file = File(
-        '${directory.path}/flosy_transactions_${DateTime.now().millisecondsSinceEpoch}.csv',
+      // Create PDF
+      final pdf = pw.Document();
+
+      // Calculate totals
+      double totalIncome = 0;
+      double totalExpense = 0;
+      for (var transaction in transactions) {
+        if (transaction.type.name == 'income') {
+          totalIncome += transaction.amount;
+        } else {
+          totalExpense += transaction.amount;
+        }
+      }
+
+      // Add pages to PDF
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: pw.EdgeInsets.all(32),
+          build: (context) => [
+            // Header
+            pw.Header(
+              level: 0,
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'Flosy - Transaction Report',
+                    style: pw.TextStyle(
+                      fontSize: 24,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.green,
+                    ),
+                  ),
+                  pw.SizedBox(height: 8),
+                  pw.Text(
+                    'Generated on: ${DateFormat('MMM dd, yyyy - HH:mm').format(DateTime.now())}',
+                    style: pw.TextStyle(fontSize: 12, color: PdfColors.grey),
+                  ),
+                  pw.Divider(thickness: 2),
+                ],
+              ),
+            ),
+
+            pw.SizedBox(height: 20),
+
+            // Summary Section
+            pw.Container(
+              padding: pw.EdgeInsets.all(16),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.green50,
+                borderRadius: pw.BorderRadius.circular(8),
+              ),
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+                children: [
+                  _buildSummaryItem(
+                    'Total Income',
+                    totalIncome,
+                    PdfColors.green,
+                  ),
+                  _buildSummaryItem(
+                    'Total Expense',
+                    totalExpense,
+                    PdfColors.red,
+                  ),
+                  _buildSummaryItem(
+                    'Balance',
+                    totalIncome - totalExpense,
+                    totalIncome >= totalExpense
+                        ? PdfColors.green
+                        : PdfColors.red,
+                  ),
+                ],
+              ),
+            ),
+
+            pw.SizedBox(height: 30),
+
+            // Transactions Table
+            pw.Text(
+              'Transaction History',
+              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.SizedBox(height: 10),
+
+            pw.Table(
+              border: pw.TableBorder.all(color: PdfColors.grey300),
+              children: [
+                // Table Header
+                pw.TableRow(
+                  decoration: pw.BoxDecoration(color: PdfColors.grey300),
+                  children: [
+                    _buildTableCell('Date', isHeader: true),
+                    _buildTableCell('Title', isHeader: true),
+                    _buildTableCell('Category', isHeader: true),
+                    _buildTableCell('Type', isHeader: true),
+                    _buildTableCell('Amount', isHeader: true),
+                  ],
+                ),
+                // Table Rows
+                ...transactions.map((transaction) {
+                  return pw.TableRow(
+                    children: [
+                      _buildTableCell(
+                        DateFormat('MMM dd, yyyy').format(transaction.date),
+                      ),
+                      _buildTableCell(transaction.title),
+                      _buildTableCell(transaction.category),
+                      _buildTableCell(
+                        transaction.type.name.toUpperCase(),
+                        textColor: transaction.type.name == 'income'
+                            ? PdfColors.green
+                            : PdfColors.red,
+                      ),
+                      _buildTableCell(
+                        '\$${transaction.amount.toStringAsFixed(2)}',
+                        textColor: transaction.type.name == 'income'
+                            ? PdfColors.green
+                            : PdfColors.red,
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ],
+            ),
+
+            pw.SizedBox(height: 30),
+
+            // Footer
+            pw.Divider(),
+            pw.SizedBox(height: 10),
+            pw.Text(
+              'Total Transactions: ${transactions.length}',
+              style: pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
+            ),
+          ],
+          footer: (context) => pw.Container(
+            alignment: pw.Alignment.centerRight,
+            margin: pw.EdgeInsets.only(top: 10),
+            child: pw.Text(
+              'Page ${context.pageNumber} of ${context.pagesCount}',
+              style: pw.TextStyle(fontSize: 10, color: PdfColors.grey),
+            ),
+          ),
+        ),
       );
-      await file.writeAsString(csvContent.toString());
+
+      // Get directory based on platform
+      Directory? directory;
+      String successMessage = 'settings.pdf_exported'.tr();
+
+      if (Platform.isAndroid) {
+        // Android: Save to Downloads folder
+        directory = Directory('/storage/emulated/0/Download');
+        if (!await directory.exists()) {
+          directory = await getExternalStorageDirectory();
+        }
+        successMessage = 'settings.pdf_exported_android'.tr();
+      } else if (Platform.isIOS) {
+        // iOS: Save to app's document directory
+        directory = await getApplicationDocumentsDirectory();
+        successMessage = 'settings.pdf_exported_ios'.tr();
+      }
+
+      // Save PDF file
+      final fileName =
+          'Flosy_Transactions_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      final file = File('${directory!.path}/$fileName');
+      await file.writeAsBytes(await pdf.save());
 
       Navigator.pop(context); // Close loading dialog
+
+      // For iOS, share the file directly
+      if (Platform.isIOS) {
+        await Printing.sharePdf(
+          bytes: await file.readAsBytes(),
+          filename: fileName,
+        );
+      }
 
       // Show success message
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('settings.data_exported'.tr()),
+            content: Text(successMessage),
             backgroundColor: AppColors.greenColor,
+            duration: Duration(seconds: 4),
             action: SnackBarAction(
-              label: 'OK',
-              textColor: Colors.black,
-              onPressed: () {},
+              label: 'settings.view'.tr(),
+              textColor: Colors.white,
+              onPressed: () async {
+                final pdfData = await file.readAsBytes();
+                await Printing.layoutPdf(onLayout: (format) async => pdfData);
+              },
             ),
           ),
         );
       }
     } catch (e) {
-      Navigator.pop(context); // Close loading dialog
+      if (context.mounted && Navigator.canPop(context)) {
+        Navigator.pop(context); // Close loading dialog
+      }
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('settings.export_failed'.tr()),
+            content: Text('${'settings.export_failed'.tr()}: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -570,38 +817,108 @@ class _MainSettingView extends StatelessWidget {
     }
   }
 
-  Widget _buildSettingsTile(
-    BuildContext context,
-    bool isDarkMode, {
-    required IconData icon,
-    required Color iconColor,
-    required Color iconBgColor,
-    required String title,
-    required Widget trailing,
-    VoidCallback? onTap,
+  void _showPermissionDialog(BuildContext context, bool isPermanentlyDenied) {
+    final isDarkMode = AppTheme.isDarkMode(context);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        backgroundColor: isDarkMode ? AppColors.blackColor : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.folder_open, color: AppColors.greenColor, size: 28.sp),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Text(
+                'settings.storage_permission'.tr(),
+                style: AppText.body16(context).copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: isDarkMode ? Colors.white : Colors.black,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          isPermanentlyDenied
+              ? 'settings.storage_permission_permanently_denied'.tr()
+              : 'settings.storage_permission_denied'.tr(),
+          style: AppText.body14(
+            context,
+          ).copyWith(color: isDarkMode ? Colors.grey[300] : Colors.grey[700]),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(
+              'cancel'.tr(),
+              style: AppText.body14(context).copyWith(color: Colors.grey),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              // Open app settings
+              await openAppSettings();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.greenColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+            ),
+            child: Text(
+              'settings.open_settings'.tr(),
+              style: AppText.body14(
+                context,
+              ).copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildSummaryItem(String label, double amount, PdfColor color) {
+    return pw.Column(
+      children: [
+        pw.Text(
+          label,
+          style: pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
+        ),
+        pw.SizedBox(height: 4),
+        pw.Text(
+          '\$${amount.toStringAsFixed(2)}',
+          style: pw.TextStyle(
+            fontSize: 18,
+            fontWeight: pw.FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
+  pw.Widget _buildTableCell(
+    String text, {
+    bool isHeader = false,
+    PdfColor? textColor,
   }) {
-    return ListTile(
-      onTap: onTap,
-      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
-      leading: Container(
-        width: 40.w,
-        height: 40.h,
-        decoration: BoxDecoration(
-          color: iconBgColor,
-          borderRadius: BorderRadius.circular(12.r),
+    return pw.Padding(
+      padding: pw.EdgeInsets.all(8),
+      child: pw.Text(
+        text,
+        style: pw.TextStyle(
+          fontSize: isHeader ? 12 : 10,
+          fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
+          color: textColor ?? (isHeader ? PdfColors.black : PdfColors.grey800),
         ),
-        child: Center(
-          child: FaIcon(icon, color: iconColor, size: 20.sp),
-        ),
+        textAlign: isHeader ? pw.TextAlign.center : pw.TextAlign.left,
       ),
-      title: Text(
-        title,
-        style: AppText.body16(context).copyWith(
-          color: isDarkMode ? Colors.white : Colors.black,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      trailing: trailing,
     );
   }
 
@@ -631,6 +948,57 @@ class _MainSettingView extends StatelessWidget {
               ).copyWith(color: Colors.red, fontWeight: FontWeight.w600),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsTile(
+    BuildContext context,
+    bool isDarkMode, {
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBgColor,
+    required String title,
+    required Widget trailing,
+    VoidCallback? onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16.r),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+          child: Row(
+            children: [
+              // Icon
+              Container(
+                width: 40.w,
+                height: 40.w,
+                decoration: BoxDecoration(
+                  color: iconBgColor,
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                child: Center(
+                  child: FaIcon(icon, color: iconColor, size: 18.sp),
+                ),
+              ),
+              SizedBox(width: 12.w),
+              // Title
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppText.body16(context).copyWith(
+                    color: isDarkMode ? Colors.white : Colors.black,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              // Trailing
+              trailing,
+            ],
+          ),
         ),
       ),
     );

@@ -1,10 +1,16 @@
+import 'dart:io';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
+import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -25,6 +31,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final user = FirebaseAuth.instance.currentUser;
     _nameController.text = user?.displayName ?? '';
     _emailController.text = user?.email ?? '';
+    _loadProfileImage();
   }
 
   @override
@@ -32,6 +39,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameController.dispose();
     _emailController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadProfileImage() async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    String? imagePath = pref.getString('profile_image');
+    if (imagePath != null) {
+      context.read<SettingsCubit>().updateProfileImage(File(imagePath));
+    }
   }
 
   Future<void> _updateProfile() async {
@@ -65,6 +80,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  final ImagePicker picker = ImagePicker();
+  XFile? image;
+  Future<void> pickImage() async {
+    final XFile? pickedImage = await picker.pickImage(
+      source: ImageSource.gallery,
+    );
+    if (pickedImage != null) {
+      image = pickedImage;
+      SharedPreferences pref = await SharedPreferences.getInstance();
+      pref.setString('profile_image', pickedImage.path);
+      context.read<SettingsCubit>().updateProfileImage(File(pickedImage.path));
+      setState(() {});
     }
   }
 
@@ -106,40 +136,46 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               // Profile Picture
               Stack(
                 children: [
-                  CircleAvatar(
-                    radius: 60.r,
-                    backgroundColor: AppColors.greenColor,
-                    child: user?.photoURL != null
-                        ? ClipOval(
-                            child: Image.network(
-                              user!.photoURL!,
-                              width: 120.r,
-                              height: 120.r,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Icon(
-                                  Icons.person,
-                                  size: 60.sp,
-                                  color: Colors.white,
-                                );
-                              },
-                            ),
-                          )
-                        : Icon(Icons.person, size: 60.sp, color: Colors.white),
+                  BlocBuilder<SettingsCubit, SettingsState>(
+                    bloc: context.read<SettingsCubit>(),
+                    builder: (context, state) {
+                      File? profileImage;
+
+                      if (state is SettingsLoaded) {
+                        profileImage = state.profileImage;
+                      }
+                      return CircleAvatar(
+                        radius: 60.r,
+                        backgroundColor: AppColors.greenColor,
+                        child: image != null
+                            ? ClipOval(
+                                child: Image.file(
+                                  File(image!.path),
+                                  width: 120.r,
+                                  height: 120.r,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Icon(
+                                      Icons.person,
+                                      size: 60.sp,
+                                      color: Colors.white,
+                                    );
+                                  },
+                                ),
+                              )
+                            : Icon(
+                                Icons.person,
+                                size: 60.sp,
+                                color: Colors.white,
+                              ),
+                      );
+                    },
                   ),
                   Positioned(
                     bottom: 0,
                     right: 0,
                     child: GestureDetector(
-                      onTap: () {
-                        // TODO: Add image picker functionality
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('settings.coming_soon'.tr()),
-                            backgroundColor: AppColors.greenColor,
-                          ),
-                        );
-                      },
+                      onTap: pickImage,
                       child: Container(
                         padding: EdgeInsets.all(8.w),
                         decoration: BoxDecoration(
