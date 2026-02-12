@@ -181,7 +181,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               SizedBox(height: 15.h),
               buildNoteSection(isDarkMode),
               SizedBox(height: 20.h),
-              buildSaveButton(),
+              buildSaveButton(context, isDarkMode),
             ],
           ),
         ),
@@ -536,103 +536,109 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
   }
 
-  Widget buildSaveButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 56.h,
-      child: ElevatedButton(
-        onPressed: () async {
-          if (amountController.text.isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('transaction.please_enter_amount'.tr())),
-            );
-            return;
-          }
-
-          final amount = double.tryParse(amountController.text);
-          if (amount == null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('transaction.invalid_amount'.tr())),
-            );
-            return;
-          }
-
-          final category = categories.firstWhere(
-            (c) => c['id'] == selectedCategory,
-          );
-          final iconData = category['icon'] as IconData;
-
-          final tx = TransactionModel(
-            id: widget.transaction?.id,
-            title: noteController.text.isNotEmpty
-                ? noteController.text
-                : (category['labelKey'] as String).tr(),
-            amount: amount,
-            type: isExpense ? TransactionType.expense : TransactionType.income,
-            date: selectedDate,
-            category: selectedCategory,
-            iconCodePoint: iconData.codePoint,
-            iconFontFamily: iconData.fontFamily ?? 'MaterialIcons',
-            iconFontPackage:
-                iconData.fontPackage, // <-- store package for FontAwesome
-          );
-
-          // Save to DB
-          if (widget.transaction == null) {
-            await dbService.addTransaction(tx);
-          } else {
-            await dbService.updateTransaction(tx);
-          }
-
-          // Update total balance in SharedPreferences
-          final prefs = await SharedPreferences.getInstance();
-          double current = prefs.getDouble('total_balance') ?? 0.0;
-
-          // effect of new transaction
-          final newDelta =
-              tx.amount * (tx.type == TransactionType.expense ? -1.0 : 1.0);
-
-          if (widget.transaction == null) {
-            // new transaction: just apply its effect
-            current += newDelta;
-          } else {
-            // editing: remove old effect, apply new one
-            final old = widget.transaction!;
-            final oldDelta =
-                old.amount * (old.type == TransactionType.expense ? -1.0 : 1.0);
-            current = current - oldDelta + newDelta;
-          }
-
-          await prefs.setDouble('total_balance', current);
-
+  Widget buildSaveButton(BuildContext context, bool isDarkMode) {
+    return GestureDetector(
+      onTap: () async {
+        if (amountController.text.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('transaction.transaction_saved'.tr()),
-              backgroundColor: Colors.green,
+              content: Text('transaction.please_enter_amount'.tr()),
+              backgroundColor: Colors.red,
             ),
           );
+          return;
+        }
 
-          // return `true` so HomeScreen knows to refresh
-          Navigator.pop(context, true);
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.greenColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16.r),
+        // Validate category selection
+        if (selectedCategory.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Please select a category'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        try {
+          final amount = double.parse(
+            amountController.text.replaceAll(',', ''),
+          );
+
+          // Safe category lookup with fallback
+          final selectedCategoryData = categories.firstWhere(
+            (cat) => cat['id'] == selectedCategory,
+            orElse: () => {
+              'id': selectedCategory,
+              'icon': Icons.category,
+              'color': AppColors.greenColor,
+            },
+          );
+
+          final categoryIcon = selectedCategoryData['icon'] as IconData;
+
+          final transaction = TransactionModel(
+            title: noteController.text.isEmpty
+                ? selectedCategory
+                : noteController.text,
+            amount: amount,
+            date: selectedDate,
+            category: selectedCategory,
+            type: isExpense ? TransactionType.expense : TransactionType.income,
+            iconCodePoint: categoryIcon.codePoint,
+            iconFontFamily: categoryIcon.fontFamily ?? 'MaterialIcons',
+          );
+
+          await DatabaseService().addTransaction(transaction);
+
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('transaction.transaction_saved'.tr()),
+                backgroundColor: AppColors.greenColor,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+            Navigator.pop(context, true);
+          }
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('transaction.invalid_amount'.tr()),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(vertical: 16.h),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.greenColor,
+              AppColors.greenColor.withOpacity(0.8),
+            ],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
           ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.check, color: Colors.black),
-            SizedBox(width: 8.w),
-            Text(
-              'transaction.save_transaction'.tr(),
-              style: AppText.body16(
-                context,
-              ).copyWith(fontWeight: FontWeight.bold, color: Colors.black),
+          borderRadius: BorderRadius.circular(16.r),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.greenColor.withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
             ),
           ],
+        ),
+        child: Text(
+          'transaction.save_transaction'.tr(),
+          textAlign: TextAlign.center,
+          style: AppText.body16(
+            context,
+          ).copyWith(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
     );
