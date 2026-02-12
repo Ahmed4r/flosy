@@ -19,6 +19,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:printing/printing.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 class MainSettingScreen extends StatelessWidget {
   const MainSettingScreen({super.key});
@@ -603,6 +604,13 @@ class _MainSettingView extends StatelessWidget {
         return;
       }
 
+      // Load Arabic-supporting font
+      final fontData = await rootBundle.load('assets/fonts/Cairo-Regular.ttf');
+      final ttf = pw.Font.ttf(fontData);
+
+      // Check if current locale is Arabic
+      final isArabic = context.locale.languageCode == 'ar';
+
       // Create PDF
       final pdf = pw.Document();
 
@@ -622,25 +630,41 @@ class _MainSettingView extends StatelessWidget {
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
           margin: pw.EdgeInsets.all(32),
+          theme: pw.ThemeData.withFont(base: ttf, bold: ttf),
           build: (context) => [
             // Header
             pw.Header(
               level: 0,
               child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                crossAxisAlignment: isArabic
+                    ? pw.CrossAxisAlignment.end
+                    : pw.CrossAxisAlignment.start,
                 children: [
                   pw.Text(
-                    'Flosy - Transaction Report',
+                    isArabic
+                        ? 'فلوسي - تقرير المعاملات'
+                        : 'Flosy - Transaction Report',
                     style: pw.TextStyle(
+                      font: ttf,
                       fontSize: 24,
                       fontWeight: pw.FontWeight.bold,
                       color: PdfColors.green,
                     ),
+                    textDirection: isArabic
+                        ? pw.TextDirection.rtl
+                        : pw.TextDirection.ltr,
                   ),
                   pw.SizedBox(height: 8),
                   pw.Text(
-                    'Generated on: ${DateFormat('MMM dd, yyyy - HH:mm').format(DateTime.now())}',
-                    style: pw.TextStyle(fontSize: 12, color: PdfColors.grey),
+                    '${isArabic ? 'تم الإنشاء في' : 'Generated on'}: ${DateFormat('MMM dd, yyyy - HH:mm').format(DateTime.now())}',
+                    style: pw.TextStyle(
+                      font: ttf,
+                      fontSize: 12,
+                      color: PdfColors.grey,
+                    ),
+                    textDirection: isArabic
+                        ? pw.TextDirection.rtl
+                        : pw.TextDirection.ltr,
                   ),
                   pw.Divider(thickness: 2),
                 ],
@@ -660,21 +684,27 @@ class _MainSettingView extends StatelessWidget {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
                 children: [
                   _buildSummaryItem(
-                    'Total Income',
+                    isArabic ? 'إجمالي الدخل' : 'Total Income',
                     totalIncome,
                     PdfColors.green,
+                    ttf,
+                    isArabic,
                   ),
                   _buildSummaryItem(
-                    'Total Expense',
+                    isArabic ? 'إجمالي النفقات' : 'Total Expense',
                     totalExpense,
                     PdfColors.red,
+                    ttf,
+                    isArabic,
                   ),
                   _buildSummaryItem(
-                    'Balance',
+                    isArabic ? 'الرصيد' : 'Balance',
                     totalIncome - totalExpense,
                     totalIncome >= totalExpense
                         ? PdfColors.green
                         : PdfColors.red,
+                    ttf,
+                    isArabic,
                   ),
                 ],
               ),
@@ -684,8 +714,15 @@ class _MainSettingView extends StatelessWidget {
 
             // Transactions Table
             pw.Text(
-              'Transaction History',
-              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+              isArabic ? 'سجل المعاملات' : 'Transaction History',
+              style: pw.TextStyle(
+                font: ttf,
+                fontSize: 18,
+                fontWeight: pw.FontWeight.bold,
+              ),
+              textDirection: isArabic
+                  ? pw.TextDirection.rtl
+                  : pw.TextDirection.ltr,
             ),
             pw.SizedBox(height: 10),
 
@@ -695,36 +732,151 @@ class _MainSettingView extends StatelessWidget {
                 // Table Header
                 pw.TableRow(
                   decoration: pw.BoxDecoration(color: PdfColors.grey300),
-                  children: [
-                    _buildTableCell('Date', isHeader: true),
-                    _buildTableCell('Title', isHeader: true),
-                    _buildTableCell('Category', isHeader: true),
-                    _buildTableCell('Type', isHeader: true),
-                    _buildTableCell('Amount', isHeader: true),
-                  ],
+                  children: isArabic
+                      ? [
+                          _buildTableCell(
+                            'المبلغ',
+                            isHeader: true,
+                            font: ttf,
+                            isArabic: isArabic,
+                          ),
+                          _buildTableCell(
+                            'النوع',
+                            isHeader: true,
+                            font: ttf,
+                            isArabic: isArabic,
+                          ),
+                          _buildTableCell(
+                            'الفئة',
+                            isHeader: true,
+                            font: ttf,
+                            isArabic: isArabic,
+                          ),
+                          _buildTableCell(
+                            'العنوان / الملاحظة',
+                            isHeader: true,
+                            font: ttf,
+                            isArabic: isArabic,
+                          ),
+                          _buildTableCell(
+                            'التاريخ',
+                            isHeader: true,
+                            font: ttf,
+                            isArabic: isArabic,
+                          ),
+                        ]
+                      : [
+                          _buildTableCell(
+                            'Date',
+                            isHeader: true,
+                            font: ttf,
+                            isArabic: isArabic,
+                          ),
+                          _buildTableCell(
+                            'Title / Note',
+                            isHeader: true,
+                            font: ttf,
+                            isArabic: isArabic,
+                          ),
+                          _buildTableCell(
+                            'Category',
+                            isHeader: true,
+                            font: ttf,
+                            isArabic: isArabic,
+                          ),
+                          _buildTableCell(
+                            'Type',
+                            isHeader: true,
+                            font: ttf,
+                            isArabic: isArabic,
+                          ),
+                          _buildTableCell(
+                            'Amount',
+                            isHeader: true,
+                            font: ttf,
+                            isArabic: isArabic,
+                          ),
+                        ],
                 ),
                 // Table Rows
                 ...transactions.map((transaction) {
+                  // Combine title with note if exists
+                  String titleWithNote = transaction.title;
+
                   return pw.TableRow(
-                    children: [
-                      _buildTableCell(
-                        DateFormat('MMM dd, yyyy').format(transaction.date),
-                      ),
-                      _buildTableCell(transaction.title),
-                      _buildTableCell(transaction.category),
-                      _buildTableCell(
-                        transaction.type.name.toUpperCase(),
-                        textColor: transaction.type.name == 'income'
-                            ? PdfColors.green
-                            : PdfColors.red,
-                      ),
-                      _buildTableCell(
-                        '\$${transaction.amount.toStringAsFixed(2)}',
-                        textColor: transaction.type.name == 'income'
-                            ? PdfColors.green
-                            : PdfColors.red,
-                      ),
-                    ],
+                    children: isArabic
+                        ? [
+                            _buildTableCell(
+                              '\$${transaction.amount.toStringAsFixed(2)}',
+                              textColor: transaction.type.name == 'income'
+                                  ? PdfColors.green
+                                  : PdfColors.red,
+                              font: ttf,
+                              isArabic: isArabic,
+                            ),
+                            _buildTableCell(
+                              transaction.type.name == 'income'
+                                  ? 'دخل'
+                                  : 'مصروف',
+                              textColor: transaction.type.name == 'income'
+                                  ? PdfColors.green
+                                  : PdfColors.red,
+                              font: ttf,
+                              isArabic: isArabic,
+                            ),
+                            _buildTableCell(
+                              transaction.category,
+                              font: ttf,
+                              isArabic: isArabic,
+                            ),
+                            _buildTableCell(
+                              titleWithNote,
+                              font: ttf,
+                              isArabic: isArabic,
+                            ),
+                            _buildTableCell(
+                              DateFormat(
+                                'MMM dd, yyyy',
+                              ).format(transaction.date),
+                              font: ttf,
+                              isArabic: isArabic,
+                            ),
+                          ]
+                        : [
+                            _buildTableCell(
+                              DateFormat(
+                                'MMM dd, yyyy',
+                              ).format(transaction.date),
+                              font: ttf,
+                              isArabic: isArabic,
+                            ),
+                            _buildTableCell(
+                              titleWithNote,
+                              font: ttf,
+                              isArabic: isArabic,
+                            ),
+                            _buildTableCell(
+                              transaction.category,
+                              font: ttf,
+                              isArabic: isArabic,
+                            ),
+                            _buildTableCell(
+                              transaction.type.name.toUpperCase(),
+                              textColor: transaction.type.name == 'income'
+                                  ? PdfColors.green
+                                  : PdfColors.red,
+                              font: ttf,
+                              isArabic: isArabic,
+                            ),
+                            _buildTableCell(
+                              '\$${transaction.amount.toStringAsFixed(2)}',
+                              textColor: transaction.type.name == 'income'
+                                  ? PdfColors.green
+                                  : PdfColors.red,
+                              font: ttf,
+                              isArabic: isArabic,
+                            ),
+                          ],
                   );
                 }).toList(),
               ],
@@ -736,16 +888,32 @@ class _MainSettingView extends StatelessWidget {
             pw.Divider(),
             pw.SizedBox(height: 10),
             pw.Text(
-              'Total Transactions: ${transactions.length}',
-              style: pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
+              '${isArabic ? 'إجمالي المعاملات' : 'Total Transactions'}: ${transactions.length}',
+              style: pw.TextStyle(
+                font: ttf,
+                fontSize: 12,
+                color: PdfColors.grey700,
+              ),
+              textDirection: isArabic
+                  ? pw.TextDirection.rtl
+                  : pw.TextDirection.ltr,
             ),
           ],
           footer: (context) => pw.Container(
-            alignment: pw.Alignment.centerRight,
+            alignment: isArabic
+                ? pw.Alignment.centerLeft
+                : pw.Alignment.centerRight,
             margin: pw.EdgeInsets.only(top: 10),
             child: pw.Text(
-              'Page ${context.pageNumber} of ${context.pagesCount}',
-              style: pw.TextStyle(fontSize: 10, color: PdfColors.grey),
+              '${isArabic ? 'صفحة' : 'Page'} ${context.pageNumber} ${isArabic ? 'من' : 'of'} ${context.pagesCount}',
+              style: pw.TextStyle(
+                font: ttf,
+                fontSize: 10,
+                color: PdfColors.grey,
+              ),
+              textDirection: isArabic
+                  ? pw.TextDirection.rtl
+                  : pw.TextDirection.ltr,
             ),
           ),
         ),
@@ -883,17 +1051,29 @@ class _MainSettingView extends StatelessWidget {
     );
   }
 
-  pw.Widget _buildSummaryItem(String label, double amount, PdfColor color) {
+  pw.Widget _buildSummaryItem(
+    String label,
+    double amount,
+    PdfColor color,
+    pw.Font font,
+    bool isArabic,
+  ) {
     return pw.Column(
       children: [
         pw.Text(
           label,
-          style: pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
+          style: pw.TextStyle(
+            font: font,
+            fontSize: 12,
+            color: PdfColors.grey700,
+          ),
+          textDirection: isArabic ? pw.TextDirection.rtl : pw.TextDirection.ltr,
         ),
         pw.SizedBox(height: 4),
         pw.Text(
           '\$${amount.toStringAsFixed(2)}',
           style: pw.TextStyle(
+            font: font,
             fontSize: 18,
             fontWeight: pw.FontWeight.bold,
             color: color,
@@ -907,17 +1087,21 @@ class _MainSettingView extends StatelessWidget {
     String text, {
     bool isHeader = false,
     PdfColor? textColor,
+    required pw.Font font,
+    required bool isArabic,
   }) {
     return pw.Padding(
       padding: pw.EdgeInsets.all(8),
       child: pw.Text(
         text,
         style: pw.TextStyle(
+          font: font,
           fontSize: isHeader ? 12 : 10,
           fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
           color: textColor ?? (isHeader ? PdfColors.black : PdfColors.grey800),
         ),
         textAlign: isHeader ? pw.TextAlign.center : pw.TextAlign.left,
+        textDirection: isArabic ? pw.TextDirection.rtl : pw.TextDirection.ltr,
       ),
     );
   }

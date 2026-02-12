@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-
 Widget buildHeader(BuildContext context, String Function() getGreetingMessage) {
   bool isDarkMode = AppTheme.isDarkMode(context);
 
@@ -36,8 +35,10 @@ Widget buildHeader(BuildContext context, String Function() getGreetingMessage) {
                 radius: 20.r,
                 backgroundImage: profileImage != null
                     ? FileImage(profileImage)
-                    : AssetImage('assets/images/profile.jpg')
-                          as ImageProvider, // <-- display picked image
+                    : null,
+                child: profileImage == null
+                    ? Icon(Icons.person, size: 20.sp, color: Colors.grey)
+                    : null,
               );
             },
           ),

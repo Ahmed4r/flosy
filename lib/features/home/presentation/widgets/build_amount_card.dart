@@ -23,9 +23,9 @@ Widget buildAmountCard(
         colors: isDarkMode
             ? [Color(0xff131f38), Color(0xff121f31), Color(0xff153b37)]
             : [
-                Color.fromARGB(255, 201, 201, 201),
-                Color.fromARGB(255, 140, 143, 142),
-                Color.fromARGB(255, 171, 177, 175),
+                Color.fromARGB(255, 212, 230, 205),
+                 Color.fromARGB(255, 165, 184, 157),
+                Color.fromARGB(255, 212, 230, 205),
               ],
         begin: isDarkMode ? Alignment.centerLeft : Alignment.topRight,
         end: isDarkMode ? Alignment.centerRight : Alignment.topLeft,
@@ -33,7 +33,7 @@ Widget buildAmountCard(
       ),
     ),
     child: Padding(
-      padding: const EdgeInsets.all(20.0),
+      padding: EdgeInsets.all(20.w),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
