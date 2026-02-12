@@ -21,10 +21,13 @@ Widget buildAmountCard(
       borderRadius: BorderRadius.circular(20.r),
       gradient: LinearGradient(
         colors: isDarkMode
-            ? [Color(0xff131f38), Color(0xff121f31), Color(0xff153b37)]
+            ? [
+                AppColors.greenColor.withOpacity(0.1),
+                Colors.blue.withOpacity(0.05),
+              ]
             : [
                 Color.fromARGB(255, 212, 230, 205),
-                 Color.fromARGB(255, 165, 184, 157),
+                Color.fromARGB(255, 165, 184, 157),
                 Color.fromARGB(255, 212, 230, 205),
               ],
         begin: isDarkMode ? Alignment.centerLeft : Alignment.topRight,
