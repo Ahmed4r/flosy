@@ -2,7 +2,6 @@ import 'dart:developer' as developer;
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
-import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/budget/data/model/budget_model.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:flutter/material.dart';
@@ -43,22 +42,22 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
     'transport': {
       'labelKey': 'transaction.categories.transport',
       'icon': FontAwesomeIcons.car,
-      'color': Colors.blue,
+      'color': Colors.green,
     },
     'fun': {
       'labelKey': 'transaction.categories.fun',
       'icon': FontAwesomeIcons.film,
-      'color': Colors.pink,
+      'color': Colors.red,
     },
     'rent': {
       'labelKey': 'transaction.categories.rent',
       'icon': FontAwesomeIcons.house,
-      'color': Colors.teal,
+      'color': Colors.blue,
     },
     'health': {
       'labelKey': 'transaction.categories.health',
       'icon': FontAwesomeIcons.heartPulse,
-      'color': Colors.red,
+      'color': Colors.teal,
     },
   };
 
@@ -173,8 +172,8 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
           SnackBar(
             content: Text(
               widget.budget != null
-                  ? 'Budget updated successfully'
-                  : 'Budget created successfully',
+                  ? 'budget.updated_successfully'.tr()
+                  : 'budget.created_successfully'.tr(),
             ),
             backgroundColor: AppColors.greenColor,
             behavior: SnackBarBehavior.floating,
@@ -238,7 +237,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
           },
         ),
         title: Text(
-          widget.budget != null ? 'Edit Budget' : 'New Budget',
+          widget.budget != null ? 'budget.edit'.tr() : "budget.new_budget".tr(),
           style: TextStyle(
             fontSize: 18.sp,
             fontWeight: FontWeight.bold,
@@ -258,7 +257,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
 
               // Monthly Limit Label
               Text(
-                'MONTHLY LIMIT',
+                'budget.monthly_summary'.tr(),
                 style: TextStyle(
                   fontSize: 11.sp,
                   color: Colors.grey[500],
@@ -359,7 +358,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
                                 }
                                 final amount = double.tryParse(value);
                                 if (amount == null || amount <= 0) {
-                                  return 'Invalid amount';
+                                  return 'budget.invalid_amount'.tr();
                                 }
                                 return null;
                               },
@@ -401,7 +400,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'CHOOSE CATEGORY',
+                  "budget.select_category".tr(),
                   style: TextStyle(
                     fontSize: 11.sp,
                     color: Colors.grey[500],
@@ -527,7 +526,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Notify at 80%',
+                            'budget.notify_on_80'.tr(),
                             style: TextStyle(
                               fontSize: 15.sp,
                               fontWeight: FontWeight.w600,
@@ -535,7 +534,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
                             ),
                           ),
                           Text(
-                            'Get a heads-up before overspending',
+                            'budget.get_a_heads_up_before_overspending'.tr(),
                             style: TextStyle(
                               fontSize: 12.sp,
                               color: Colors.grey[500],
@@ -558,76 +557,123 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
 
               SizedBox(height: 12.h),
 
-              // Recurring Budget
-              InkWell(
-                onTap: () {
-                  // Navigate to recurring settings
-                },
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 12.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: BorderRadius.circular(16.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: isDarkMode
-                            ? Colors.black.withOpacity(0.3)
-                            : Colors.black.withOpacity(0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+              // Recurring Budget Toggle
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(16.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isDarkMode
+                          ? Colors.black.withOpacity(0.3)
+                          : Colors.black.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40.w,
+                      height: 40.h,
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12.r),
                       ),
-                    ],
+                      child: Icon(
+                        Icons.autorenew_rounded,
+                        color: Colors.blue,
+                        size: 20.sp,
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'budget.recurring_budget'.tr(),
+                            style: TextStyle(
+                              fontSize: 15.sp,
+                              fontWeight: FontWeight.w600,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                            ),
+                          ),
+                          Text(
+                            _isRecurring
+                                ? 'budget.reset_every_month'.tr()
+                                : 'budget.one_time'.tr(),
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: Colors.grey[500],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: _isRecurring,
+                      onChanged: (value) {
+                        HapticFeedback.lightImpact();
+                        developer.log(
+                          'Recurring budget toggled: $value',
+                          name: 'AddBudget',
+                        );
+                        setState(() => _isRecurring = value);
+                      },
+                      activeColor: Colors.blue,
+                    ),
+                  ],
+                ),
+              ),
+
+              // Info message based on recurring state
+              if (_isRecurring || !_isRecurring) ...[
+                SizedBox(height: 12.h),
+                Container(
+                  padding: EdgeInsets.all(12.w),
+                  decoration: BoxDecoration(
+                    color: _isRecurring
+                        ? Colors.blue.withOpacity(0.1)
+                        : Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(
+                      color: _isRecurring
+                          ? Colors.blue.withOpacity(0.3)
+                          : Colors.orange.withOpacity(0.3),
+                      width: 1,
+                    ),
                   ),
                   child: Row(
                     children: [
-                      Container(
-                        width: 40.w,
-                        height: 40.h,
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                        child: Icon(
-                          Icons.autorenew_rounded,
-                          color: Colors.blue,
-                          size: 20.sp,
-                        ),
-                      ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Recurring Budget',
-                              style: TextStyle(
-                                fontSize: 15.sp,
-                                fontWeight: FontWeight.w600,
-                                color: isDarkMode ? Colors.white : Colors.black,
-                              ),
-                            ),
-                            Text(
-                              'Reset every month',
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                color: Colors.grey[500],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                       Icon(
-                        Icons.chevron_right_rounded,
-                        color: Colors.grey[400],
-                        size: 24.sp,
+                        _isRecurring
+                            ? Icons.info_outline
+                            : Icons.calendar_today_outlined,
+                        color: _isRecurring ? Colors.blue : Colors.orange,
+                        size: 18.sp,
+                      ),
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: Text(
+                          _isRecurring
+                              ? 'budget.recurring_desc'.tr()
+                              : 'budget.one_time_desc'.tr(),
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: _isRecurring
+                                ? Colors.blue[700]
+                                : Colors.orange[700],
+                            height: 1.4,
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ),
+              ],
 
               SizedBox(height: 40.h),
 
@@ -659,8 +705,8 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
                         )
                       : Text(
                           widget.budget != null
-                              ? 'Update Budget'
-                              : 'Create Budget',
+                              ? 'budget.update_budget'.tr()
+                              : 'budget.create_budget'.tr(),
                           style: TextStyle(
                             fontSize: 16.sp,
                             color: Colors.white,

@@ -98,17 +98,17 @@ class _MainSettingView extends StatelessWidget {
                 ),
                 SizedBox(height: 12.h),
                 _buildSecuritySection(context, isDarkMode, state),
-                SizedBox(height: 24.h),
+                SizedBox(height: 10.h),
 
                 // Data Section
                 _buildSectionHeader(context, isDarkMode, 'settings.data'.tr()),
                 SizedBox(height: 12.h),
                 _buildDataSection(context, isDarkMode),
-                SizedBox(height: 24.h),
+                SizedBox(height: 10.h),
 
                 // Logout Button
                 _buildLogoutButton(context, isDarkMode),
-                SizedBox(height: 16.h),
+                SizedBox(height: 100.h),
 
                 // Version
                 Center(

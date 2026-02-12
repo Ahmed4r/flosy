@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
@@ -10,7 +11,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 Widget buildHeader(BuildContext context, String Function() getGreetingMessage) {
   bool isDarkMode = AppTheme.isDarkMode(context);
-
+  final user = FirebaseAuth.instance.currentUser;
+  final userName = user?.displayName ?? 'settings.user_name'.tr();
   return Padding(
     padding: EdgeInsets.only(top: 8.h),
     child: Row(
@@ -65,7 +67,7 @@ Widget buildHeader(BuildContext context, String Function() getGreetingMessage) {
               ),
               SizedBox(height: 2.h),
               Text(
-                'home.user_name'.tr(),
+                userName,
                 style: AppText.body18(context).copyWith(
                   fontWeight: FontWeight.w700,
                   color: isDarkMode ? Colors.white : Colors.black,

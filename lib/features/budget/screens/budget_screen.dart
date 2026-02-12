@@ -1,7 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
-import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/budget/data/model/budget_model.dart';
 import 'package:flosy/features/budget/screens/add_budget_screen.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
@@ -20,6 +19,20 @@ class BudgetScreen extends StatefulWidget {
 class _BudgetScreenState extends State<BudgetScreen> {
   DateTime selectedDate = DateTime.now();
   late bool isDarkMode;
+  Future<void> refresh() async {
+    if (!mounted) return;
+    await _refresh();
+  }
+
+  Future<void> _refresh() async {
+    setState(() => _isLoading = true);
+    await _loadAll();
+  }
+
+  Future<void> _loadAll() async {
+    await Future.wait([_loadData()]);
+    if (mounted) setState(() => _isLoading = false);
+  }
 
   List<BudgetModel> _budgets = [];
   Map<String, double> _spentByCategory = {};
@@ -40,27 +53,27 @@ class _BudgetScreenState extends State<BudgetScreen> {
     'transport': {
       'labelKey': 'transaction.categories.transport',
       'icon': FontAwesomeIcons.car,
-      'color': Colors.blue,
+      'color': Colors.green,
     },
     'fun': {
       'labelKey': 'transaction.categories.fun',
       'icon': FontAwesomeIcons.film,
-      'color': Colors.pink,
+      'color': Colors.red,
     },
     'rent': {
       'labelKey': 'transaction.categories.rent',
       'icon': FontAwesomeIcons.house,
-      'color': Colors.teal,
+      'color': Colors.blue,
     },
     'health': {
       'labelKey': 'transaction.categories.health',
       'icon': FontAwesomeIcons.heartPulse,
-      'color': Colors.red,
+      'color': Colors.teal,
     },
     'salary': {
       'labelKey': 'transaction.categories.salary',
       'icon': Icons.attach_money,
-      'color': Colors.green,
+      'color': Colors.indigo,
     },
   };
 
@@ -267,7 +280,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'MONTHLY SUMMARY',
+                'budget.monthly_summary'.tr(),
                 style: TextStyle(
                   fontSize: 11.sp,
                   color: Colors.grey[500],
@@ -284,7 +297,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   borderRadius: BorderRadius.circular(20.r),
                 ),
                 child: Text(
-                  isOnTrack ? 'On Track' : 'Over Budget',
+                  isOnTrack
+                      ? "budget.on_track".tr()
+                      : 'budget.over_budget'.tr(),
                   style: TextStyle(
                     fontSize: 11.sp,
                     color: isOnTrack ? AppColors.greenColor : Colors.orange,
@@ -324,7 +339,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Total Spent',
+                "budget.total_spent".tr(),
                 style: TextStyle(
                   fontSize: 14.sp,
                   color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
@@ -357,8 +372,12 @@ class _BudgetScreenState extends State<BudgetScreen> {
           Center(
             child: Text(
               remaining >= 0
-                  ? 'You have \$${remaining.toStringAsFixed(0)} left to spend'
-                  : 'You are \$${remaining.abs().toStringAsFixed(0)} over budget',
+                  ? 'budget.you_have_left'.tr(
+                      args: [remaining.toStringAsFixed(0)],
+                    )
+                  : 'budget.you_are_over'.tr(
+                      args: [remaining.abs().toStringAsFixed(0)],
+                    ),
               style: TextStyle(
                 fontSize: 12.sp,
                 color: remaining >= 0 ? Colors.grey[500] : Colors.red,
@@ -376,7 +395,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Your Limits',
+          'budget.your_limits'.tr(),
           style: TextStyle(
             fontSize: 20.sp,
             fontWeight: FontWeight.bold,
@@ -433,20 +452,22 @@ class _BudgetScreenState extends State<BudgetScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16.r),
             ),
-            title: Text('Delete Budget'),
-            content: Text('Remove the $displayLabel budget?'),
+            title: Text('budget.delete_budget'.tr()),
+            content: Text(
+              '${"budget.remove_the".tr()} $displayLabel ${"budget.budget".tr()}?',
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
                 child: Text(
-                  'Cancel',
+                  'budget.cancel'.tr(),
                   style: TextStyle(color: Colors.grey[600]),
                 ),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text(
-                  'Delete',
+                child: Text(
+                  'budget.delete'.tr(),
                   style: TextStyle(color: Colors.red),
                 ),
               ),
@@ -509,7 +530,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
                         ),
                         SizedBox(height: 4.h),
                         Text(
-                          budget.isRecurring ? 'Resets monthly' : 'One-time',
+                          budget.isRecurring
+                              ? "budget.resets_monthly".tr()
+                              : "budget.one_time".tr(),
                           style: TextStyle(
                             fontSize: 12.sp,
                             color: Colors.grey[500],
@@ -530,7 +553,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                         ),
                       ),
                       Text(
-                        'of \$${limit.toStringAsFixed(0)}',
+                        '${"budget.of".tr()} \$${limit.toStringAsFixed(0)}',
                         style: TextStyle(
                           fontSize: 12.sp,
                           color: Colors.grey[500],
@@ -579,10 +602,10 @@ class _BudgetScreenState extends State<BudgetScreen> {
                       if (isOver || isNearLimit) SizedBox(width: 4.w),
                       Text(
                         isOver
-                            ? 'Over Budget'
+                            ? "budget.over_budget".tr()
                             : isNearLimit
-                            ? 'Near Limit'
-                            : '$percentage% Used',
+                            ? "budget.near_limit".tr()
+                            : '$percentage% ${"budget.used".tr()}',
                         style: TextStyle(
                           fontSize: 12.sp,
                           color: isOver
@@ -597,8 +620,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   ),
                   Text(
                     remaining >= 0
-                        ? '\$${remaining.toStringAsFixed(0)} left'
-                        : '\$${remaining.abs().toStringAsFixed(0)} over',
+                        ? '\$${remaining.toStringAsFixed(0)} ${"budget.left".tr()}'
+                        : '\$${remaining.abs().toStringAsFixed(0)} ${"budget.over".tr()}',
                     style: TextStyle(
                       fontSize: 12.sp,
                       color: isOver
@@ -639,7 +662,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
             ),
             SizedBox(height: 20.h),
             Text(
-              'No budgets yet',
+              'budget.no_budgets'.tr(),
               style: TextStyle(
                 fontSize: 20.sp,
                 color: Colors.grey[600],
@@ -648,7 +671,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
             ),
             SizedBox(height: 8.h),
             Text(
-              'Tap "New Budget" to create\nyour first spending limit',
+              'budget.tap_new_budget_to_create'.tr(),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14.sp,
@@ -666,7 +689,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
     return Container(
       margin: EdgeInsets.only(bottom: 80.h, right: 4.w),
       child: FloatingActionButton.extended(
-        heroTag: 'new_budget',
+        heroTag: "new_budget",
         onPressed: () async {
           HapticFeedback.mediumImpact();
           final result = await Navigator.push<bool>(
@@ -689,7 +712,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
           child: Icon(Icons.add, color: Colors.white, size: 18.sp),
         ),
         label: Text(
-          'New Budget',
+          "budget.new_budget".tr(),
           style: TextStyle(
             fontSize: 15.sp,
             color: Colors.white,

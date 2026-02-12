@@ -54,6 +54,8 @@ class AppText {
       _getFontStyle(context, 32, FontWeight.bold, const Color(0xff333333));
   static TextStyle body20(BuildContext context) =>
       _getFontStyle(context, 20, FontWeight.bold, const Color(0xff333333));
+  static TextStyle body28(BuildContext context) =>
+      _getFontStyle(context, 28, FontWeight.bold, const Color(0xff333333));
   static TextStyle head28(BuildContext context) =>
       _getFontStyle(context, 28, FontWeight.bold, const Color(0xff333333));
 }

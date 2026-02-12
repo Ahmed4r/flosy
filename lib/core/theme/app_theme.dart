@@ -82,7 +82,7 @@ class AppTheme {
         filled: true,
         alignLabelWithHint: true,
 
-        fillColor: AppColors.textFieldFill,
+        fillColor: AppColors.textFieldFillDark,
         hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

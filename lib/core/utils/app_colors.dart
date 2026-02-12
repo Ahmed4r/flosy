@@ -7,5 +7,6 @@ class AppColors {
   static const greyColor = Color(0xff888888);
   static const greenColor = Color(0xff13ed5a);
   static const textFieldFill = Color.fromARGB(104, 215, 216, 214);
+  static const textFieldFillDark = Color.fromARGB(104, 142, 143, 142);
   static const colorButton = Color(0xff13ed5a);
 }

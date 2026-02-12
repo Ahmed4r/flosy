@@ -123,9 +123,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   const Spacer(),
 
                   // Send Button with BlocListener and BlocBuilder
-                  BlocListener<AuthCubitCubit, AuthCubitState>(
+                  BlocListener<AuthCubit, AuthCubitState>(
                     listener: (context, state) {
-                      if (state is AuthCubitSuccess) {
+                      if (state is AuthSuccess) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('password_reset_email_sent'.tr()),
@@ -135,7 +135,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         log(emailController.text.trim());
                         Navigator.pop(context);
                       }
-                      if (state is AuthCubitError) {
+                      if (state is AuthError) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(state.message),
@@ -144,17 +144,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         );
                       }
                     },
-                    child: BlocBuilder<AuthCubitCubit, AuthCubitState>(
+                    child: BlocBuilder<AuthCubit, AuthCubitState>(
                       builder: (context, state) {
                         return SizedBox(
                           width: double.infinity,
                           height: 56.h,
                           child: ElevatedButton(
-                            onPressed: state is AuthCubitLoading
+                            onPressed: state is AuthLoading
                                 ? null
                                 : () {
                                     if (_formKey.currentState!.validate()) {
-                                      BlocProvider.of<AuthCubitCubit>(
+                                      BlocProvider.of<AuthCubit>(
+
                                         context,
                                       ).resetPassword(
                                         emailController.text.trim(),
@@ -170,7 +171,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               ),
                               elevation: 0,
                             ),
-                            child: state is AuthCubitLoading
+                            child: state is AuthLoading
                                 ? SizedBox(
                                     height: 24.h,
                                     width: 24.w,
