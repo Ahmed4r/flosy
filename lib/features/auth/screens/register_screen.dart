@@ -3,7 +3,6 @@ import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/auth/screens/cubit/auth_cubit_cubit.dart';
 import 'package:flosy/features/auth/screens/login_screen.dart';
-import 'package:flosy/features/home/presentation/screens/home_screen.dart';
 import 'package:flosy/features/navigation/main_nav_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -216,9 +215,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     SizedBox(height: 24.h),
 
                     // Register Button
-                    BlocListener<AuthCubitCubit, AuthCubitState>(
+                    BlocListener<AuthCubit, AuthCubitState>(
                       listener: (context, state) {
-                        if (state is AuthCubitSuccess) {
+                        if (state is AuthSuccess) {
                           // navigate to home after successful register
                           Navigator.of(context).pushReplacement(
                             MaterialPageRoute(
@@ -226,7 +225,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           );
                         }
-                        if (state is AuthCubitError) {
+                        if (state is  AuthError) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(state.message),
@@ -235,16 +234,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           );
                         }
                       },
-                      child: BlocBuilder<AuthCubitCubit, AuthCubitState>(
+                      child: BlocBuilder<AuthCubit, AuthCubitState>(
                         builder: (context, state) {
                           return _buildPrimaryButton(
                             text: 'create_account'.tr(),
-                            isLoading: state is AuthCubitLoading,
+                            isLoading: state is AuthLoading,
                             onPressed: agreeToTerms
                                 ? () {
                                     if (_formKey.currentState!.validate()) {
                                       // only trigger register; navigation happens in listener
-                                      context.read<AuthCubitCubit>().register(
+                                      context.read<AuthCubit>().register(
                                         emailController.text
                                             .trim(), // Add .trim()
                                         passwordController.text
@@ -269,9 +268,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       icon: FontAwesomeIcons.google,
                       text: 'continue_with_google'.tr(),
                       onPressed: () {
-                        BlocListener<AuthCubitCubit, AuthCubitState>(
+                        BlocListener<AuthCubit  , AuthCubitState>(
                           listener: (context, state) {
-                            if (state is AuthCubitError) {
+                            if (state is  AuthError) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(state.message),
@@ -280,9 +279,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               );
                             }
                           },
-                          child: BlocBuilder<AuthCubitCubit, AuthCubitState>(
+                          child: BlocBuilder<AuthCubit, AuthCubitState>(
                             builder: (context, state) {
-                              if (state is AuthCubitLoading) {
+                              if (state is AuthLoading) {
                                 return Center(
                                   child: CircularProgressIndicator(
                                     color: AppColors.colorButton,
@@ -321,7 +320,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               context,
                               MaterialPageRoute(
                                 builder: (_) => BlocProvider(
-                                  create: (context) => AuthCubitCubit(),
+                                  create: (context) => AuthCubit(),
                                   child: const LoginScreen(),
                                 ),
                               ),

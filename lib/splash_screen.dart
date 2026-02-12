@@ -100,58 +100,55 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _navigateNext() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('user_token');
-    final loggedIn = token != null && token.isNotEmpty;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('user_token');
+      final loggedIn = token != null && token.isNotEmpty;
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (loggedIn) {
-      final faceIdEnabled = await BiometricService.isFaceIdEnabled();
-      if (faceIdEnabled) {
-        final authenticated = await _showFaceIdPrompt();
-        if (authenticated) {
+      if (loggedIn) {
+        try {
+          final faceIdEnabled = await BiometricService.isFaceIdEnabled();
+          final biometricAvailable = await BiometricService.canUseBiometrics();
+
+          if (faceIdEnabled && biometricAvailable) {
+            final authenticated = await BiometricService.authenticateWithFaceId(
+              reason: 'Authenticate to access your account',
+            );
+
+            if (authenticated) {
+              _navigateToHome();
+            } else {
+              _navigateToLogin();
+            }
+          } else {
+            _navigateToHome();
+          }
+        } catch (e) {
+          // If biometric check fails, just navigate to home
           _navigateToHome();
-        } else {
-          _navigateToLogin();
         }
       } else {
-        _navigateToHome();
+        _navigateToLogin();
       }
-    } else {
-      _navigateToLogin();
+    } catch (e) {
+      // Fallback to login on any error
+      if (mounted) {
+        _navigateToLogin();
+      }
     }
-  }
-
-  Future<bool> _showFaceIdPrompt() async {
-    final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => const BiometricPromptScreen(),
-        fullscreenDialog: true,
-      ),
-    );
-    return result ?? false;
   }
 
   void _navigateToHome() {
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => BlocProvider(
-          create: (context) => AuthCubitCubit(),
-          child: const MainNavScreen(),
-        ),
-      ),
+      MaterialPageRoute(builder: (context) => const MainNavScreen()),
     );
   }
 
   void _navigateToLogin() {
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => BlocProvider(
-          create: (context) => AuthCubitCubit(),
-          child: const LoginScreen(),
-        ),
-      ),
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
     );
   }
 

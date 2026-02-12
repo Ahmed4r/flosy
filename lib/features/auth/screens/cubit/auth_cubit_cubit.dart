@@ -6,12 +6,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 part 'auth_cubit_state.dart';
 
-class AuthCubitCubit extends Cubit<AuthCubitState> {
-  AuthCubitCubit() : super(AuthCubitInitial());
+class AuthCubit extends Cubit<AuthCubitState> {
+  AuthCubit() : super(AuthInitial());
   final FirebaseAuth auth = FirebaseAuth.instance;
 
   Future<void> login(String username, String password) async {
-    emit(AuthCubitLoading());
+    emit(AuthLoading());
     try {
       await auth.signInWithEmailAndPassword(
         email: username,
@@ -24,16 +24,16 @@ class AuthCubitCubit extends Cubit<AuthCubitState> {
         await prefs.setString('user_token', user.uid);
       }
 
-      emit(AuthCubitSuccess());
+      emit(AuthSuccess());
     } on FirebaseAuthException catch (e) {
-      emit(AuthCubitError(_handleFirebaseAuthError(e.code)));
+      emit(AuthError(_handleFirebaseAuthError(e.code)));
     } catch (e) {
-      emit(AuthCubitError('An unexpected error occurred: ${e.toString()}'));
+      emit(AuthError('An unexpected error occurred: ${e.toString()}'));
     }
   }
 
   Future<void> register(String email, String password) async {
-    emit(AuthCubitLoading());
+    emit(AuthLoading());
     try {
       await auth.createUserWithEmailAndPassword(
         email: email,
@@ -46,27 +46,27 @@ class AuthCubitCubit extends Cubit<AuthCubitState> {
         await prefs.setString('user_token', user.uid);
       }
 
-      emit(AuthCubitSuccess());
+      emit(AuthSuccess());
     } on FirebaseAuthException catch (e) {
-      emit(AuthCubitError(_handleFirebaseAuthError(e.code)));
+      emit(AuthError(_handleFirebaseAuthError(e.code)));
     } catch (e) {
-      emit(AuthCubitError('An unexpected error occurred: ${e.toString()}'));
+      emit(AuthError('An unexpected error occurred: ${e.toString()}'));
     }
   }
 
   Future<void> logout() async {
-    emit(AuthCubitLoading());
+    emit(AuthLoading());
     try {
       await auth.signOut();
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('user_token');
 
-      emit(AuthCubitSuccess());
+      emit(AuthSuccess());
     } on FirebaseAuthException catch (e) {
-      emit(AuthCubitError(_handleFirebaseAuthError(e.code)));
+      emit(AuthError(_handleFirebaseAuthError(e.code)));
     } catch (e) {
-      emit(AuthCubitError('An unexpected error occurred: ${e.toString()}'));
+      emit(AuthError('An unexpected error occurred: ${e.toString()}'));
     }
   }
 
@@ -75,14 +75,14 @@ class AuthCubitCubit extends Cubit<AuthCubitState> {
   }
 
   Future<void> resetPassword(String email) async {
-    emit(AuthCubitLoading());
+    emit(AuthLoading());
     try {
       await auth.sendPasswordResetEmail(email: email);
-      emit(AuthCubitSuccess());
+      emit(AuthSuccess());
     } on FirebaseAuthException catch (e) {
-      emit(AuthCubitError(_handleFirebaseAuthError(e.code)));
+      emit(AuthError(_handleFirebaseAuthError(e.code)));
     } catch (e) {
-      emit(AuthCubitError('An unexpected error occurred: ${e.toString()}'));
+      emit(AuthError('An unexpected error occurred: ${e.toString()}'));
     }
   }
 

@@ -143,6 +143,7 @@ class _DetailedChartScreenState extends State<DetailedChartScreen> {
                   _buildPieChart(isDarkMode),
                   SizedBox(height: 24.h),
                   _buildCategoryBreakdown(isDarkMode),
+                  SizedBox(height: 150.h),
                 ],
               ),
             ),
@@ -372,11 +373,11 @@ class _DetailedChartScreenState extends State<DetailedChartScreen> {
           PieChart(
             dataMap: _expensesByCategory,
             animationDuration: const Duration(milliseconds: 1000),
-            chartRadius: MediaQuery.of(context).size.width / 2.2,
+            chartRadius: MediaQuery.of(context).size.width / 2.5,
             colorList: colorList,
             initialAngleInDegree: 0,
             chartType: ChartType.ring,
-            ringStrokeWidth: 32,
+            ringStrokeWidth: 28.w,
             centerWidget: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -392,7 +393,7 @@ class _DetailedChartScreenState extends State<DetailedChartScreen> {
                   '\$${_totalExpenses.toStringAsFixed(0)}',
                   style: AppText.head24(context).copyWith(
                     fontWeight: FontWeight.bold,
-                    fontSize: 24.sp,
+                    fontSize: 22.sp, // Reduced from 24.sp
                     color: isDarkMode ? Colors.white : Colors.black,
                   ),
                 ),
