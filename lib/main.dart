@@ -2,7 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/features/auth/screens/cubit/auth_cubit_cubit.dart';
-import 'package:flosy/features/home/services/db.dart';
+import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flosy/firebase_options.dart';
 import 'package:flosy/splash_screen.dart';
@@ -50,7 +50,6 @@ class Flosy extends StatelessWidget {
               if (state is SettingsLoaded) {
                 themeMode = state.themeMode;
               }
-
               return MaterialApp(
                 localizationsDelegates: context.localizationDelegates,
                 supportedLocales: context.supportedLocales,

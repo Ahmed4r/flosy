@@ -8,7 +8,7 @@ import 'package:flosy/features/settings/screens/change_pin_screen.dart';
 import 'package:flosy/features/settings/screens/currency_settings_screen.dart';
 import 'package:flosy/features/settings/screens/edit_profile_screen.dart';
 import 'package:flosy/features/settings/screens/language_settings_screen.dart';
-import 'package:flosy/features/home/services/db.dart';
+import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -255,7 +255,7 @@ class _MainSettingView extends StatelessWidget {
     bool isDarkMode,
     SettingsState state,
   ) {
-    String currentCurrency = 'USD';
+    String currentCurrency = 'EGP';
     if (state is SettingsLoaded) {
       currentCurrency = state.selectedCurrency;
     }

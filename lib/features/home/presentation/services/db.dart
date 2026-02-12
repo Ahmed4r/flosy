@@ -1,6 +1,6 @@
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
-import '../model/transaction_model.dart';
+import '../../data/model/transaction_model.dart';
 
 class DatabaseService {
   Database? _database;
