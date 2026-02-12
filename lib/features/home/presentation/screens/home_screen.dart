@@ -14,6 +14,20 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+enum TransactionColors {
+  food(Colors.orange),
+  rent(Colors.blue),
+  transport(Colors.green),
+  shopping(Colors.purple),
+  fun(Colors.red),
+  health(Colors.teal),
+  salary(Colors.indigo),
+  more(Colors.grey);
+
+  final Color color;
+  const TransactionColors(this.color);
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -57,7 +71,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadBalance();
     _loadTransactions();
-    getPreferredCurrency();
   }
 
   Future<void> _loadTransactions() async {
@@ -145,11 +158,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return categoryMap;
   }
 
-  String currency = '';
-  Future<void> getPreferredCurrency() async {
-    final prefs = await SharedPreferences.getInstance();
-    currency = prefs.getString('selected_currency') ?? 'USD';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -184,21 +192,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   ? CrossAxisAlignment.start
                   : CrossAxisAlignment.end,
               children: [
-                SizedBox(height: 20.h),
+                SizedBox(height: 10.h),
                 buildHeader(context, getGreetingMessage),
-                SizedBox(height: 20.h),
+                SizedBox(height: 10.h),
                 buildAmountCard(
                   context,
                   buildView,
                   _totalBalance,
                   _showEditBalanceDialog,
                   _percentChange / 100, // <-- pass ratio for progress bar
-                  currency,
+              
+                  isDarkMode,
                   // <-- pass currency symbol
                 ),
-                SizedBox(height: 20.h),
+                SizedBox(height: 10.h),
                 buildTracks(context, totalIncome, totalExpenses),
-                SizedBox(height: 20.h),
+                SizedBox(height: 10.h),
                 buildChart(
                   context,
                   expenses: monthlyExpenses,
@@ -377,14 +386,23 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 40.w,
               height: 40.h,
               decoration: BoxDecoration(
-                color: isExpense
-                    ? Colors.red.withOpacity(0.1)
-                    : AppColors.greenColor.withOpacity(0.1),
+                color: TransactionColors.values
+                    .firstWhere(
+                      (c) => c.name == transaction.category,
+                      orElse: () => TransactionColors.more,
+                    )
+                    .color
+                    .withOpacity(0.2),
                 borderRadius: BorderRadius.circular(10.r),
               ),
               child: Icon(
                 transaction.icon,
-                color: isExpense ? Colors.red : AppColors.greenColor,
+                color: TransactionColors.values
+                    .firstWhere(
+                      (c) => c.name == transaction.category,
+                      orElse: () => TransactionColors.more,
+                    )
+                    .color,
               ),
             ),
             title: Text(

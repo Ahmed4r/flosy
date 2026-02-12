@@ -10,7 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'dart:math' as math;
-import 'package:shared_preferences/shared_preferences.dart'; // <-- add Add this import
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -21,88 +21,81 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
-  late AnimationController _logoController;
-  late AnimationController _textController;
-  late AnimationController _floatingController;
+  late AnimationController _glowController;
+  late AnimationController _contentController;
+  late AnimationController _particleController;
+  late AnimationController _pulseController;
 
-  late Animation<double> _logoScale;
-  late Animation<double> _logoRotation;
-  late Animation<double> _textOpacity;
-  late Animation<Offset> _textSlide;
-  late Animation<double> _taglineOpacity;
+  late Animation<double> _glowRadius;
+  late Animation<double> _titleFade;
+  late Animation<Offset> _titleSlide;
+  late Animation<double> _taglineFade;
+  late Animation<double> _dotsFade;
 
   @override
   void initState() {
     super.initState();
 
-    // Logo animation
-    _logoController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+    _glowController = AnimationController(
+      duration: const Duration(milliseconds: 1800),
       vsync: this,
     );
-
-    _logoScale = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _logoController,
-        curve: const Interval(0.0, 0.6, curve: Curves.elasticOut),
-      ),
+    _glowRadius = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _glowController, curve: Curves.easeOutCubic),
     );
 
-    _logoRotation = Tween<double>(begin: -0.5, end: 0.0).animate(
-      CurvedAnimation(
-        parent: _logoController,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeOutBack),
-      ),
-    );
-
-    // Text animation
-    _textController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
+    _contentController = AnimationController(
+      duration: const Duration(milliseconds: 1400),
       vsync: this,
     );
-
-    _textOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+    _titleFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
-        parent: _textController,
-        curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
+        parent: _contentController,
+        curve: const Interval(0.35, 0.65, curve: Curves.easeOut),
       ),
     );
-
-    _textSlide = Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero)
+    _titleSlide = Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero)
         .animate(
           CurvedAnimation(
-            parent: _textController,
-            curve: const Interval(0.0, 0.7, curve: Curves.easeOutCubic),
+            parent: _contentController,
+            curve: const Interval(0.35, 0.7, curve: Curves.easeOutCubic),
           ),
         );
-
-    _taglineOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+    _taglineFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
-        parent: _textController,
-        curve: const Interval(0.5, 1.0, curve: Curves.easeIn),
+        parent: _contentController,
+        curve: const Interval(0.55, 0.85, curve: Curves.easeOut),
+      ),
+    );
+    _dotsFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _contentController,
+        curve: const Interval(0.7, 1.0, curve: Curves.easeOut),
       ),
     );
 
-    // Floating elements animation
-    _floatingController = AnimationController(
-      duration: const Duration(seconds: 2),
+    _particleController = AnimationController(
+      duration: const Duration(seconds: 6),
       vsync: this,
-    )..repeat(reverse: false);
+    )..repeat();
 
-    // Start animations sequence and navigate
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    )..repeat();
+
     _startAnimations();
   }
 
   void _startAnimations() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    _logoController.forward();
-    await Future.delayed(const Duration(milliseconds: 600));
-    _textController.forward();
+    await Future.delayed(const Duration(milliseconds: 200));
+    _contentController.forward();
+    await Future.delayed(const Duration(milliseconds: 400));
+    _glowController.forward();
 
-    // Navigate after 3 seconds
     await Future.delayed(const Duration(seconds: 3));
     if (!mounted) return;
-    await _navigateNext(); // <-- new
+    await _navigateNext();
   }
 
   Future<void> _navigateNext() async {
@@ -113,26 +106,18 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
 
     if (loggedIn) {
-      // Check if Face ID is enabled before navigating to home
       final faceIdEnabled = await BiometricService.isFaceIdEnabled();
-
       if (faceIdEnabled) {
-        // Show Face ID prompt
         final authenticated = await _showFaceIdPrompt();
-
         if (authenticated) {
-          // Face ID successful, navigate to home
           _navigateToHome();
         } else {
-          // Face ID failed, navigate to login
           _navigateToLogin();
         }
       } else {
-        // Face ID not enabled, go directly to home
         _navigateToHome();
       }
     } else {
-      // No token, go to login
       _navigateToLogin();
     }
   }
@@ -171,132 +156,130 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
-    _logoController.dispose();
-    _textController.dispose();
-    _floatingController.dispose();
+    _glowController.dispose();
+    _contentController.dispose();
+    _particleController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
+  // ────────────────── BUILD ──────────────────
+
   @override
   Widget build(BuildContext context) {
-    bool isDarkMode = AppTheme.isDarkMode(context);
+    final bool isDark = AppTheme.isDarkMode(context);
+    final Color bg = isDark ? AppColors.blackColor : AppColors.whiteColor;
+    final Color textPrimary = isDark ? Colors.white : AppColors.blackColor;
+    final Color textSecondary = isDark ? Colors.white54 : Colors.grey.shade500;
+
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDarkMode
-                ? [Colors.black, Colors.white]
-                : [Colors.white, Colors.grey[50]!],
-          ),
-        ),
+        color: bg,
         child: Stack(
           children: [
-            // Floating orbs background
-            ...List.generate(4, (index) => _buildFloatingOrb(index)),
+            // ── Soft radial glow behind logo ──
+            AnimatedBuilder(
+              animation: _glowController,
+              builder: (context, _) {
+                return Positioned.fill(
+                  child: Center(
+                    child: Opacity(
+                      opacity: _glowRadius.value * 0.6,
+                      child: Container(
+                        width: 220,
+                        height: 220,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.colorButton.withOpacity(
+                                isDark ? 0.15 : 0.1,
+                              ),
+                              blurRadius: 80,
+                              spreadRadius: 40,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
 
-            // Main content
+            // ── Floating particles ──
+            ...List.generate(5, (i) => _buildParticle(i, isDark)),
+
+            // ── Main content ──
             Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Logo with scale and rotation animation
-                  AnimatedBuilder(
-                    animation: _logoController,
-                    builder: (context, child) {
-                      return Transform.scale(
-                        scale: _logoScale.value,
-                        child: Transform.rotate(
-                          angle: _logoRotation.value,
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: Container(
-                      padding: EdgeInsets.all(20.w),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.colorButton.withOpacity(0.1),
-                      ),
-                      child: Image.asset(
-                        'assets/icons/logo.png',
-                        height: 100.h,
-                        width: 100.w,
-                      ),
-                    ),
-                  ),
+              child: AnimatedBuilder(
+                animation: _contentController,
+                builder: (context, _) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(height: 28),
 
-                  SizedBox(height: 40.h),
-
-                  // App name with slide animation
-                  AnimatedBuilder(
-                    animation: _textController,
-                    builder: (context, child) {
-                      return SlideTransition(
-                        position: _textSlide,
+                      // App name
+                      SlideTransition(
+                        position: _titleSlide,
                         child: Opacity(
-                          opacity: _textOpacity.value,
-                          child: child,
+                          opacity: _titleFade.value,
+                          child: Text(
+                            'flosy'.tr(),
+                            style: TextStyle(
+                              fontSize: 38.sp,
+                              fontWeight: FontWeight.w800,
+                              color: textPrimary,
+                              letterSpacing: 3,
+                            ),
+                          ),
                         ),
-                      );
-                    },
-                    child: Text(
-                      'flosy'.tr(),
-                      style: TextStyle(
-                        fontSize: 48.sp,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black87,
-                        letterSpacing: 1.5,
                       ),
-                    ),
-                  ),
 
-                  SizedBox(height: 12.h),
+                      const SizedBox(height: 10),
 
-                  // Tagline
-                  AnimatedBuilder(
-                    animation: _textController,
-                    builder: (context, child) {
-                      return Opacity(
-                        opacity: _taglineOpacity.value,
-                        child: child,
-                      );
-                    },
-                    child: Text(
-                      'money_moves_no_cap'.tr(),
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.grey[600],
-                        letterSpacing: 0.5,
+                      // Tagline
+                      Opacity(
+                        opacity: _taglineFade.value,
+                        child: Text(
+                          'money_moves_no_cap'.tr(),
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w400,
+                            color: textSecondary,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
             ),
 
-            // Bottom loading indicator
+            // ── Bottom loading dots ──
             Positioned(
-              bottom: 80.h,
+              bottom: 70,
               left: 0,
               right: 0,
               child: AnimatedBuilder(
-                animation: _textController,
+                animation: _contentController,
                 builder: (context, child) {
-                  return Opacity(opacity: _taglineOpacity.value, child: child);
+                  return Opacity(opacity: _dotsFade.value, child: child);
                 },
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildLoadingIndicator(),
-                    SizedBox(height: 16.h),
+                    _buildPulseDots(isDark),
+                    const SizedBox(height: 14),
                     Text(
                       'loading_your_bag'.tr(),
                       style: TextStyle(
-                        fontSize: 12.sp,
-                        color: Colors.grey[400],
-                        letterSpacing: 0.5,
+                        fontSize: 11.sp,
+                        fontWeight: FontWeight.w400,
+                        color: textSecondary.withOpacity(0.6),
+                        letterSpacing: 1,
                       ),
                     ),
                   ],
@@ -309,40 +292,37 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
-  Widget _buildFloatingOrb(int index) {
-    final positions = [
-      const Alignment(-0.8, -0.6),
-      const Alignment(0.9, -0.4),
-      const Alignment(-0.6, 0.7),
-      const Alignment(0.7, 0.5),
-    ];
+  // ────────────────── PARTICLES ──────────────────
 
-    final colors = [
-      AppColors.colorButton.withOpacity(0.05),
-      AppColors.colorButton.withOpacity(0.03),
-      AppColors.colorButton.withOpacity(0.04),
-      AppColors.colorButton.withOpacity(0.03),
+  Widget _buildParticle(int index, bool isDark) {
+    final offsets = [
+      const Alignment(-0.8, -0.7),
+      const Alignment(0.85, -0.4),
+      const Alignment(-0.6, 0.55),
+      const Alignment(0.7, 0.6),
+      const Alignment(0.2, -0.85),
     ];
-
-    final sizes = [80.0, 100.0, 70.0, 90.0];
+    final sizes = [5.0, 6.0, 4.0, 5.0, 3.5];
+    final speeds = [1.0, 0.7, 1.3, 0.9, 1.1];
 
     return AnimatedBuilder(
-      animation: _floatingController,
-      builder: (context, child) {
-        final offset = math.sin(
-          _floatingController.value * math.pi * 2 + index * 0.5,
-        );
+      animation: _particleController,
+      builder: (context, _) {
+        final t = _particleController.value * speeds[index] * math.pi * 2;
+        final dx = math.sin(t + index * 1.2) * 0.02;
+        final dy = math.cos(t + index * 0.9) * 0.03;
+        final opacity = 0.2 + 0.2 * math.sin(t + index * 0.7);
+
         return Align(
-          alignment: Alignment(
-            positions[index].x + offset * 0.05,
-            positions[index].y + offset * 0.08,
-          ),
+          alignment: Alignment(offsets[index].x + dx, offsets[index].y + dy),
           child: Container(
             width: sizes[index],
             height: sizes[index],
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: colors[index],
+              color: AppColors.colorButton.withOpacity(
+                isDark ? opacity * 0.6 : opacity,
+              ),
             ),
           ),
         );
@@ -350,41 +330,36 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
-  Widget _buildLoadingIndicator() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 60.w),
-      child: AnimatedBuilder(
-        animation: _floatingController,
-        builder: (context, child) {
-          return Stack(
-            children: [
-              Container(
-                height: 4.h,
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              FractionallySizedBox(
-                widthFactor: 0.3 + (_floatingController.value * 0.7),
+  // ────────────────── PULSE DOTS LOADING ──────────────────
+
+  Widget _buildPulseDots(bool isDark) {
+    return AnimatedBuilder(
+      animation: _pulseController,
+      builder: (context, _) {
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(3, (i) {
+            final phase = _pulseController.value * math.pi * 2 - i * 0.9;
+            final scale = 0.5 + 0.5 * math.sin(phase).clamp(0.0, 1.0);
+            final opacity = 0.25 + 0.75 * math.sin(phase).clamp(0.0, 1.0);
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Transform.scale(
+                scale: scale,
                 child: Container(
-                  height: 4.h,
+                  width: 7,
+                  height: 7,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(2),
-                    color: AppColors.colorButton,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.colorButton.withOpacity(0.3),
-                        blurRadius: 8,
-                      ),
-                    ],
+                    shape: BoxShape.circle,
+                    color: AppColors.colorButton.withOpacity(opacity),
                   ),
                 ),
               ),
-            ],
-          );
-        },
-      ),
+            );
+          }),
+        );
+      },
     );
   }
 }

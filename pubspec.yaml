@@ -44,6 +44,10 @@ dependencies:
   path_provider: ^2.1.5
   sqflite: ^2.4.2
   local_auth: ^2.3.0 
+  image_picker: ^1.2.1
+  pdf: ^3.10.4
+  printing: ^5.11.0
+  permission_handler: ^11.0.1
 
 dev_dependencies:
   flutter_test:

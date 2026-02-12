@@ -58,7 +58,7 @@
         "greeting_morning": "صباح الخير،",
         "greeting_afternoon": "مساء الخير،",
         "greeting_evening": "مساء الخير،",
-        "user_name": "أحمد حجازي",
+        "user_name": "مستخدم",
         "total_balance": "الرصيد الإجمالي",
         "monthly_limit": "الحد الشهري",
         "income": "الدخل",
@@ -133,7 +133,17 @@
         "update_failed": "فشل تحديث الملف الشخصي",
         "biometric_not_available": "المصادقة البيومترية غير متوفرة على هذا الجهاز",
         "authentication_failed": "فشلت المصادقة. يرجى المحاولة مرة أخرى",
-        "coming_soon": "قريباً!"
+        "coming_soon": "قريباً!",
+        "storage_permission": "إذن الوصول للتخزين",
+        "storage_permission_required": "إذن الوصول للتخزين مطلوب لتصدير البيانات",
+        "storage_permission_denied": "نحتاج إلى إذن الوصول للتخزين لحفظ ملف PDF. يرجى السماح بالوصول للتخزين.",
+        "storage_permission_permanently_denied": "تم رفض إذن الوصول للتخزين بشكل دائم. يرجى الذهاب إلى الإعدادات وتفعيل إذن التخزين للتطبيق.",
+        "open_settings": "فتح الإعدادات",
+        "no_transactions": "لا توجد معاملات للتصدير",
+        "pdf_exported": "تم تصدير ملف PDF بنجاح",
+        "pdf_exported_android": "تم تصدير ملف PDF بنجاح إلى مجلد التنزيلات",
+        "pdf_exported_ios": "تم تصدير ملف PDF بنجاح إلى تطبيق الملفات",
+        "view": "عرض"
     },
     "categories": {
         "food": "طعام",

@@ -1,12 +1,17 @@
+import 'dart:io';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_text.dart';
+import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flosy/features/settings/screens/main_setting_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
 
 Widget buildHeader(BuildContext context, String Function() getGreetingMessage) {
   bool isDarkMode = AppTheme.isDarkMode(context);
+
   return Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
@@ -15,9 +20,27 @@ Widget buildHeader(BuildContext context, String Function() getGreetingMessage) {
           shape: BoxShape.circle,
           border: Border.all(color: Colors.greenAccent, width: 3),
         ),
-        child: CircleAvatar(
-          radius: 20.r,
-          backgroundImage: AssetImage('assets/images/profile.jpg'),
+        child: GestureDetector(
+          onTap: () {
+            // Handle profile picture tap, e.g., open image picker
+          },
+          child: BlocBuilder<SettingsCubit, SettingsState>(
+            builder: (context, state) {
+              File? profileImage;
+              // Get profile image from another source
+              // For example, from SharedPreferences or another cubit
+              if (state is SettingsLoaded) {
+                profileImage = state.profileImage;
+              }
+              return CircleAvatar(
+                radius: 20.r,
+                backgroundImage: profileImage != null
+                    ? FileImage(profileImage)
+                    : AssetImage('assets/images/profile.jpg')
+                          as ImageProvider, // <-- display picked image
+              );
+            },
+          ),
         ),
       ),
       SizedBox(width: 15.w),
