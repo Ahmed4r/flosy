@@ -19,7 +19,6 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:printing/printing.dart';
-import 'package:flutter/services.dart' show rootBundle;
 
 class MainSettingScreen extends StatelessWidget {
   const MainSettingScreen({super.key});
@@ -598,9 +597,9 @@ class _MainSettingView extends StatelessWidget {
         return;
       }
 
-      // Load Arabic-supporting font
-      final fontData = await rootBundle.load('assets/fonts/Cairo-Regular.ttf');
-      final ttf = pw.Font.ttf(fontData);
+      // Use built-in PDF fonts
+      final ttf = pw.Font.helvetica();
+      final ttfBold = pw.Font.helveticaBold();
 
       // Check if current locale is Arabic
       final isArabic = context.locale.languageCode == 'ar';
@@ -624,7 +623,7 @@ class _MainSettingView extends StatelessWidget {
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
           margin: pw.EdgeInsets.all(32),
-          theme: pw.ThemeData.withFont(base: ttf, bold: ttf),
+          theme: pw.ThemeData.withFont(base: ttf, bold: ttfBold),
           build: (context) => [
             // Header
             pw.Header(
