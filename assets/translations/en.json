@@ -236,5 +236,16 @@
         "budget": "Budget",
         "analytics": "Analytics",
         "settings": "Settings"
+    },
+    "currencies": {
+        "symbol": "symbol",
+        "aed": "AED",
+        "cny": "CNY",
+        "jpy": "JPY",
+        "gbp": "GBP",
+        "usd": "USD",
+        "eur": "EUR",
+        "sar": "SAR",
+        "egp": "EGP"
     }
 }

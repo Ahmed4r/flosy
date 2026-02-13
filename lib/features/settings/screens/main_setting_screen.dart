@@ -598,10 +598,6 @@ class _MainSettingView extends StatelessWidget {
         return;
       }
 
-      // Load Arabic-supporting font
-      final fontData = await rootBundle.load('assets/fonts/Cairo-Regular.ttf');
-      final ttf = pw.Font.ttf(fontData);
-
       // Check if current locale is Arabic
       final isArabic = context.locale.languageCode == 'ar';
 
@@ -624,7 +620,6 @@ class _MainSettingView extends StatelessWidget {
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
           margin: pw.EdgeInsets.all(32),
-          theme: pw.ThemeData.withFont(base: ttf, bold: ttf),
           build: (context) => [
             // Header
             pw.Header(
@@ -639,7 +634,6 @@ class _MainSettingView extends StatelessWidget {
                         ? 'فلوسي - تقرير المعاملات'
                         : 'Flosy - Transaction Report',
                     style: pw.TextStyle(
-                      font: ttf,
                       fontSize: 24,
                       fontWeight: pw.FontWeight.bold,
                       color: PdfColors.green,
@@ -651,11 +645,7 @@ class _MainSettingView extends StatelessWidget {
                   pw.SizedBox(height: 8),
                   pw.Text(
                     '${isArabic ? 'تم الإنشاء في' : 'Generated on'}: ${DateFormat('MMM dd, yyyy - HH:mm').format(DateTime.now())}',
-                    style: pw.TextStyle(
-                      font: ttf,
-                      fontSize: 12,
-                      color: PdfColors.grey,
-                    ),
+                    style: pw.TextStyle(fontSize: 12, color: PdfColors.grey),
                     textDirection: isArabic
                         ? pw.TextDirection.rtl
                         : pw.TextDirection.ltr,
@@ -681,14 +671,12 @@ class _MainSettingView extends StatelessWidget {
                     isArabic ? 'إجمالي الدخل' : 'Total Income',
                     totalIncome,
                     PdfColors.green,
-                    ttf,
                     isArabic,
                   ),
                   _buildSummaryItem(
                     isArabic ? 'إجمالي النفقات' : 'Total Expense',
                     totalExpense,
                     PdfColors.red,
-                    ttf,
                     isArabic,
                   ),
                   _buildSummaryItem(
@@ -697,7 +685,6 @@ class _MainSettingView extends StatelessWidget {
                     totalIncome >= totalExpense
                         ? PdfColors.green
                         : PdfColors.red,
-                    ttf,
                     isArabic,
                   ),
                 ],
@@ -709,11 +696,7 @@ class _MainSettingView extends StatelessWidget {
             // Transactions Table
             pw.Text(
               isArabic ? 'سجل المعاملات' : 'Transaction History',
-              style: pw.TextStyle(
-                font: ttf,
-                fontSize: 18,
-                fontWeight: pw.FontWeight.bold,
-              ),
+              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
               textDirection: isArabic
                   ? pw.TextDirection.rtl
                   : pw.TextDirection.ltr,
@@ -731,31 +714,26 @@ class _MainSettingView extends StatelessWidget {
                           _buildTableCell(
                             'المبلغ',
                             isHeader: true,
-                            font: ttf,
                             isArabic: isArabic,
                           ),
                           _buildTableCell(
                             'النوع',
                             isHeader: true,
-                            font: ttf,
                             isArabic: isArabic,
                           ),
                           _buildTableCell(
                             'الفئة',
                             isHeader: true,
-                            font: ttf,
                             isArabic: isArabic,
                           ),
                           _buildTableCell(
                             'العنوان / الملاحظة',
                             isHeader: true,
-                            font: ttf,
                             isArabic: isArabic,
                           ),
                           _buildTableCell(
                             'التاريخ',
                             isHeader: true,
-                            font: ttf,
                             isArabic: isArabic,
                           ),
                         ]
@@ -763,38 +741,32 @@ class _MainSettingView extends StatelessWidget {
                           _buildTableCell(
                             'Date',
                             isHeader: true,
-                            font: ttf,
                             isArabic: isArabic,
                           ),
                           _buildTableCell(
                             'Title / Note',
                             isHeader: true,
-                            font: ttf,
                             isArabic: isArabic,
                           ),
                           _buildTableCell(
                             'Category',
                             isHeader: true,
-                            font: ttf,
                             isArabic: isArabic,
                           ),
                           _buildTableCell(
                             'Type',
                             isHeader: true,
-                            font: ttf,
                             isArabic: isArabic,
                           ),
                           _buildTableCell(
                             'Amount',
                             isHeader: true,
-                            font: ttf,
                             isArabic: isArabic,
                           ),
                         ],
                 ),
                 // Table Rows
                 ...transactions.map((transaction) {
-                  // Combine title with note if exists
                   String titleWithNote = transaction.title;
 
                   return pw.TableRow(
@@ -805,7 +777,6 @@ class _MainSettingView extends StatelessWidget {
                               textColor: transaction.type.name == 'income'
                                   ? PdfColors.green
                                   : PdfColors.red,
-                              font: ttf,
                               isArabic: isArabic,
                             ),
                             _buildTableCell(
@@ -815,24 +786,17 @@ class _MainSettingView extends StatelessWidget {
                               textColor: transaction.type.name == 'income'
                                   ? PdfColors.green
                                   : PdfColors.red,
-                              font: ttf,
                               isArabic: isArabic,
                             ),
                             _buildTableCell(
                               transaction.category,
-                              font: ttf,
                               isArabic: isArabic,
                             ),
-                            _buildTableCell(
-                              titleWithNote,
-                              font: ttf,
-                              isArabic: isArabic,
-                            ),
+                            _buildTableCell(titleWithNote, isArabic: isArabic),
                             _buildTableCell(
                               DateFormat(
                                 'MMM dd, yyyy',
                               ).format(transaction.date),
-                              font: ttf,
                               isArabic: isArabic,
                             ),
                           ]
@@ -841,17 +805,11 @@ class _MainSettingView extends StatelessWidget {
                               DateFormat(
                                 'MMM dd, yyyy',
                               ).format(transaction.date),
-                              font: ttf,
                               isArabic: isArabic,
                             ),
-                            _buildTableCell(
-                              titleWithNote,
-                              font: ttf,
-                              isArabic: isArabic,
-                            ),
+                            _buildTableCell(titleWithNote, isArabic: isArabic),
                             _buildTableCell(
                               transaction.category,
-                              font: ttf,
                               isArabic: isArabic,
                             ),
                             _buildTableCell(
@@ -859,7 +817,6 @@ class _MainSettingView extends StatelessWidget {
                               textColor: transaction.type.name == 'income'
                                   ? PdfColors.green
                                   : PdfColors.red,
-                              font: ttf,
                               isArabic: isArabic,
                             ),
                             _buildTableCell(
@@ -867,7 +824,6 @@ class _MainSettingView extends StatelessWidget {
                               textColor: transaction.type.name == 'income'
                                   ? PdfColors.green
                                   : PdfColors.red,
-                              font: ttf,
                               isArabic: isArabic,
                             ),
                           ],
@@ -883,11 +839,7 @@ class _MainSettingView extends StatelessWidget {
             pw.SizedBox(height: 10),
             pw.Text(
               '${isArabic ? 'إجمالي المعاملات' : 'Total Transactions'}: ${transactions.length}',
-              style: pw.TextStyle(
-                font: ttf,
-                fontSize: 12,
-                color: PdfColors.grey700,
-              ),
+              style: pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
               textDirection: isArabic
                   ? pw.TextDirection.rtl
                   : pw.TextDirection.ltr,
@@ -900,11 +852,7 @@ class _MainSettingView extends StatelessWidget {
             margin: pw.EdgeInsets.only(top: 10),
             child: pw.Text(
               '${isArabic ? 'صفحة' : 'Page'} ${context.pageNumber} ${isArabic ? 'من' : 'of'} ${context.pagesCount}',
-              style: pw.TextStyle(
-                font: ttf,
-                fontSize: 10,
-                color: PdfColors.grey,
-              ),
+              style: pw.TextStyle(fontSize: 10, color: PdfColors.grey),
               textDirection: isArabic
                   ? pw.TextDirection.rtl
                   : pw.TextDirection.ltr,
@@ -1049,25 +997,19 @@ class _MainSettingView extends StatelessWidget {
     String label,
     double amount,
     PdfColor color,
-    pw.Font font,
     bool isArabic,
   ) {
     return pw.Column(
       children: [
         pw.Text(
           label,
-          style: pw.TextStyle(
-            font: font,
-            fontSize: 12,
-            color: PdfColors.grey700,
-          ),
+          style: pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
           textDirection: isArabic ? pw.TextDirection.rtl : pw.TextDirection.ltr,
         ),
         pw.SizedBox(height: 4),
         pw.Text(
           '\$${amount.toStringAsFixed(2)}',
           style: pw.TextStyle(
-            font: font,
             fontSize: 18,
             fontWeight: pw.FontWeight.bold,
             color: color,
@@ -1081,7 +1023,6 @@ class _MainSettingView extends StatelessWidget {
     String text, {
     bool isHeader = false,
     PdfColor? textColor,
-    required pw.Font font,
     required bool isArabic,
   }) {
     return pw.Padding(
@@ -1089,7 +1030,6 @@ class _MainSettingView extends StatelessWidget {
       child: pw.Text(
         text,
         style: pw.TextStyle(
-          font: font,
           fontSize: isHeader ? 12 : 10,
           fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
           color: textColor ?? (isHeader ? PdfColors.black : PdfColors.grey800),
@@ -1131,6 +1071,63 @@ class _MainSettingView extends StatelessWidget {
     );
   }
 
+  void _showLogoutDialog(BuildContext context) {
+    final isDarkMode = AppTheme.isDarkMode(context);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDarkMode ? Color(0xFF2A2A2A) : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        title: Text(
+          'settings.log_out'.tr(),
+          style: AppText.body16(context).copyWith(
+            fontWeight: FontWeight.bold,
+            color: isDarkMode ? Colors.white : Colors.black,
+          ),
+        ),
+        content: Text(
+          'settings.log_out_confirmation'.tr(),
+          style: AppText.body14(
+            context,
+          ).copyWith(color: isDarkMode ? Colors.white : Colors.black),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'cancel'.tr(),
+              style: TextStyle(
+                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.greenColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+            ),
+            child: Text(
+              'settings.log_out'.tr(),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSettingsTile(
     BuildContext context,
     bool isDarkMode, {
@@ -1167,7 +1164,7 @@ class _MainSettingView extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: AppText.body16(context).copyWith(
+                  style: AppText.body14(context).copyWith(
                     color: isDarkMode ? Colors.white : Colors.black,
                     fontWeight: FontWeight.w500,
                   ),
@@ -1178,53 +1175,6 @@ class _MainSettingView extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  void _showLogoutDialog(BuildContext context) {
-    final isDarkMode = AppTheme.isDarkMode(context);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: isDarkMode ? Color(0xFF2A2A2A) : Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20.r),
-        ),
-        title: Text(
-          'settings.log_out'.tr(),
-          style: AppText.body16(context).copyWith(
-            fontWeight: FontWeight.bold,
-            color: isDarkMode ? Colors.white : Colors.black,
-          ),
-        ),
-        content: Text(
-          'settings.log_out_confirmation'.tr(),
-          style: AppText.body14(
-            context,
-          ).copyWith(color: isDarkMode ? Colors.grey[400] : Colors.grey[600]),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'cancel'.tr(),
-              style: TextStyle(
-                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              Navigator.of(context).popUntil((route) => route.isFirst);
-            },
-            child: Text(
-              'settings.log_out'.tr(),
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
       ),
     );
   }

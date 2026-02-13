@@ -18,49 +18,49 @@ class CurrencySettingsScreen extends StatelessWidget {
     final currencies = [
       {
         'code': 'USD',
-        'name': 'US Dollar',
+        'name': 'currencies.usd'.tr(),
         'symbol': '\$',
         'icon': FontAwesomeIcons.dollarSign,
       },
       {
         'code': 'EUR',
-        'name': 'Euro',
+        'name': 'currencies.eur'.tr(),
         'symbol': '€',
         'icon': FontAwesomeIcons.euroSign,
       },
       {
         'code': 'GBP',
-        'name': 'British Pound',
+        'name': 'currencies.gbp'.tr(),
         'symbol': '£',
         'icon': FontAwesomeIcons.sterlingSign,
       },
       {
         'code': 'EGP',
-        'name': 'Egyptian Pound',
+        'name': 'currencies.egp'.tr(),
         'symbol': 'E£',
         'icon': FontAwesomeIcons.moneyBill,
       },
       {
         'code': 'SAR',
-        'name': 'Saudi Riyal',
+        'name': 'currencies.sar'.tr(),
         'symbol': 'SR',
         'icon': FontAwesomeIcons.moneyBill1,
       },
       {
         'code': 'AED',
-        'name': 'UAE Dirham',
+        'name': 'currencies.aed'.tr(),
         'symbol': 'AED',
         'icon': FontAwesomeIcons.coins,
       },
       {
         'code': 'JPY',
-        'name': 'Japanese Yen',
+        'name': 'currencies.jpy'.tr(),
         'symbol': '¥',
         'icon': FontAwesomeIcons.yenSign,
       },
       {
         'code': 'CNY',
-        'name': 'Chinese Yuan',
+        'name': 'currencies.cny'.tr(),
         'symbol': '¥',
         'icon': FontAwesomeIcons.yenSign,
       },
@@ -186,7 +186,7 @@ class CurrencySettingsScreen extends StatelessWidget {
                             ),
                             SizedBox(height: 4.h),
                             Text(
-                              'Symbol: ${currency['symbol']}',
+                              '${'currencies.symbol'.tr()}: ${currency['symbol']}',
                               style: AppText.body14(context).copyWith(
                                 color: isDarkMode
                                     ? Colors.grey[400]
