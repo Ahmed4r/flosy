@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
+import 'package:flosy/features/ai_insights/screens/ai_insights_screen.dart';
 import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -78,46 +79,32 @@ Widget buildHeader(BuildContext context, String Function() getGreetingMessage) {
         ),
 
         // Notification bell with badge
-        Stack(
-          children: [
-            Container(
-              width: 44.w,
-              height: 44.h,
-              decoration: BoxDecoration(
-                color: isDarkMode ? Colors.grey[900] : Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.06),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Icon(
-                Icons.notifications_outlined,
-                color: isDarkMode ? Colors.white : Colors.black87,
-                size: 22.sp,
-              ),
-            ),
-            // Red dot indicator
-            Positioned(
-              right: 10.w,
-              top: 10.h,
-              child: Container(
-                width: 8.w,
-                height: 8.h,
-                decoration: BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isDarkMode ? Colors.grey[900]! : Colors.white,
-                    width: 1.5,
-                  ),
+        GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AiInsightsScreen()),
+          ),
+          child: Container(
+            width: 44.w,
+            height: 44.h,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.greenAccent.withOpacity(isDarkMode ? 0.3 : 0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
+              ],
+            ),
+            child: Center(
+              child: Image.asset(
+                'assets/icons/ai.png',
+                width: 22.w,
+                height: 22.h,
               ),
             ),
-          ],
+          ),
         ),
       ],
     ),

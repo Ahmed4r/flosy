@@ -5,7 +5,6 @@ import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/home/data/model/transaction_model.dart';
 import 'package:flosy/features/home/presentation/screens/add_transaction_screen.dart';
 import 'package:flosy/features/home/presentation/widgets/build_amount_card.dart';
-import 'package:flosy/features/home/presentation/widgets/build_chart.dart';
 import 'package:flosy/features/home/presentation/widgets/build_header.dart';
 import 'package:flosy/features/home/presentation/widgets/build_tracks.dart';
 import 'package:flutter/material.dart';
@@ -205,13 +204,6 @@ class HomeScreenState extends State<HomeScreen> {
                       SizedBox(height: 20.h),
                       buildTracks(context, totalIncome, totalExpenses),
                       SizedBox(height: 16.h),
-                      buildChart(
-                        context,
-                        expenses: monthlyExpenses,
-                        categories: expensesByCategoryAndPercentages,
-                        isArabic: isArabicLocale(context),
-                      ),
-                      SizedBox(height: 20.h),
                       _buildRecentTransactions(isDarkMode),
                       SizedBox(height: 100.h),
                     ],

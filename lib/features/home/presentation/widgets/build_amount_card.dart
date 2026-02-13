@@ -176,9 +176,7 @@ Widget buildAmountCard(
                       child: LinearProgressIndicator(
                         value: spentRatio.clamp(0.0, 1.0),
                         minHeight: 6.h,
-                        backgroundColor: isDarkMode
-                            ? Colors.white.withOpacity(0.15)
-                            : Colors.black.withOpacity(0.15),
+                        backgroundColor: AppColors.greenColor,
                         valueColor: AlwaysStoppedAnimation<Color>(
                           spentRatio > 0.8
                               ? Colors.redAccent
