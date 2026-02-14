@@ -1,8 +1,12 @@
+import 'dart:developer';
+
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
+import 'package:flosy/features/home/data/model/transaction_model.dart';
 import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flosy/features/settings/screens/change_pin_screen.dart';
 import 'package:flosy/features/settings/screens/currency_settings_screen.dart';
@@ -10,6 +14,7 @@ import 'package:flosy/features/settings/screens/edit_profile_screen.dart';
 import 'package:flosy/features/settings/screens/language_settings_screen.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -19,6 +24,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:printing/printing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
 
 class MainSettingScreen extends StatelessWidget {
   const MainSettingScreen({super.key});
@@ -30,8 +37,20 @@ class MainSettingScreen extends StatelessWidget {
   }
 }
 
-class _MainSettingView extends StatelessWidget {
+class _MainSettingView extends StatefulWidget {
   const _MainSettingView();
+
+  @override
+  State<_MainSettingView> createState() => _MainSettingViewState();
+}
+
+class _MainSettingViewState extends State<_MainSettingView> {
+  double totalBalance = 0.0;
+  @override
+  initState() {
+    super.initState();
+    getTotalBalance(); // Call the method to log total balance
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -539,38 +558,40 @@ class _MainSettingView extends StatelessWidget {
     );
   }
 
+  Future<double> getTotalBalance() async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    double balance = pref.getDouble('total_balance') ?? 0.0;
+    return balance;
+  }
+
+  Future<bool> _handleStoragePermission(BuildContext context) async {
+    if (Platform.isAndroid) {
+      final androidInfo = await DeviceInfoPlugin().androidInfo;
+      final sdkInt = androidInfo.version.sdkInt;
+
+      // أندرويد 13 فما فوق (API 33+) لا يطلب Permission.storage للـ PDF
+      if (sdkInt >= 33) return true;
+
+      // للإصدارات الأقدم من أندرويد 13
+      var status = await Permission.storage.status;
+      if (status.isDenied) {
+        status = await Permission.storage.request();
+      }
+
+      if (status.isGranted) return true;
+
+      if (context.mounted) {
+        _showPermissionDialog(context, status.isPermanentlyDenied);
+      }
+      return false;
+    }
+    return true; // iOS أو منصات أخرى
+  }
+
   Future<void> _exportData(BuildContext context) async {
     try {
-      // Request storage permission (Android only)
-      if (Platform.isAndroid) {
-        PermissionStatus status = await Permission.storage.status;
-
-        // Check if permission is denied
-        if (status.isDenied) {
-          status = await Permission.storage.request();
-        }
-
-        // If still denied, show dialog to open settings
-        if (status.isDenied || status.isPermanentlyDenied) {
-          if (context.mounted) {
-            _showPermissionDialog(context, status.isPermanentlyDenied);
-          }
-          return;
-        }
-
-        // If permission not granted, return
-        if (!status.isGranted) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('settings.storage_permission_required'.tr()),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-          return;
-        }
-      }
+      final hasPermission = await _handleStoragePermission(context);
+      if (!hasPermission) return;
 
       // Show loading
       showDialog(
@@ -580,6 +601,9 @@ class _MainSettingView extends StatelessWidget {
           child: CircularProgressIndicator(color: AppColors.greenColor),
         ),
       );
+
+      // Refresh total balance before export
+      await getTotalBalance();
 
       // Get all transactions from database
       final transactions = await dbService.getTransactions();
@@ -597,9 +621,14 @@ class _MainSettingView extends StatelessWidget {
         return;
       }
 
-      // Use built-in PDF fonts
-      final ttf = pw.Font.helvetica();
-      final ttfBold = pw.Font.helveticaBold();
+      // Load Arabic-compatible font
+      final fontData = await rootBundle.load(
+        'assets/fonts/Cairo-VariableFont_slnt,wght.ttf',
+      );
+      final ttf = pw.Font.ttf(fontData);
+      final ttfBold = pw.Font.ttf(
+        fontData,
+      ); // Use same for bold since it's a variable font
 
       // Check if current locale is Arabic
       final isArabic = context.locale.languageCode == 'ar';
@@ -607,7 +636,7 @@ class _MainSettingView extends StatelessWidget {
       // Create PDF
       final pdf = pw.Document();
 
-      // Calculate totals
+      // Calculate totals from transactions
       double totalIncome = 0;
       double totalExpense = 0;
       for (var transaction in transactions) {
@@ -617,6 +646,9 @@ class _MainSettingView extends StatelessWidget {
           totalExpense += transaction.amount;
         }
       }
+
+      // Use the actual total balance from database instead of calculating income - expense
+      final actualBalance = await getTotalBalance();
 
       // Add pages to PDF
       pdf.addPage(
@@ -692,10 +724,8 @@ class _MainSettingView extends StatelessWidget {
                   ),
                   _buildSummaryItem(
                     isArabic ? 'الرصيد' : 'Balance',
-                    totalIncome - totalExpense,
-                    totalIncome >= totalExpense
-                        ? PdfColors.green
-                        : PdfColors.red,
+                    actualBalance,
+                    actualBalance >= 0 ? PdfColors.green : PdfColors.red,
                     ttf,
                     isArabic,
                   ),

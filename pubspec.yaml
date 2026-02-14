@@ -29,6 +29,7 @@ dependencies:
   printing: ^5.11.0
   permission_handler: ^11.0.1
   tflite_flutter: ^0.12.1
+  device_info_plus: ^10.1.0
 
 dev_dependencies:
   flutter_test:
@@ -49,3 +50,4 @@ flutter:
     - assets/icons/
     - assets/translations/
     - assets/models/
+    - assets/fonts/

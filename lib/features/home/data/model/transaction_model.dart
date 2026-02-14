@@ -57,6 +57,7 @@ class TransactionModel {
       iconCodePoint: map['iconCodePoint'] as int,
       iconFontFamily: map['iconFontFamily'] as String,
       iconFontPackage: map['iconFontPackage'] as String?, // <-- new
+     
     );
   }
 }

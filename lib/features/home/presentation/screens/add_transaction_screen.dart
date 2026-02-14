@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flosy/core/utils/app_colors.dart';
@@ -7,6 +9,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flosy/features/home/data/model/transaction_model.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   final TransactionModel? transaction;
@@ -563,6 +566,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           final amount = double.parse(
             amountController.text.replaceAll(',', ''),
           );
+          log(amount.toString());
 
           // Safe category lookup with fallback
           final selectedCategoryData = categories.firstWhere(
@@ -575,7 +579,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           );
 
           final categoryIcon = selectedCategoryData['icon'] as IconData;
-
           final transaction = TransactionModel(
             title: noteController.text.isEmpty
                 ? selectedCategory
@@ -586,15 +589,32 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             type: isExpense ? TransactionType.expense : TransactionType.income,
             iconCodePoint: categoryIcon.codePoint,
             iconFontFamily: categoryIcon.fontFamily ?? 'MaterialIcons',
-            iconFontPackage: categoryIcon.fontPackage, // Add this line
+            iconFontPackage: categoryIcon.fontPackage,
           );
 
-          await DatabaseService().addTransaction(transaction);
+          // FIX: Use updateTransaction if editing
+          if (widget.transaction != null && widget.transaction!.id != null) {
+            transaction.id = widget.transaction!.id;
+            await dbService.updateTransaction(transaction);
+          } else {
+            await dbService.addTransaction(transaction);
+          }
+
+
+          // Update stored total balance
+          final prefs = await SharedPreferences.getInstance();
+          double current = prefs.getDouble('total_balance') ?? 0.0;
+          final delta = isExpense
+              ? -amount
+              : amount; // expense reduces balance, income increases
+          final newBalance = current + delta;
+          await prefs.setDouble('total_balance', newBalance);
 
           if (mounted) {
             Navigator.of(context).pop(true); // Return true on success
           }
         } catch (e) {
+          // log(e.toString());
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
