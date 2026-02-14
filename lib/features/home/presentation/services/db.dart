@@ -281,6 +281,14 @@ class DatabaseService {
     final db = await database;
     await db.delete('Budgets', where: 'id = ?', whereArgs: [id]);
   }
+
+  Future<double> getTotalBalance() async {
+    final db = await database;
+    final result = await db.rawQuery(
+      'SELECT SUM(CASE WHEN type = 0 THEN amount ELSE -amount END) as totalBalance FROM Transactions',
+    );
+    return (result.first['totalBalance'] as num?)?.toDouble() ?? 0.0;
+  }
 }
 
 // simple global instance

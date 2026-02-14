@@ -7,7 +7,9 @@ import 'package:flosy/features/home/presentation/screens/add_transaction_screen.
 import 'package:flosy/features/home/presentation/widgets/build_amount_card.dart';
 import 'package:flosy/features/home/presentation/widgets/build_header.dart';
 import 'package:flosy/features/home/presentation/widgets/build_tracks.dart';
+import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -170,6 +172,7 @@ class HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     bool isDarkMode = AppTheme.isDarkMode(context);
+    bool isArabic = isArabicLocale(context);
 
     return Scaffold(
       backgroundColor: isDarkMode
@@ -200,6 +203,7 @@ class HomeScreenState extends State<HomeScreen> {
                         _showEditBalanceDialog,
                         _percentChange / 100,
                         isDarkMode,
+                        isArabic,
                       ),
                       SizedBox(height: 20.h),
                       buildTracks(context, totalIncome, totalExpenses),
@@ -604,12 +608,25 @@ class HomeScreenState extends State<HomeScreen> {
                 ),
 
                 // Amount
-                Text(
-                  '${isExpense ? '-' : '+'}\$${transaction.amount.toStringAsFixed(2)}',
-                  style: AppText.body16(context).copyWith(
-                    color: isExpense ? Colors.redAccent : AppColors.greenColor,
-                    fontWeight: FontWeight.w700,
-                  ),
+                BlocBuilder<SettingsCubit, SettingsState>(
+                  bloc: context.read<SettingsCubit>(),
+                  builder: (context, state) {
+                    String currency = 'EGP';
+                    if (state is SettingsLoaded) {
+                      currency = state.selectedCurrency;
+                    }
+                    return Text(
+                      isArabicLocale(context)
+                          ? '${transaction.amount.toStringAsFixed(1)}${currency}${isExpense ? '-' : '+'}'
+                          : '${isExpense ? '-' : '+'}\$${transaction.amount.toStringAsFixed(2)}',
+                      style: AppText.body16(context).copyWith(
+                        color: isExpense
+                            ? Colors.redAccent
+                            : AppColors.greenColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -624,7 +641,7 @@ class HomeScreenState extends State<HomeScreen> {
   Future<void> _showEditBalanceDialog() async {
     bool isDarkMode = AppTheme.isDarkMode(context);
     final controller = TextEditingController(
-      text: _totalBalance.toStringAsFixed(2),
+      text: _totalBalance.toStringAsFixed(1),
     );
 
     final result = await showDialog<double>(
@@ -649,7 +666,7 @@ class HomeScreenState extends State<HomeScreen> {
               context,
             ).copyWith(color: isDarkMode ? Colors.white : Colors.black),
             decoration: InputDecoration(
-              hintText: '0.00',
+              hintText: '0.0',
               hintStyle: TextStyle(color: Colors.grey[500]),
               filled: true,
               fillColor: isDarkMode ? Colors.grey[850] : Colors.grey[100],

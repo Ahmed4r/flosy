@@ -13,6 +13,7 @@ Widget buildAmountCard(
   VoidCallback onEditBalance,
   double spentRatio,
   bool isDarkMode,
+  bool isArabic,
 ) {
   return Container(
     width: double.infinity,
@@ -107,7 +108,7 @@ Widget buildAmountCard(
                             fit: BoxFit.scaleDown,
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              '$currency ${totalBalance.toStringAsFixed(2)}',
+                              '$currency ${totalBalance.toStringAsFixed(1)}',
                               style: AppText.head32(context).copyWith(
                                 color: isDarkMode ? Colors.white : Colors.black,
                                 fontWeight: FontWeight.bold,
@@ -174,7 +175,9 @@ Widget buildAmountCard(
                     ClipRRect(
                       borderRadius: BorderRadius.circular(6.r),
                       child: LinearProgressIndicator(
-                        value: spentRatio.clamp(0.0, 1.0),
+                        value: isArabic
+                            ? 1.0 - spentRatio.clamp(0.0, 1.0)
+                            : spentRatio.clamp(0.0, 1.0),
                         minHeight: 6.h,
                         backgroundColor: AppColors.greenColor,
                         valueColor: AlwaysStoppedAnimation<Color>(

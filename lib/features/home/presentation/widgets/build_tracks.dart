@@ -100,7 +100,7 @@ Widget _buildTrackCard({
               currency = state.selectedCurrency;
             }
             return Text(
-              '$currency ${amount.toStringAsFixed(2)}',
+              '$currency ${amount.toStringAsFixed(1)}',
               style: AppText.body18(context).copyWith(
                 color: isDarkMode ? Colors.white : Colors.black,
                 fontWeight: FontWeight.w700,
