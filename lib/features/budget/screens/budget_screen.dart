@@ -119,17 +119,14 @@ class _BudgetScreenState extends State<BudgetScreen> {
     return total;
   }
 
-  Color get _bgColor =>
-      isDarkMode ? const Color(0xFF0A0A0A) : const Color(0xFFF5F5F5);
-
-  Color get _cardColor => isDarkMode ? const Color(0xFF1A1A1A) : Colors.white;
+  Color get _cardColor =>
+      isDarkMode ? const Color.fromARGB(255, 19, 19, 19) : Colors.white;
 
   Color get _textPrimary => isDarkMode ? Colors.white : Colors.black;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -267,7 +264,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
         borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withOpacity(0.4),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -496,7 +493,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
             borderRadius: BorderRadius.circular(20.r),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.06),
+                color: Colors.black.withOpacity(0.3),
                 blurRadius: 12,
                 offset: const Offset(0, 2),
               ),
