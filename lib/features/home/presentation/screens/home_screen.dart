@@ -3,6 +3,7 @@ import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/home/data/model/transaction_model.dart';
+import 'package:flosy/features/home/presentation/cubit/home_cubit.dart';
 import 'package:flosy/features/home/presentation/screens/add_transaction_screen.dart';
 import 'package:flosy/features/home/presentation/widgets/build_amount_card.dart';
 import 'package:flosy/features/home/presentation/widgets/build_header.dart';
@@ -37,192 +38,80 @@ class HomeScreen extends StatefulWidget {
 
 class HomeScreenState extends State<HomeScreen> {
   Future<void> refresh() async {
-    if (!mounted) return;
-    await _refresh();
-  }
-
-  List<TransactionModel> _transactions = [];
-  double _totalBalance = 0.0;
-  bool _isLoading = true;
-  bool _showAllTransactions = false;
-
-  String _getCategoryLabel(String id) {
-    switch (id) {
-      case 'food':
-        return 'categories.food'.tr();
-      case 'rent':
-        return 'categories.rent'.tr();
-      case 'transport':
-        return 'categories.transport'.tr();
-      case 'shopping':
-        return 'categories.shopping'.tr();
-      case 'fun':
-        return 'categories.fun'.tr();
-      case 'health':
-        return 'categories.health'.tr();
-      case 'salary':
-        return 'categories.salary'.tr();
-      case 'more':
-        return 'categories.more'.tr();
-      default:
-        return id;
-    }
+    // Call your cubit's refresh method here
+    context.read<HomeCubit>().refresh();
   }
 
   @override
   void initState() {
     super.initState();
-    _loadAll();
-  }
-
-  Future<void> _loadAll() async {
-    await Future.wait([_loadBalance(), _loadTransactions()]);
-    if (mounted) setState(() => _isLoading = false);
-  }
-
-  Future<void> _refresh() async {
-    setState(() => _isLoading = true);
-    await _loadAll();
-  }
-
-  Future<void> _loadTransactions() async {
-    final data = await dbService.getTransactions();
-    if (mounted) setState(() => _transactions = data);
-  }
-
-  Future<void> _loadBalance() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (mounted) {
-      setState(() => _totalBalance = prefs.getDouble('total_balance') ?? 0.0);
-    }
-  }
-
-  Future<void> _setBalance(double value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('total_balance', value);
-    if (mounted) setState(() => _totalBalance = value);
-  }
-
-  bool isArabicLocale(BuildContext context) {
-    return Localizations.localeOf(context).languageCode == 'ar';
-  }
-
-  String getGreetingMessage() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'home.greeting_morning'.tr();
-    if (hour < 17) return 'home.greeting_afternoon'.tr();
-    return 'home.greeting_evening'.tr();
-  }
-
-  double get totalIncome => _transactions
-      .where((t) => t.type == TransactionType.income)
-      .fold(0.0, (sum, t) => sum + t.amount);
-
-  double get totalExpenses => _transactions
-      .where((t) => t.type == TransactionType.expense)
-      .fold(0.0, (sum, t) => sum + t.amount);
-
-  double get _netChange => totalIncome - totalExpenses;
-
-  double get _percentChange {
-    final startingBalance = _totalBalance + totalExpenses - totalIncome;
-    if (startingBalance <= 0) return 0;
-    return ((totalExpenses / startingBalance) * 100).clamp(0, 999);
-  }
-
-  double get monthlyExpenses {
-    final now = DateTime.now();
-    return _transactions
-        .where(
-          (t) =>
-              t.type == TransactionType.expense &&
-              t.date.year == now.year &&
-              t.date.month == now.month,
-        )
-        .fold(0.0, (sum, t) => sum + t.amount);
-  }
-
-  Map<String, double> get expensesByCategoryAndPercentages {
-    final now = DateTime.now();
-    final Map<String, double> categoryMap = {};
-    for (var t in _transactions) {
-      if (t.type == TransactionType.expense &&
-          t.date.year == now.year &&
-          t.date.month == now.month) {
-        categoryMap[t.category] = (categoryMap[t.category] ?? 0) + t.amount;
-      }
-    }
-    return categoryMap;
-  }
-
-  // Group transactions by date label
-  String _getDateLabel(DateTime date) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final txDay = DateTime(date.year, date.month, date.day);
-
-    if (txDay == today) return 'Today';
-    if (txDay == today.subtract(const Duration(days: 1))) return 'Yesterday';
-    if (now.difference(txDay).inDays < 7) {
-      return DateFormat('EEEE').format(date); // e.g. "Monday"
-    }
-    return DateFormat('MMM d, yyyy').format(date);
+    context.read<HomeCubit>().loadAll();
   }
 
   @override
   Widget build(BuildContext context) {
     bool isDarkMode = AppTheme.isDarkMode(context);
-    bool isArabic = isArabicLocale(context);
+    bool isArabic = context.read<HomeCubit>().isArabicLocale(context);
 
-    return Scaffold(
-      backgroundColor: isDarkMode
-          ? const Color(0xFF0A0A0A)
-          : const Color(0xFFF5F5F5),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _refresh,
-          color: AppColors.greenColor,
-          displacement: 40,
-          child: _isLoading
-              ? _buildLoadingShimmer(isDarkMode)
-              : SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
-                  ),
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: 8.h),
-                      buildHeader(context, getGreetingMessage),
-                      SizedBox(height: 20.h),
-                      buildAmountCard(
-                        context,
-                        _buildPercentageChip,
-                        _totalBalance,
-                        _showEditBalanceDialog,
-                        _percentChange / 100,
-                        isDarkMode,
-                        isArabic,
-                      ),
-                      SizedBox(height: 20.h),
-                      buildTracks(context, totalIncome, totalExpenses),
-                      SizedBox(height: 16.h),
-                      _buildRecentTransactions(isDarkMode),
-                      SizedBox(height: 100.h),
-                    ],
-                  ),
+    return BlocBuilder<HomeCubit, HomeState>(
+      builder: (context, state) {
+        if (state is HomeLoading) {
+          return _buildLoadingShimmer(isDarkMode);
+        }
+        if (state is HomeError) {
+          return Center(child: Text(state.message));
+        }
+        final getGreetingMessage = context.read<HomeCubit>().getGreetingMessage;
+        return Scaffold(
+          body: SafeArea(
+            child: RefreshIndicator(
+              onRefresh: () async => context.read<HomeCubit>().refresh(),
+              color: AppColors.greenColor,
+              displacement: 40,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
                 ),
-        ),
-      ),
+                padding: EdgeInsets.symmetric(horizontal: 20.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: 8.h),
+                    buildHeader(context, getGreetingMessage),
+                    SizedBox(height: 20.h),
+                    buildAmountCard(
+                      context,
+                      _buildPercentageChip,
+                      context.read<HomeCubit>().totalBalance,
+                      _showEditBalanceDialog,
+                      context.read<HomeCubit>().percentChange / 100,
+                      isDarkMode,
+                      isArabic,
+                    ),
+                    SizedBox(height: 20.h),
+                    buildTracks(
+                      context,
+                      context.read<HomeCubit>().totalIncome,
+                      context.read<HomeCubit>().totalExpenses,
+                    ),
+                    SizedBox(height: 16.h),
+                    _buildRecentTransactions(isDarkMode),
+                    SizedBox(height: 100.h),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
   // ─── PERCENTAGE CHIP ─────────────────────────────────
 
   Widget _buildPercentageChip() {
-    final pct = _percentChange;
-    final isPositive = _netChange >= 0;
+    final pct = context.read<HomeCubit>().percentChange;
+    final isPositive = context.read<HomeCubit>().netChange >= 0;
     final color = isPositive ? AppColors.greenColor : Colors.redAccent;
 
     return Container(
@@ -362,9 +251,9 @@ class HomeScreenState extends State<HomeScreen> {
   // ─── RECENT TRANSACTIONS ─────────────────────────────
 
   Widget _buildRecentTransactions(bool isDarkMode) {
-    final displayTransactions = _showAllTransactions
-        ? _transactions
-        : _transactions.take(5).toList();
+    final displayTransactions = context.read<HomeCubit>().showAllTransactions
+        ? context.read<HomeCubit>().transactions
+        : context.read<HomeCubit>().transactions.take(5).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -380,11 +269,10 @@ class HomeScreenState extends State<HomeScreen> {
                 color: isDarkMode ? Colors.white : Colors.black,
               ),
             ),
-            if (_transactions.length > 5)
+            if (context.read<HomeCubit>().transactions.length > 5)
               GestureDetector(
-                onTap: () => setState(
-                  () => _showAllTransactions = !_showAllTransactions,
-                ),
+                onTap: () => context.read<HomeCubit>().showAllTransactions =
+                    !context.read<HomeCubit>().showAllTransactions,
                 child: Container(
                   padding: EdgeInsets.symmetric(
                     horizontal: 12.w,
@@ -395,7 +283,9 @@ class HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(10.r),
                   ),
                   child: Text(
-                    _showAllTransactions ? 'Show Less' : 'See All',
+                    context.read<HomeCubit>().showAllTransactions
+                        ? 'Show Less'
+                        : 'See All',
                     style: AppText.body12(context).copyWith(
                       color: AppColors.greenColor,
                       fontWeight: FontWeight.w600,
@@ -408,7 +298,7 @@ class HomeScreenState extends State<HomeScreen> {
         SizedBox(height: 14.h),
 
         // Transactions grouped by day
-        if (_transactions.isEmpty)
+        if (context.read<HomeCubit>().transactions.isEmpty)
           _buildEmptyTransactions(isDarkMode)
         else
           _buildGroupedTransactions(displayTransactions, isDarkMode),
@@ -471,7 +361,7 @@ class HomeScreenState extends State<HomeScreen> {
     // Group by date label
     final Map<String, List<TransactionModel>> grouped = {};
     for (final tx in transactions) {
-      final label = _getDateLabel(tx.date);
+      final label = context.read<HomeCubit>().getDateLabel(tx.date);
       grouped.putIfAbsent(label, () => []).add(tx);
     }
 
@@ -531,10 +421,13 @@ class HomeScreenState extends State<HomeScreen> {
           final delta = transaction.amount * (isExpense ? -1.0 : 1.0);
           current -= delta;
           await prefs.setDouble('total_balance', current);
-          final idx = _transactions.indexOf(transaction);
+          if (!mounted) return;
+          final idx = context.read<HomeCubit>().transactions.indexOf(
+            transaction,
+          );
           setState(() {
-            _totalBalance = current;
-            if (idx >= 0) _transactions.removeAt(idx);
+            context.read<HomeCubit>().totalBalance = current;
+            if (idx >= 0) context.read<HomeCubit>().transactions.removeAt(idx);
           });
           if (transaction.id != null) {
             await dbService.deleteTransaction(transaction.id!);
@@ -549,8 +442,10 @@ class HomeScreenState extends State<HomeScreen> {
               ),
             );
             if (result == true) {
-              await _loadTransactions();
-              await _loadBalance();
+              if (!mounted) return;
+              await context.read<HomeCubit>().loadTransactions();
+              if (!mounted) return;
+              await context.read<HomeCubit>().loadBalance();
             }
           },
           child: Container(
@@ -596,7 +491,9 @@ class HomeScreenState extends State<HomeScreen> {
                       ),
                       SizedBox(height: 2.h),
                       Text(
-                        _getCategoryLabel(transaction.category),
+                        context.read<HomeCubit>().getCategoryLabel(
+                          transaction.category,
+                        ),
                         style: AppText.body12(context).copyWith(
                           color: isDarkMode
                               ? Colors.grey[500]
@@ -616,7 +513,7 @@ class HomeScreenState extends State<HomeScreen> {
                       currency = state.selectedCurrency;
                     }
                     return Text(
-                      isArabicLocale(context)
+                      context.read<HomeCubit>().isArabicLocale(context)
                           ? '${transaction.amount.toStringAsFixed(1)}${currency}${isExpense ? '-' : '+'}'
                           : '${isExpense ? '-' : '+'}\$${transaction.amount.toStringAsFixed(2)}',
                       style: AppText.body16(context).copyWith(
@@ -641,7 +538,7 @@ class HomeScreenState extends State<HomeScreen> {
   Future<void> _showEditBalanceDialog() async {
     bool isDarkMode = AppTheme.isDarkMode(context);
     final controller = TextEditingController(
-      text: _totalBalance.toStringAsFixed(1),
+      text: context.read<HomeCubit>().totalBalance.toStringAsFixed(1),
     );
 
     final result = await showDialog<double>(
@@ -720,7 +617,8 @@ class HomeScreenState extends State<HomeScreen> {
       },
     );
     if (result != null) {
-      await _setBalance(result);
+      if (!mounted) return;
+      await context.read<HomeCubit>().setBalance(result);
     }
   }
 }
