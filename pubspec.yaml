@@ -1,4 +1,4 @@
-﻿name: flosy
+name: flosy
 description: "A new Flutter project."
 publish_to: 'none'
 
@@ -18,6 +18,7 @@ dependencies:
   shared_preferences: ^2.5.3
   firebase_auth: ^6.0.2
   firebase_core: ^4.1.0
+  cloud_firestore: ^6.1.2
   http: ^1.6.0
   pie_chart: ^5.4.0
   cupertino_icons: ^1.0.8
@@ -31,6 +32,7 @@ dependencies:
   tflite_flutter: ^0.12.1
   device_info_plus: ^10.1.0
   flutter_secure_storage: ^10.0.0
+  google_mlkit_text_recognition: ^0.15.1
 
 
 dev_dependencies:

@@ -5,10 +5,12 @@ import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/ai_insights/screens/ai_insights_screen.dart';
+import 'package:flosy/features/ocr/screens/ocr_scan_screen.dart';
 import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 Widget buildHeader(BuildContext context, String Function() getGreetingMessage) {
   bool isDarkMode = AppTheme.isDarkMode(context);
@@ -53,6 +55,7 @@ Widget buildHeader(BuildContext context, String Function() getGreetingMessage) {
           ),
         ),
         SizedBox(width: 14.w),
+        SizedBox(width: 12.w),
 
         // Greeting + Name
         Expanded(
@@ -104,6 +107,31 @@ Widget buildHeader(BuildContext context, String Function() getGreetingMessage) {
                 height: 22.h,
               ),
             ),
+          ),
+        ),
+        // OCR camera button
+        SizedBox(width: 10.w),
+        GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const OcrScanScreen()),
+          ),
+          child: Container(
+            width: 44.w,
+            height: 44.h,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.greenAccent.withOpacity(
+                    isDarkMode ? 0.2 : 0.06,
+                  ),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Center(child: FaIcon(FontAwesomeIcons.camera, size: 20.sp)),
           ),
         ),
       ],

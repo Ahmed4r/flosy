@@ -13,14 +13,17 @@ class SettingsLoaded extends SettingsState {
   final bool faceIdEnabled;
   final String selectedCurrency;
   final File? profileImage;
+  final bool isSyncing;
   SettingsLoaded({
     required this.themeMode,
     required this.isDarkMode,
     required this.faceIdEnabled,
     required this.selectedCurrency,
     this.profileImage,
+    required this.isSyncing,
   });
 }
+
 class SettingsError extends SettingsState {
   final String message;
   SettingsError(this.message);
