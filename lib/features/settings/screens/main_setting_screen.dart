@@ -6,7 +6,6 @@ import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/auth/screens/login_screen.dart';
 import 'package:flosy/features/settings/cubit/settings_cubit.dart';
-import 'package:flosy/features/settings/screens/change_pin_screen.dart';
 import 'package:flosy/features/settings/screens/currency_settings_screen.dart';
 import 'package:flosy/features/settings/screens/edit_profile_screen.dart';
 import 'package:flosy/features/settings/screens/language_settings_screen.dart';
@@ -505,23 +504,27 @@ class _MainSettingViewState extends State<_MainSettingView> {
           _buildSettingsTile(
             context,
             isDarkMode,
-            icon: FontAwesomeIcons.lock,
+            icon: FontAwesomeIcons.sync,
             iconColor: Colors.orange,
             iconBgColor: Colors.orange.withOpacity(0.15),
-            title: 'settings.change_pin'.tr(),
-            trailing: Icon(
-              Icons.chevron_right,
-              color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
-              size: 20.sp,
+            title: 'settings.sync'.tr(),
+            trailing: BlocBuilder<SettingsCubit, SettingsState>(
+              builder: (context, state) {
+                bool syncToCloud = false;
+                if (state is SettingsLoaded) {
+                  syncToCloud = state.isSyncing;
+                }
+                return Switch(
+                  value: syncToCloud,
+                  onChanged: (value) {
+                    context.read<SettingsCubit>().toggleSync(value);
+                  },
+                  activeColor: AppColors.orangeColor,
+                  inactiveThumbColor: Colors.grey[400],
+                );
+              },
             ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ChangePinScreen(),
-                ),
-              );
-            },
+            onTap: null,
           ),
         ],
       ),

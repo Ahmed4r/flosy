@@ -1,5 +1,11 @@
+import 'dart:developer';
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flosy/features/home/data/model/transaction_model.dart';
+import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,11 +24,61 @@ class SettingsCubit extends Cubit<SettingsState> {
   File? _image;
   File? get profileImage => _image;
   late SharedPreferences _prefs;
+  bool _isSyncing = false;
 
   ThemeMode get currentThemeMode => _currentThemeMode;
   bool get isDarkMode => _isDarkMode;
   bool get faceIdEnabled => _faceIdEnabled;
   String get selectedCurrency => _selectedCurrency;
+  bool get isSyncing => _isSyncing;
+
+  Future<void> toggleSync(bool isSyncing) async {
+    try {
+      _isSyncing = isSyncing;
+      await _prefs.setBool('is_syncing', isSyncing);
+      emit(
+        SettingsLoaded(
+          themeMode: _currentThemeMode,
+          isDarkMode: _isDarkMode,
+          faceIdEnabled: _faceIdEnabled,
+          selectedCurrency: _selectedCurrency,
+          profileImage: _image,
+          isSyncing: isSyncing,
+        ),
+      );
+      if (isSyncing) {
+        await syncTransactionsToCloud();
+        log('Data synced to cloud successfully');
+      }
+    } catch (e) {
+      log(e.toString());
+      emit(SettingsError('Failed to sync data: ${e.toString()}'));
+    }
+  }
+
+  Future<void> syncTransactionsToCloud() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      throw Exception('User not logged in');
+    }
+
+    final transactions = await dbService.getTransactions();
+
+    final batch = FirebaseFirestore.instance.batch();
+
+    for (final tx in transactions) {
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('transactions')
+          .doc(tx.id.toString());
+
+      batch.set(docRef, tx.toMap(), SetOptions(merge: true));
+    }
+
+    await batch.commit();
+  }
 
   Future<void> loadSettings() async {
     try {
@@ -39,6 +95,7 @@ class SettingsCubit extends Cubit<SettingsState> {
       _image = _prefs.getString('profile_image') != null
           ? File(_prefs.getString('profile_image')!)
           : null;
+      _isSyncing = _prefs.getBool('is_syncing') ?? false;
 
       emit(
         SettingsLoaded(
@@ -47,6 +104,7 @@ class SettingsCubit extends Cubit<SettingsState> {
           faceIdEnabled: _faceIdEnabled,
           selectedCurrency: _selectedCurrency,
           profileImage: _image,
+          isSyncing: _isSyncing,
         ),
       );
     } catch (e) {
@@ -82,6 +140,7 @@ class SettingsCubit extends Cubit<SettingsState> {
           faceIdEnabled: currentState.faceIdEnabled,
           profileImage: image,
           themeMode: _currentThemeMode,
+          isSyncing: _isSyncing,
         ),
       );
     }
@@ -102,6 +161,7 @@ class SettingsCubit extends Cubit<SettingsState> {
           faceIdEnabled: _faceIdEnabled,
           selectedCurrency: _selectedCurrency,
           profileImage: _image,
+          isSyncing: _isSyncing,
         ),
       );
     } catch (e) {
@@ -168,6 +228,7 @@ class SettingsCubit extends Cubit<SettingsState> {
               faceIdEnabled: _faceIdEnabled,
               selectedCurrency: _selectedCurrency,
               profileImage: _image,
+              isSyncing: _isSyncing,
             ),
           );
           return;
@@ -185,6 +246,7 @@ class SettingsCubit extends Cubit<SettingsState> {
           faceIdEnabled: _faceIdEnabled,
           selectedCurrency: _selectedCurrency,
           profileImage: _image,
+          isSyncing: _isSyncing,
         ),
       );
     } catch (e) {
@@ -203,6 +265,7 @@ class SettingsCubit extends Cubit<SettingsState> {
           faceIdEnabled: _faceIdEnabled,
           selectedCurrency: _selectedCurrency,
           profileImage: _image,
+          isSyncing: _isSyncing,
         ),
       );
     } catch (e) {

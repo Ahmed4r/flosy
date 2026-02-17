@@ -1,7 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flosy/core/theme/app_theme.dart';
-import 'package:flosy/features/ai_insights/services/ml_prediction_service.dart';
 import 'package:flosy/features/auth/screens/cubit/auth_cubit_cubit.dart';
 import 'package:flosy/features/home/presentation/cubit/home_cubit.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
