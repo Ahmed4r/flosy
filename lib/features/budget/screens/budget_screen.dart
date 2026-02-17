@@ -1,6 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
+import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/budget/data/model/budget_model.dart';
 import 'package:flosy/features/budget/screens/add_budget_screen.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
@@ -8,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BudgetScreen extends StatefulWidget {
   const BudgetScreen({super.key});
@@ -81,6 +83,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
   void initState() {
     super.initState();
     _loadData();
+    getCurrencySymbol();
   }
 
   @override
@@ -165,7 +168,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
           ],
         ),
       ),
-      floatingActionButton: _buildNewBudgetButton(),
+      floatingActionButton: _buildNewBudgetButton(currencySymbol),
     );
   }
 
@@ -249,6 +252,13 @@ class _BudgetScreenState extends State<BudgetScreen> {
     );
   }
 
+  String currencySymbol = '\$';
+  Future<String> getCurrencySymbol() async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    currencySymbol = pref.getString('selected_currency') ?? '\$';
+    return currencySymbol;
+  }
+
   Widget _buildMonthlySummaryCard() {
     final budget = totalBudget;
     final spent = totalSpent;
@@ -311,22 +321,25 @@ class _BudgetScreenState extends State<BudgetScreen> {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text(
-                '\$${spent.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
-                style: TextStyle(
-                  fontSize: 42.sp,
-                  fontWeight: FontWeight.bold,
-                  color: _textPrimary,
-                  height: 1,
+              Flexible(
+                flex: 2,
+                child: Text(
+                  '$currencySymbol${spent.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
+                  style: AppText.head32(context).copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: isOnTrack ? AppColors.greenColor : Colors.orange,
+                  ),
                 ),
               ),
               SizedBox(width: 8.w),
-              Text(
-                '/ \$${budget.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  color: Colors.grey[400],
-                  fontWeight: FontWeight.w500,
+              Flexible(
+                flex: 1,
+                child: Text(
+                  '/ $currencySymbol${budget.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
+                  style: AppText.body16(context).copyWith(
+                    color: Colors.grey[400],
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ],
@@ -337,19 +350,16 @@ class _BudgetScreenState extends State<BudgetScreen> {
             children: [
               Text(
                 "budget.total_spent".tr(),
-                style: TextStyle(
-                  fontSize: 14.sp,
+                style: AppText.body14(context).copyWith(
                   color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                   fontWeight: FontWeight.w500,
                 ),
               ),
               Text(
                 '$percentage%',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.bold,
-                  color: _textPrimary,
-                ),
+                style: AppText.body14(
+                  context,
+                ).copyWith(fontWeight: FontWeight.bold, color: _textPrimary),
               ),
             ],
           ),
@@ -375,8 +385,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   : 'budget.you_are_over'.tr(
                       args: [remaining.abs().toStringAsFixed(0)],
                     ),
-              style: TextStyle(
-                fontSize: 12.sp,
+              style: AppText.body12(context).copyWith(
                 color: remaining >= 0 ? Colors.grey[500] : Colors.red,
                 fontWeight: FontWeight.w500,
               ),
@@ -393,11 +402,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
       children: [
         Text(
           'budget.your_limits'.tr(),
-          style: TextStyle(
-            fontSize: 20.sp,
-            fontWeight: FontWeight.bold,
-            color: _textPrimary,
-          ),
+          style: AppText.head20(
+            context,
+          ).copyWith(fontWeight: FontWeight.bold, color: _textPrimary),
         ),
         SizedBox(height: 16.h),
         ListView.separated(
@@ -458,14 +465,16 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 onPressed: () => Navigator.pop(ctx, false),
                 child: Text(
                   'budget.cancel'.tr(),
-                  style: TextStyle(color: Colors.grey[600]),
+                  style: AppText.body14(
+                    context,
+                  ).copyWith(color: Colors.grey[600]),
                 ),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
                 child: Text(
                   'budget.delete'.tr(),
-                  style: TextStyle(color: Colors.red),
+                  style: AppText.body14(context).copyWith(color: Colors.red),
                 ),
               ),
             ],
@@ -482,7 +491,12 @@ class _BudgetScreenState extends State<BudgetScreen> {
         onTap: () async {
           final result = await Navigator.push<bool>(
             context,
-            MaterialPageRoute(builder: (_) => AddBudgetScreen(budget: budget)),
+            MaterialPageRoute(
+              builder: (_) => AddBudgetScreen(
+                budget: budget,
+                currencySymbol: currencySymbol,
+              ),
+            ),
           );
           if (result == true) _loadData();
         },
@@ -519,8 +533,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                       children: [
                         Text(
                           displayLabel,
-                          style: TextStyle(
-                            fontSize: 16.sp,
+                          style: AppText.body16(context).copyWith(
                             fontWeight: FontWeight.bold,
                             color: _textPrimary,
                           ),
@@ -530,10 +543,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
                           budget.isRecurring
                               ? "budget.resets_monthly".tr()
                               : "budget.one_time".tr(),
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color: Colors.grey[500],
-                          ),
+                          style: AppText.body12(
+                            context,
+                          ).copyWith(color: Colors.grey[500]),
                         ),
                       ],
                     ),
@@ -542,19 +554,17 @@ class _BudgetScreenState extends State<BudgetScreen> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        '\$${spent.toStringAsFixed(0)}',
-                        style: TextStyle(
-                          fontSize: 18.sp,
+                        '${currencySymbol}${spent.toStringAsFixed(0)}',
+                        style: AppText.body18(context).copyWith(
                           fontWeight: FontWeight.bold,
                           color: isOver ? Colors.red : _textPrimary,
                         ),
                       ),
                       Text(
-                        '${"budget.of".tr()} \$${limit.toStringAsFixed(0)}',
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          color: Colors.grey[500],
-                        ),
+                        '${"budget.of".tr()} $currencySymbol${limit.toStringAsFixed(0)}',
+                        style: AppText.body12(
+                          context,
+                        ).copyWith(color: Colors.grey[500]),
                       ),
                     ],
                   ),
@@ -603,8 +613,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                             : isNearLimit
                             ? "budget.near_limit".tr()
                             : '$percentage% ${"budget.used".tr()}',
-                        style: TextStyle(
-                          fontSize: 12.sp,
+                        style: AppText.body12(context).copyWith(
                           color: isOver
                               ? Colors.red
                               : isNearLimit
@@ -617,10 +626,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   ),
                   Text(
                     remaining >= 0
-                        ? '\$${remaining.toStringAsFixed(0)} ${"budget.left".tr()}'
-                        : '\$${remaining.abs().toStringAsFixed(0)} ${"budget.over".tr()}',
-                    style: TextStyle(
-                      fontSize: 12.sp,
+                        ? '$currencySymbol${remaining.toStringAsFixed(0)} ${"budget.left".tr()}'
+                        : '$currencySymbol${remaining.abs().toStringAsFixed(0)} ${"budget.over".tr()}',
+                    style: AppText.body12(context).copyWith(
                       color: isOver
                           ? Colors.red
                           : isNearLimit
@@ -670,11 +678,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
             Text(
               'budget.tap_new_budget_to_create'.tr(),
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: Colors.grey[500],
-                height: 1.5,
-              ),
+              style: AppText.body14(
+                context,
+              ).copyWith(color: Colors.grey[500], height: 1.5),
             ),
           ],
         ),
@@ -682,7 +688,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
     );
   }
 
-  Widget _buildNewBudgetButton() {
+  Widget _buildNewBudgetButton(String currencySymbol) {
     return Container(
       margin: EdgeInsets.only(bottom: 80.h, right: 4.w),
       child: FloatingActionButton.extended(
@@ -691,7 +697,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
           HapticFeedback.mediumImpact();
           final result = await Navigator.push<bool>(
             context,
-            MaterialPageRoute(builder: (_) => const AddBudgetScreen()),
+            MaterialPageRoute(
+              builder: (_) => AddBudgetScreen(currencySymbol: currencySymbol),
+            ),
           );
           if (result == true) _loadData();
         },
@@ -710,11 +718,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
         ),
         label: Text(
           "budget.new_budget".tr(),
-          style: TextStyle(
-            fontSize: 15.sp,
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
+          style: AppText.body15(
+            context,
+          ).copyWith(color: Colors.white, fontWeight: FontWeight.w600),
         ),
       ),
     );

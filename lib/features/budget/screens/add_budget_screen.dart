@@ -8,11 +8,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AddBudgetScreen extends StatefulWidget {
   final BudgetModel? budget;
+  final String? currencySymbol;
 
-  const AddBudgetScreen({super.key, this.budget});
+  const AddBudgetScreen({super.key, this.budget, this.currencySymbol});
 
   @override
   State<AddBudgetScreen> createState() => _AddBudgetScreenState();
@@ -26,6 +28,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
   bool _isRecurring = true;
   bool _notifyAt80 = true;
   bool _isLoading = false;
+  String? _currencySymbol;
 
   // Category configuration with proper translations
   static final Map<String, Map<String, dynamic>> categories = {
@@ -78,6 +81,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
     } else {
       developer.log('Creating new budget', name: 'AddBudget');
     }
+    _currencySymbol = widget.currencySymbol;
   }
 
   @override
@@ -308,7 +312,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
                         Padding(
                           padding: EdgeInsets.only(top: 8.h),
                           child: Text(
-                            '\$',
+                            _currencySymbol ?? '\$',
                             style: TextStyle(
                               fontSize: 32.sp,
                               fontWeight: FontWeight.w300,

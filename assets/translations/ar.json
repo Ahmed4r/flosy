@@ -35,6 +35,8 @@
   "passwords_not_match": "كلمتا المرور غير متطابقتين",
   "error": "خطأ",
   "ok": "حسناً",
+  "today": "اليوم",
+  "yesterday": "أمس",
   "registration_success": "تم التسجيل بنجاح",
   "weak_password": "كلمة المرور المقدمة ضعيفة جداً. يرجى استخدام كلمة مرور أقوى (8 أحرف على الأقل).",
   "email_already_in_use": "عنوان البريد الإلكتروني قيد الاستخدام بالفعل. يرجى استخدام بريد إلكتروني مختلف أو محاولة تسجيل الدخول.",
@@ -65,6 +67,13 @@
       "evening": "مساء الخير",
       "night": "تصبح على خير"
     },
+    "monday": "الاثنين",
+    "tuesday": "الثلاثاء",
+    "wednesday": "الأربعاء",
+    "thursday": "الخميس",
+    "friday": "الجمعة",
+    "saturday": "السبت",
+    "sunday": "الأحد",
     "greeting_morning": "صباح الخير،",
     "greeting_afternoon": "مساء الخير،",
     "greeting_evening": "مساء الخير،",
@@ -173,7 +182,8 @@
     "pdf_exported": "تم تصدير ملف PDF بنجاح",
     "pdf_exported_android": "تم تصدير ملف PDF بنجاح إلى مجلد التنزيلات",
     "pdf_exported_ios": "تم تصدير ملف PDF بنجاح إلى تطبيق الملفات",
-    "view": "عرض"
+    "view": "عرض",
+    "symbol": "الرمز"
   },
   "categories": {
     "food": "طعام",

@@ -186,7 +186,7 @@ class CurrencySettingsScreen extends StatelessWidget {
                             ),
                             SizedBox(height: 4.h),
                             Text(
-                              'Symbol: ${currency['symbol']}',
+                              '${'settings.symbol'.tr()} ${currency['symbol']}',
                               style: AppText.body14(context).copyWith(
                                 color: isDarkMode
                                     ? Colors.grey[400]

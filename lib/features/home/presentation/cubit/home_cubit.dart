@@ -148,10 +148,15 @@ class HomeCubit extends Cubit<HomeState> {
     final today = DateTime(now.year, now.month, now.day);
     final txDay = DateTime(date.year, date.month, date.day);
 
-    if (txDay == today) return 'Today';
-    if (txDay == today.subtract(const Duration(days: 1))) return 'Yesterday';
+    if (txDay == today) return 'today'.tr();
+    if (txDay == today.subtract(const Duration(days: 1))) {
+      return 'yesterday'.tr();
+    }
     if (now.difference(txDay).inDays < 7) {
-      return DateFormat('EEEE').format(date); // e.g. "Monday"
+      String weekdayKey =
+          'home.${DateFormat('EEEE').format(date).toLowerCase()}';
+      return weekdayKey.tr();
+      // return DateFormat('EEEE').format(date); // e.g. "Monday"
     }
     return DateFormat('MMM d, yyyy').format(date);
   }

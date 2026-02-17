@@ -26,6 +26,8 @@
   "send_code": "Send Code",
   "error": "Error",
   "ok": "OK",
+  "today": "Today",
+  "yesterday": "Yesterday",
   "password_required": "Password is required",
   "password_min_length": "Password must be at least 8 characters long",
   "login_success": "Login Successful",
@@ -64,6 +66,13 @@
       "evening": "Good Evening",
       "night": "Good Night"
     },
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday",
+    "sunday": "Sunday",
     "greeting_morning": "Good Morning,",
     "greeting_afternoon": "Good Afternoon,",
     "greeting_evening": "Good Evening,",
@@ -172,7 +181,8 @@
     "pdf_exported": "PDF exported successfully",
     "pdf_exported_android": "PDF exported successfully to Downloads",
     "pdf_exported_ios": "PDF exported successfully to Files app",
-    "view": "View"
+    "view": "View",
+    "symbol": "Symbol"
   },
   "categories": {
     "food": "Food",

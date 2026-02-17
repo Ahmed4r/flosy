@@ -1,12 +1,10 @@
-import 'dart:developer';
-
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
-import 'package:flosy/features/home/data/model/transaction_model.dart';
+import 'package:flosy/features/auth/screens/login_screen.dart';
 import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flosy/features/settings/screens/change_pin_screen.dart';
 import 'package:flosy/features/settings/screens/currency_settings_screen.dart';
@@ -25,7 +23,6 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:printing/printing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sqflite/sqflite.dart';
 
 class MainSettingScreen extends StatelessWidget {
   const MainSettingScreen({super.key});
@@ -1238,7 +1235,7 @@ class _MainSettingViewState extends State<_MainSettingView> {
             onPressed: () => Navigator.pop(context),
             child: Text(
               'cancel'.tr(),
-              style: TextStyle(
+              style: AppText.body14(context).copyWith(
                 color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
               ),
             ),
@@ -1246,11 +1243,20 @@ class _MainSettingViewState extends State<_MainSettingView> {
           TextButton(
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
-              Navigator.of(context).popUntil((route) => route.isFirst);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) {
+                    return LoginScreen();
+                  },
+                ),
+              );
             },
             child: Text(
               'settings.log_out'.tr(),
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              style: AppText.body16(
+                context,
+              ).copyWith(color: Colors.red, fontWeight: FontWeight.bold),
             ),
           ),
         ],

@@ -7,6 +7,7 @@ import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:pie_chart/pie_chart.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DetailedChartScreen extends StatefulWidget {
   final bool isArabic;
@@ -26,6 +27,14 @@ class _DetailedChartScreenState extends State<DetailedChartScreen> {
   void initState() {
     super.initState();
     _loadTransactions();
+    getCurrencySymbol();
+  }
+
+  String currencySymbol = '\$';
+  Future<String> getCurrencySymbol() async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    currencySymbol = pref.getString('selected_currency') ?? '\$';
+    return currencySymbol;
   }
 
   Future<void> _loadTransactions() async {
@@ -225,7 +234,7 @@ class _DetailedChartScreenState extends State<DetailedChartScreen> {
           child: _buildStatCard(
             isDarkMode,
             'home.total_expenses'.tr(),
-            '\$${_totalExpenses.toStringAsFixed(2)}',
+            '${currencySymbol}${_totalExpenses.toStringAsFixed(0)}',
             Icons.trending_down,
             Colors.red,
           ),
@@ -235,7 +244,7 @@ class _DetailedChartScreenState extends State<DetailedChartScreen> {
           child: _buildStatCard(
             isDarkMode,
             'home.total_income'.tr(),
-            '\$${_totalIncome.toStringAsFixed(2)}',
+            '${currencySymbol}${_totalIncome.toStringAsFixed(0)}',
             Icons.trending_up,
             AppColors.greenColor,
           ),
@@ -262,7 +271,7 @@ class _DetailedChartScreenState extends State<DetailedChartScreen> {
     Color color,
   ) {
     return Container(
-      padding: EdgeInsets.all(12.w),
+      padding: EdgeInsets.all(15.w),
       decoration: BoxDecoration(
         color: isDarkMode ? Colors.black54 : Colors.white,
         borderRadius: BorderRadius.circular(16.r),
@@ -373,7 +382,7 @@ class _DetailedChartScreenState extends State<DetailedChartScreen> {
           PieChart(
             dataMap: _expensesByCategory,
             animationDuration: const Duration(milliseconds: 1000),
-            chartRadius: MediaQuery.of(context).size.width / 2.5,
+            chartRadius: MediaQuery.of(context).size.width / 2.2,
             colorList: colorList,
             initialAngleInDegree: 0,
             chartType: ChartType.ring,
@@ -390,7 +399,7 @@ class _DetailedChartScreenState extends State<DetailedChartScreen> {
                 ),
                 SizedBox(height: 4.h),
                 Text(
-                  '\$${_totalExpenses.toStringAsFixed(0)}',
+                  '${currencySymbol}${_totalExpenses.toStringAsFixed(0)}',
                   style: AppText.head24(context).copyWith(
                     fontWeight: FontWeight.bold,
                     fontSize: 22.sp, // Reduced from 24.sp
@@ -501,7 +510,7 @@ class _DetailedChartScreenState extends State<DetailedChartScreen> {
                         ),
                       ),
                       Text(
-                        '\$${amount.toStringAsFixed(2)}',
+                        '${currencySymbol}${amount.toStringAsFixed(2)}',
                         style: AppText.body16(context).copyWith(
                           fontWeight: FontWeight.bold,
                           color: isDarkMode ? Colors.white : Colors.black,

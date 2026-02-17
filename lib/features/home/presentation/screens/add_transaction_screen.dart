@@ -162,7 +162,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             },
             child: Text(
               'transaction.reset'.tr(),
-              style: TextStyle(color: Colors.blue),
+              style: AppText.body16(context).copyWith(color: Colors.blue),
             ),
           ),
         ],
@@ -320,10 +320,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             ),
             Text(
               'transaction.see_all'.tr(),
-              style: TextStyle(
-                color: Colors.green,
-                fontWeight: FontWeight.w600,
-              ),
+              style: AppText.body14(
+                context,
+              ).copyWith(color: Colors.green, fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -599,7 +598,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           } else {
             await dbService.addTransaction(transaction);
           }
-
 
           // Update stored total balance
           final prefs = await SharedPreferences.getInstance();
