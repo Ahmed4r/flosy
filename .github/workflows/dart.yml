@@ -26,8 +26,8 @@ jobs:
       - name: Set iOS deployment target
         run: |
           cd ios
-          if ! grep -q "platform :ios, '15.0'" Podfile; then
-            echo "platform :ios, '15.0'" | cat - Podfile > temp && mv temp Podfile
+          if ! grep -q "platform :ios, '16.0'" Podfile; then
+            echo "platform :ios, '16.0'" | cat - Podfile > temp && mv temp Podfile
           fi
           cd ..
 
