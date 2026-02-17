@@ -160,4 +160,9 @@ class HomeCubit extends Cubit<HomeState> {
     }
     return DateFormat('MMM d, yyyy').format(date);
   }
+
+  Future<void> showAllTransactionsToggle() async {
+    showAllTransactions = !showAllTransactions;
+    emit(HomeLoaded(transactions, totalBalance));
+  }
 }

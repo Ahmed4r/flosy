@@ -5,6 +5,7 @@ import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/auth/screens/cubit/auth_cubit_cubit.dart';
 import 'package:flosy/features/auth/screens/forget_screen.dart';
 import 'package:flosy/features/auth/screens/register_screen.dart';
+import 'package:flosy/features/auth/service/secure_storages_service.dart';
 import 'package:flosy/features/navigation/main_nav_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -92,9 +93,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (authenticated && mounted) {
         // Get stored credentials
-        final prefs = await SharedPreferences.getInstance();
-        final savedEmail = prefs.getString('saved_email');
-        final savedPassword = prefs.getString('saved_password');
+        final secureStorage = SecureStorageService();
+        final savedCredentials = await secureStorage.getCredentials();
+        final savedEmail = savedCredentials['email'];
+        final savedPassword = savedCredentials['password'];
 
         if (savedEmail != null && savedPassword != null) {
           emailController.text = savedEmail;
@@ -136,10 +138,14 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _saveCredentials(String email, String password) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('saved_email', email);
-    await prefs.setString('saved_password', password);
+    try {
+      SecureStorageService secureStorage = SecureStorageService();
+      await secureStorage.saveCredentials(email, password);
+    } catch (e) {
+      debugPrint('Error saving credentials: $e');
+    }
   }
+
 
   @override
   Widget build(BuildContext context) {

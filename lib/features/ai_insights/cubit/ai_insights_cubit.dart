@@ -332,7 +332,7 @@ class AiInsightsCubit extends Cubit<AiInsightsState> {
         ),
       );
     } catch (e) {
-      print('Test failed: $e');
+      log('Test failed: $e');
       emit(AiInsightsError(e.toString()));
     }
   }

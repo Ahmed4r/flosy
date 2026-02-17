@@ -6,7 +6,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/core/theme/app_theme.dart';
-import 'package:easy_localization/easy_localization.dart';
 
 class BiometricPromptScreen extends StatefulWidget {
   const BiometricPromptScreen({super.key});

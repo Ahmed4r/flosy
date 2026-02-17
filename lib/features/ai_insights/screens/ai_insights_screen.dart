@@ -2,6 +2,7 @@
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/features/ai_insights/cubit/ai_insights_cubit.dart';
+import 'package:flosy/features/ai_insights/services/ml_prediction_service.dart';
 import 'package:flosy/features/ai_insights/widgets/insight_card.dart';
 import 'package:flosy/features/ai_insights/widgets/metrics_card.dart';
 import 'package:flosy/features/ai_insights/widgets/prediction_card.dart';
@@ -10,8 +11,19 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-class AiInsightsScreen extends StatelessWidget {
+class AiInsightsScreen extends StatefulWidget {
   const AiInsightsScreen({super.key});
+
+  @override
+  State<AiInsightsScreen> createState() => _AiInsightsScreenState();
+}
+
+class _AiInsightsScreenState extends State<AiInsightsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    mlService.initialize();
+  }
 
   @override
   Widget build(BuildContext context) {

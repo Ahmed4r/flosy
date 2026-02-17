@@ -271,8 +271,8 @@ class HomeScreenState extends State<HomeScreen> {
             ),
             if (context.read<HomeCubit>().transactions.length > 5)
               GestureDetector(
-                onTap: () => context.read<HomeCubit>().showAllTransactions =
-                    !context.read<HomeCubit>().showAllTransactions,
+                onTap: () =>
+                    context.read<HomeCubit>().showAllTransactionsToggle(),
                 child: Container(
                   padding: EdgeInsets.symmetric(
                     horizontal: 12.w,
