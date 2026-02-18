@@ -1,10 +1,12 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
+import 'package:flosy/features/home/presentation/screens/recording_screen.dart';
 import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 Widget buildAmountCard(
   BuildContext context,
@@ -119,6 +121,22 @@ Widget buildAmountCard(
                       ),
                     ),
                     SizedBox(width: 8.w),
+                    InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RecordingPage(),
+                          ),
+                        );
+                      },
+                      child: FaIcon(
+                        FontAwesomeIcons.microphone,
+                        size: 18.sp,
+                        color: AppColors.greenColor,
+                      ),
+                    ),
+                    SizedBox(width: 14.w),
                     GestureDetector(
                       onTap: onEditBalance,
                       child: Container(

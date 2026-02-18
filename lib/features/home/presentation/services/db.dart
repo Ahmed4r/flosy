@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../data/model/transaction_model.dart';
@@ -202,6 +203,54 @@ class DatabaseService {
       tx.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+  }
+
+  Future<void> processAndSaveAiResponse(Map<String, dynamic> aiJson) async {
+    try {
+      // 1. تحديد نوع المعاملة (Enum) بناءً على الرقم القادم من AI
+      // الـ AI بيرجع 0 للدخل و 1 للمصاريف، وده بيتوافق مع ترتيب الـ Enum عندك
+      TransactionType txType = TransactionType.values[aiJson['type'] ?? 1];
+
+      // 2. خريطة بسيطة لاختيار أيقونة بناءً على التصنيف (اختياري لكن احترافي)
+      // لو الـ AI بعت category مش موجودة هنا، هنستخدم أيقونة افتراضية
+      IconData categoryIcon = _getIconForCategory(aiJson['category']);
+
+      // 3. بناء الموديل مع مراعاة كافة الـ Data Types
+      final newTransaction = TransactionModel(
+        title: aiJson['title'] ?? 'معاملة صوتية',
+        amount: (aiJson['amount'] as num)
+            .toDouble(), // التأكد من تحويلها لـ double
+        type: txType,
+        date: DateTime.now(), // تاريخ اللحظة الحالية
+        category: aiJson['category'] ?? 'عام',
+        iconCodePoint: categoryIcon.codePoint,
+        iconFontFamily: categoryIcon.fontFamily ?? 'MaterialIcons',
+        iconFontPackage: categoryIcon.fontPackage,
+      );
+
+      // 4. الحفظ في قاعدة البيانات باستخدام الـ Global Instance بتاعك
+      int id = await dbService.addTransaction(newTransaction);
+
+      print('✅ تم التخزين بنجاح! رقم المعاملة: $id');
+    } catch (e) {
+      print('❌ خطأ أثناء معالجة أو تخزين البيانات: $e');
+    }
+  }
+
+  IconData _getIconForCategory(String? category) {
+    switch (category?.toLowerCase()) {
+      case 'سوبر ماركت':
+      case 'shopping':
+        return Icons.shopping_cart;
+      case 'اكل':
+      case 'food':
+        return Icons.restaurant;
+      case 'مواصلات':
+      case 'transport':
+        return Icons.directions_car;
+      default:
+        return Icons.attach_money; // أيقونة افتراضية
+    }
   }
 
   Future<List<TransactionModel>> getTransactions() async {

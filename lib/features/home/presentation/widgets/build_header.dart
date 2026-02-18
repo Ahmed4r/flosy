@@ -5,6 +5,8 @@ import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/ai_insights/screens/ai_insights_screen.dart';
+import 'package:flosy/features/home/presentation/cubit/recording_cubit.dart';
+import 'package:flosy/features/home/presentation/screens/recording_screen.dart';
 import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -53,7 +55,6 @@ Widget buildHeader(BuildContext context, String Function() getGreetingMessage) {
           ),
         ),
         SizedBox(width: 14.w),
-        SizedBox(width: 12.w),
 
         // Greeting + Name
         Expanded(
@@ -107,8 +108,6 @@ Widget buildHeader(BuildContext context, String Function() getGreetingMessage) {
             ),
           ),
         ),
-        // OCR camera button
-        SizedBox(width: 10.w),
       ],
     ),
   );

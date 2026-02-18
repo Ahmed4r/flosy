@@ -7,6 +7,7 @@ import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/home/data/model/transaction_model.dart';
 import 'package:flosy/features/home/presentation/cubit/home_cubit.dart';
 import 'package:flosy/features/home/presentation/screens/add_transaction_screen.dart';
+import 'package:flosy/features/home/presentation/screens/recording_screen.dart';
 import 'package:flosy/features/home/presentation/widgets/build_amount_card.dart';
 import 'package:flosy/features/home/presentation/widgets/build_header.dart';
 import 'package:flosy/features/home/presentation/widgets/build_tracks.dart';
@@ -15,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum TransactionColors {

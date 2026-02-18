@@ -4,6 +4,8 @@ import 'package:flosy/core/network_check.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/features/auth/screens/cubit/auth_cubit_cubit.dart';
 import 'package:flosy/features/home/presentation/cubit/home_cubit.dart';
+import 'package:flosy/features/home/presentation/cubit/recording_cubit.dart';
+import 'package:flosy/features/home/presentation/screens/recording_screen.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flosy/firebase_options.dart';
