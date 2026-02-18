@@ -3,14 +3,12 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:flosy/features/home/data/model/transaction_model.dart';
+import 'package:flosy/core/network_check.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:local_auth/local_auth.dart';
-
 part 'settings_state.dart';
 
 class SettingsCubit extends Cubit<SettingsState> {
@@ -25,30 +23,53 @@ class SettingsCubit extends Cubit<SettingsState> {
   File? get profileImage => _image;
   late SharedPreferences _prefs;
   bool _isSyncing = false;
+  bool internetAvailable = false;
+  final bool _isCloudDataDeleted = false;
 
   ThemeMode get currentThemeMode => _currentThemeMode;
   bool get isDarkMode => _isDarkMode;
   bool get faceIdEnabled => _faceIdEnabled;
   String get selectedCurrency => _selectedCurrency;
   bool get isSyncing => _isSyncing;
+  bool get isInternetAvailable => internetAvailable;
+  bool get isCloudDataDeleted => _isCloudDataDeleted;
 
-  Future<void> toggleSync(bool isSyncing) async {
+  NetworkCheck networkCheck = NetworkCheck();
+
+  Future<void> toggleSync(bool isSyncing, BuildContext context) async {
     try {
-      _isSyncing = isSyncing;
-      await _prefs.setBool('is_syncing', isSyncing);
-      emit(
-        SettingsLoaded(
-          themeMode: _currentThemeMode,
-          isDarkMode: _isDarkMode,
-          faceIdEnabled: _faceIdEnabled,
-          selectedCurrency: _selectedCurrency,
-          profileImage: _image,
-          isSyncing: isSyncing,
-        ),
-      );
-      if (isSyncing) {
-        await syncTransactionsToCloud();
-        log('Data synced to cloud successfully');
+      internetAvailable = await networkCheck.checkNetwork(context);
+
+      if (internetAvailable == true) {
+        _isSyncing = isSyncing;
+        await _prefs.setBool('is_syncing', isSyncing);
+        await syncTransactionsToCloud(context);
+        log('Transactions synced to cloud after toggling sync');
+        emit(
+          SettingsLoaded(
+            themeMode: _currentThemeMode,
+            isDarkMode: _isDarkMode,
+            faceIdEnabled: _faceIdEnabled,
+            selectedCurrency: _selectedCurrency,
+            profileImage: _image,
+            isSyncing: isSyncing,
+            internetAvailable: internetAvailable,
+            isCloudDataDeleted: true,
+          ),
+        );
+      } else {
+        emit(
+          SettingsLoaded(
+            themeMode: _currentThemeMode,
+            isDarkMode: _isDarkMode,
+            faceIdEnabled: _faceIdEnabled,
+            selectedCurrency: _selectedCurrency,
+            profileImage: _image,
+            isSyncing: false,
+            internetAvailable: internetAvailable,
+            isCloudDataDeleted: false,
+          ),
+        );
       }
     } catch (e) {
       log(e.toString());
@@ -56,7 +77,103 @@ class SettingsCubit extends Cubit<SettingsState> {
     }
   }
 
-  Future<void> syncTransactionsToCloud() async {
+  Future<void> deleteCloudData() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      throw Exception('User not logged in');
+    }
+
+    final store = FirebaseFirestore.instance;
+
+    final snapshot = await store
+        .collection('users')
+        .doc(user.uid)
+        .collection('transactions')
+        .get();
+
+    final batch = store.batch();
+
+    for (var doc in snapshot.docs) {
+      batch.delete(doc.reference);
+    }
+
+    await batch.commit();
+  }
+
+  Future<void> clearCloudData() async {
+    try {
+      emit(SettingsLoading());
+      await deleteCloudData();
+      emit(
+        SettingsLoaded(
+          themeMode: _currentThemeMode,
+          isDarkMode: _isDarkMode,
+          faceIdEnabled: _faceIdEnabled,
+          selectedCurrency: _selectedCurrency,
+          profileImage: _image,
+          isSyncing: false,
+          internetAvailable: internetAvailable,
+          isCloudDataDeleted: true,
+        ),
+      );
+      // Optionally, trigger a snackbar/dialog via a callback or BlocListener
+    } catch (e) {
+      emit(SettingsError(e.toString()));
+    }
+  }
+
+  Future<void> clearLocalData(BuildContext context) async {
+    try {
+      await dbService.deleteAllTransactions();
+      log('Local data cleared successfully');
+      final user = FirebaseAuth.instance.currentUser;
+      await user?.updateDisplayName('');
+      emit(
+        SettingsLoaded(
+          themeMode: _currentThemeMode,
+          isDarkMode: _isDarkMode,
+          faceIdEnabled: _faceIdEnabled,
+          selectedCurrency: _selectedCurrency,
+          profileImage: null,
+          isSyncing: _isSyncing,
+          internetAvailable: internetAvailable,
+          isCloudDataDeleted: _isCloudDataDeleted,
+        ),
+      );
+    } catch (e) {
+      log(e.toString());
+      emit(SettingsError('Failed to clear local data: ${e.toString()}'));
+    }
+  }
+
+  Future<void> clearAllData(BuildContext context) async {
+    try {
+      await clearCloudData();
+      await clearLocalData(context);
+      await _prefs.clear();
+      final user = FirebaseAuth.instance.currentUser;
+      await user?.updateDisplayName('');
+      log('All data cleared successfully');
+      emit(
+        SettingsLoaded(
+          themeMode: _currentThemeMode,
+          isDarkMode: _isDarkMode,
+          faceIdEnabled: _faceIdEnabled,
+          selectedCurrency: _selectedCurrency,
+          profileImage: null,
+          isSyncing: _isSyncing,
+          internetAvailable: internetAvailable,
+          isCloudDataDeleted: _isCloudDataDeleted,
+        ),
+      );
+    } catch (e) {
+      log(e.toString());
+      emit(SettingsError('Failed to clear all data: ${e.toString()}'));
+    }
+  }
+
+  Future<void> syncTransactionsToCloud(BuildContext context) async {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
@@ -105,6 +222,8 @@ class SettingsCubit extends Cubit<SettingsState> {
           selectedCurrency: _selectedCurrency,
           profileImage: _image,
           isSyncing: _isSyncing,
+          internetAvailable: internetAvailable,
+          isCloudDataDeleted: _isCloudDataDeleted,
         ),
       );
     } catch (e) {
@@ -141,6 +260,8 @@ class SettingsCubit extends Cubit<SettingsState> {
           profileImage: image,
           themeMode: _currentThemeMode,
           isSyncing: _isSyncing,
+          internetAvailable: internetAvailable,
+          isCloudDataDeleted: _isCloudDataDeleted,
         ),
       );
     }
@@ -162,6 +283,8 @@ class SettingsCubit extends Cubit<SettingsState> {
           selectedCurrency: _selectedCurrency,
           profileImage: _image,
           isSyncing: _isSyncing,
+          internetAvailable: internetAvailable,
+          isCloudDataDeleted: _isCloudDataDeleted,
         ),
       );
     } catch (e) {
@@ -229,6 +352,8 @@ class SettingsCubit extends Cubit<SettingsState> {
               selectedCurrency: _selectedCurrency,
               profileImage: _image,
               isSyncing: _isSyncing,
+              internetAvailable: internetAvailable,
+              isCloudDataDeleted: _isCloudDataDeleted,
             ),
           );
           return;
@@ -247,6 +372,8 @@ class SettingsCubit extends Cubit<SettingsState> {
           selectedCurrency: _selectedCurrency,
           profileImage: _image,
           isSyncing: _isSyncing,
+          internetAvailable: internetAvailable,
+          isCloudDataDeleted: _isCloudDataDeleted,
         ),
       );
     } catch (e) {
@@ -266,6 +393,8 @@ class SettingsCubit extends Cubit<SettingsState> {
           selectedCurrency: _selectedCurrency,
           profileImage: _image,
           isSyncing: _isSyncing,
+          internetAvailable: internetAvailable,
+          isCloudDataDeleted: _isCloudDataDeleted,
         ),
       );
     } catch (e) {

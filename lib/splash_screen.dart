@@ -2,13 +2,9 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flosy/core/services/biometric_service_helper.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
-import 'package:flosy/features/auth/screens/biometric_prompt_screen.dart';
-import 'package:flosy/features/auth/screens/cubit/auth_cubit_cubit.dart';
 import 'package:flosy/features/auth/screens/login_screen.dart';
-import 'package:flosy/features/home/presentation/screens/home_screen.dart';
 import 'package:flosy/features/navigation/main_nav_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -36,7 +32,6 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-
     _glowController = AnimationController(
       duration: const Duration(milliseconds: 1800),
       vsync: this,

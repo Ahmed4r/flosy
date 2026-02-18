@@ -184,7 +184,17 @@
     "pdf_exported_android": "PDF exported successfully to Downloads",
     "pdf_exported_ios": "PDF exported successfully to Files app",
     "view": "View",
-    "symbol": "Symbol"
+    "symbol": "Symbol",
+    "delete_all_data": "Delete All Data",
+    "delete_local_data": "Delete Local Data",
+    "delete_cloud_data": "Delete Cloud Data",
+    "syncing": "Syncing",
+    "syncing_message": "Please wait while we sync your data with the cloud",
+    "data_removed": "Your data has been successfully removed from the cloud",
+    "cloud_data_removed": "Your cloud data has been successfully removed",
+    "local_data_removed": "Your local data has been successfully removed",
+    "all_data_removed": "All your data has been successfully removed",
+    "done": "Done"
   },
   "categories": {
     "food": "Food",

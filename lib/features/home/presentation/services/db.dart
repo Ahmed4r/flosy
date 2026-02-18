@@ -226,6 +226,11 @@ class DatabaseService {
     await db.delete('Transactions', where: 'id = ?', whereArgs: [id]);
   }
 
+  Future<void> deleteAllTransactions() async {
+    final db = await database;
+    await db.delete('Transactions');
+  }
+
   /// Get total spent per category for a given month
   Future<Map<String, double>> getSpentByCategory(int year, int month) async {
     final db = await database;

@@ -1,9 +1,11 @@
 import 'dart:developer';
 
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -537,121 +539,137 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
   }
 
+  // SettingsCubit settingsCubit = SettingsCubit();
+
   Widget buildSaveButton(BuildContext context, bool isDarkMode) {
-    return GestureDetector(
-      onTap: () async {
-        if (amountController.text.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('transaction.please_enter_amount'.tr()),
-              backgroundColor: Colors.red,
-            ),
-          );
-          return;
-        }
+    return BlocBuilder<SettingsCubit, SettingsState>(
+      builder: (context, state) {
+        return GestureDetector(
+          onTap: () async {
+            if (amountController.text.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('transaction.please_enter_amount'.tr()),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              return;
+            }
+            // Validate category selection
+            if (selectedCategory.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Please select a category'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              return;
+            }
 
-        // Validate category selection
-        if (selectedCategory.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Please select a category'),
-              backgroundColor: Colors.red,
-            ),
-          );
-          return;
-        }
+            try {
+              final amount = double.parse(
+                amountController.text.replaceAll(',', ''),
+              );
+              log(amount.toString());
 
-        try {
-          final amount = double.parse(
-            amountController.text.replaceAll(',', ''),
-          );
-          log(amount.toString());
+              // Safe category lookup with fallback
+              final selectedCategoryData = categories.firstWhere(
+                (cat) => cat['id'] == selectedCategory,
+                orElse: () => {
+                  'id': selectedCategory,
+                  'icon': Icons.category,
+                  'color': AppColors.greenColor,
+                },
+              );
 
-          // Safe category lookup with fallback
-          final selectedCategoryData = categories.firstWhere(
-            (cat) => cat['id'] == selectedCategory,
-            orElse: () => {
-              'id': selectedCategory,
-              'icon': Icons.category,
-              'color': AppColors.greenColor,
-            },
-          );
+              final categoryIcon = selectedCategoryData['icon'] as IconData;
+              final transaction = TransactionModel(
+                title: noteController.text.isEmpty
+                    ? selectedCategory
+                    : noteController.text,
+                amount: amount,
+                date: selectedDate,
+                category: selectedCategory,
+                type: isExpense
+                    ? TransactionType.expense
+                    : TransactionType.income,
+                iconCodePoint: categoryIcon.codePoint,
+                iconFontFamily: categoryIcon.fontFamily ?? 'MaterialIcons',
+                iconFontPackage: categoryIcon.fontPackage,
+              );
 
-          final categoryIcon = selectedCategoryData['icon'] as IconData;
-          final transaction = TransactionModel(
-            title: noteController.text.isEmpty
-                ? selectedCategory
-                : noteController.text,
-            amount: amount,
-            date: selectedDate,
-            category: selectedCategory,
-            type: isExpense ? TransactionType.expense : TransactionType.income,
-            iconCodePoint: categoryIcon.codePoint,
-            iconFontFamily: categoryIcon.fontFamily ?? 'MaterialIcons',
-            iconFontPackage: categoryIcon.fontPackage,
-          );
+              // FIX: Use updateTransaction if editing
+              if (widget.transaction != null &&
+                  widget.transaction!.id != null) {
+                transaction.id = widget.transaction!.id;
+                await dbService.updateTransaction(transaction);
+              } else {
+                await dbService.addTransaction(transaction);
+              }
 
-          // FIX: Use updateTransaction if editing
-          if (widget.transaction != null && widget.transaction!.id != null) {
-            transaction.id = widget.transaction!.id;
-            await dbService.updateTransaction(transaction);
-          } else {
-            await dbService.addTransaction(transaction);
-          }
+              // Update stored total balance
+              final prefs = await SharedPreferences.getInstance();
+              double current = prefs.getDouble('total_balance') ?? 0.0;
+              final delta = isExpense
+                  ? -amount
+                  : amount; // expense reduces balance, income increases
+              final newBalance = current + delta;
+              await prefs.setDouble('total_balance', newBalance);
 
-          // Update stored total balance
-          final prefs = await SharedPreferences.getInstance();
-          double current = prefs.getDouble('total_balance') ?? 0.0;
-          final delta = isExpense
-              ? -amount
-              : amount; // expense reduces balance, income increases
-          final newBalance = current + delta;
-          await prefs.setDouble('total_balance', newBalance);
+              final settingsCubit = BlocProvider.of<SettingsCubit>(context);
+              if (settingsCubit.isSyncing) {
+                await settingsCubit.syncTransactionsToCloud(context);
+                log(
+                  'Transactions synced to cloud after adding/updating transaction',
+                );
+              }
 
-          if (mounted) {
-            Navigator.of(context).pop(true); // Return true on success
-          }
-        } catch (e) {
-          // log(e.toString());
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('transaction.invalid_amount'.tr()),
-                backgroundColor: Colors.red,
+              if (mounted) {
+                Navigator.of(context).pop(true); // Return true on success
+              }
+            } catch (e) {
+              // log(e.toString());
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('transaction.invalid_amount'.tr()),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          },
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(vertical: 16.h),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.greenColor,
+                  AppColors.greenColor.withOpacity(0.8),
+                ],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
               ),
-            );
-          }
-        }
-      },
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 16.h),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              AppColors.greenColor,
-              AppColors.greenColor.withOpacity(0.8),
-            ],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
-          borderRadius: BorderRadius.circular(16.r),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.greenColor.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+              borderRadius: BorderRadius.circular(16.r),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.greenColor.withOpacity(0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Text(
-          'transaction.save_transaction'.tr(),
-          textAlign: TextAlign.center,
-          style: AppText.body16(
-            context,
-          ).copyWith(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-      ),
+            child: Text(
+              'transaction.save_transaction'.tr(),
+              textAlign: TextAlign.center,
+              style: AppText.body16(
+                context,
+              ).copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+        );
+      },
     );
   }
 }

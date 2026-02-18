@@ -14,6 +14,8 @@ class SettingsLoaded extends SettingsState {
   final String selectedCurrency;
   final File? profileImage;
   final bool isSyncing;
+  late final bool internetAvailable;
+  final bool isCloudDataDeleted;
   SettingsLoaded({
     required this.themeMode,
     required this.isDarkMode,
@@ -21,6 +23,8 @@ class SettingsLoaded extends SettingsState {
     required this.selectedCurrency,
     this.profileImage,
     required this.isSyncing,
+    required this.internetAvailable,
+    required this.isCloudDataDeleted,
   });
 }
 

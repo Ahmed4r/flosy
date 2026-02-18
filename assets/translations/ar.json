@@ -185,7 +185,17 @@
     "pdf_exported_android": "تم تصدير ملف PDF بنجاح إلى مجلد التنزيلات",
     "pdf_exported_ios": "تم تصدير ملف PDF بنجاح إلى تطبيق الملفات",
     "view": "عرض",
-    "symbol": "الرمز"
+    "symbol": "الرمز",
+    "delete_all_data": "حذف جميع البيانات",
+    "delete_local_data": "حذف البيانات المحلية",
+    "delete_cloud_data": "حذف البيانات السحابية",
+    "syncing": "جاري المزامنة",
+    "syncing_message": "يرجى الانتظار أثناء مزامنة بياناتك مع السحابة",
+    "data_removed": "تم إزالة بياناتك من السحابة بنجاح",
+    "cloud_data_removed": "تم إزالة بياناتك من السحابة بنجاح",
+    "local_data_removed": "تم إزالة بياناتك المحلية بنجاح",
+    "all_data_removed": "تم إزالة جميع بياناتك بنجاح",
+    "done": "تم"
   },
   "categories": {
     "food": "طعام",

@@ -510,18 +510,21 @@ class _MainSettingViewState extends State<_MainSettingView> {
             title: 'settings.sync'.tr(),
             trailing: BlocBuilder<SettingsCubit, SettingsState>(
               builder: (context, state) {
-                bool syncToCloud = false;
                 if (state is SettingsLoaded) {
-                  syncToCloud = state.isSyncing;
+                  return Switch(
+                    value: state.isSyncing,
+                    onChanged: (value) {
+                      context.read<SettingsCubit>().toggleSync(value, context);
+                    },
+                    activeColor: AppColors.orangeColor,
+                    inactiveThumbColor: Colors.grey[400],
+                  );
+                } else {
+                  return CircularProgressIndicator(
+                    color: AppColors.orangeColor,
+                    strokeWidth: 2,
+                  );
                 }
-                return Switch(
-                  value: syncToCloud,
-                  onChanged: (value) {
-                    context.read<SettingsCubit>().toggleSync(value);
-                  },
-                  activeColor: AppColors.orangeColor,
-                  inactiveThumbColor: Colors.grey[400],
-                );
               },
             ),
             onTap: null,
@@ -541,19 +544,84 @@ class _MainSettingViewState extends State<_MainSettingView> {
           width: 1,
         ),
       ),
-      child: _buildSettingsTile(
-        context,
-        isDarkMode,
-        icon: FontAwesomeIcons.download,
-        iconColor: Colors.teal,
-        iconBgColor: Colors.teal.withOpacity(0.15),
-        title: 'settings.export_data'.tr(),
-        trailing: Icon(
-          Icons.arrow_forward,
-          color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
-          size: 20.sp,
-        ),
-        onTap: () => _exportData(context),
+      child: BlocBuilder<SettingsCubit, SettingsState>(
+        bloc: SettingsCubit(),
+        builder: (context, state) {
+          return Column(
+            children: [
+              _buildSettingsTile(
+                context,
+                isDarkMode,
+                icon: FontAwesomeIcons.download,
+                iconColor: Colors.teal,
+                iconBgColor: Colors.teal.withOpacity(0.15),
+                title: 'settings.export_data'.tr(),
+                trailing: Icon(
+                  Icons.arrow_forward,
+                  color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+                  size: 20.sp,
+                ),
+                onTap: () => _exportData(context),
+              ),
+              Divider(
+                height: 1,
+                color: isDarkMode ? Colors.white12 : Colors.grey[200],
+              ),
+              _buildSettingsTile(
+                context,
+                isDarkMode,
+                icon: FontAwesomeIcons.cloud,
+                iconColor: Colors.blueAccent,
+                iconBgColor: Colors.blueAccent.withOpacity(0.15),
+                title: 'settings.delete_cloud_data'.tr(),
+                trailing: Icon(
+                  Icons.arrow_forward,
+                  color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+                  size: 20.sp,
+                ),
+                onTap: () => context.read<SettingsCubit>().deleteCloudData(),
+              ),
+              Divider(
+                height: 1,
+                color: isDarkMode ? Colors.white12 : Colors.grey[200],
+              ),
+              _buildSettingsTile(
+                context,
+                isDarkMode,
+                icon: FontAwesomeIcons.hardDrive,
+                iconColor: Colors.pink,
+                iconBgColor: Colors.pink.withOpacity(0.15),
+                title: 'settings.delete_local_data'.tr(),
+                trailing: Icon(
+                  Icons.arrow_forward,
+                  color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+                  size: 20.sp,
+                ),
+                onTap: () =>
+                    context.read<SettingsCubit>().clearLocalData(context),
+              ),
+              Divider(
+                height: 1,
+                color: isDarkMode ? Colors.white12 : Colors.grey[200],
+              ),
+              _buildSettingsTile(
+                context,
+                isDarkMode,
+                icon: FontAwesomeIcons.database,
+                iconColor: Colors.limeAccent,
+                iconBgColor: Colors.limeAccent.withOpacity(0.15),
+                title: 'settings.delete_all_data'.tr(),
+                trailing: Icon(
+                  Icons.arrow_forward,
+                  color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+                  size: 20.sp,
+                ),
+                onTap: () =>
+                    context.read<SettingsCubit>().clearAllData(context),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
