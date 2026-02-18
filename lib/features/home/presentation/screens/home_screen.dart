@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
@@ -403,132 +405,154 @@ class HomeScreenState extends State<HomeScreen> {
 
     return Padding(
       padding: EdgeInsets.only(bottom: 8.h),
-      child: Dismissible(
-        key: ValueKey(transaction.id ?? transaction.hashCode),
-        direction: DismissDirection.endToStart,
-        background: Container(
-          alignment: Alignment.centerRight,
-          padding: EdgeInsets.only(right: 24.w),
-          decoration: BoxDecoration(
-            color: Colors.red.withOpacity(0.9),
-            borderRadius: BorderRadius.circular(16.r),
-          ),
-          child: Icon(Icons.delete_outline, color: Colors.white, size: 24.sp),
-        ),
-        onDismissed: (_) async {
-          final prefs = await SharedPreferences.getInstance();
-          double current = prefs.getDouble('total_balance') ?? 0.0;
-          final delta = transaction.amount * (isExpense ? -1.0 : 1.0);
-          current -= delta;
-          await prefs.setDouble('total_balance', current);
-          if (!mounted) return;
-          final idx = context.read<HomeCubit>().transactions.indexOf(
-            transaction,
-          );
-          setState(() {
-            context.read<HomeCubit>().totalBalance = current;
-            if (idx >= 0) context.read<HomeCubit>().transactions.removeAt(idx);
-          });
-          if (transaction.id != null) {
-            await dbService.deleteTransaction(transaction.id!);
-          }
-        },
-        child: GestureDetector(
-          onTap: () async {
-            final result = await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => AddTransactionScreen(transaction: transaction),
+      child: BlocBuilder<HomeCubit, HomeState>(
+        builder: (context, state) {
+          return Dismissible(
+            key: ValueKey(transaction.id ?? transaction.hashCode),
+            direction: DismissDirection.endToStart,
+            background: Container(
+              alignment: Alignment.centerRight,
+              padding: EdgeInsets.only(right: 24.w),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(16.r),
               ),
-            );
-            if (result == true) {
-              if (!mounted) return;
-              await context.read<HomeCubit>().loadTransactions();
-              if (!mounted) return;
-              await context.read<HomeCubit>().loadBalance();
-            }
-          },
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-            decoration: BoxDecoration(
-              color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-              borderRadius: BorderRadius.circular(16.r),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(isDarkMode ? 0.15 : 0.04),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              child: Icon(
+                Icons.delete_outline,
+                color: Colors.white,
+                size: 24.sp,
+              ),
             ),
-            child: Row(
-              children: [
-                // Category icon
-                Container(
-                  width: 46.w,
-                  height: 46.h,
-                  decoration: BoxDecoration(
-                    color: catColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(14.r),
-                  ),
-                  child: Icon(transaction.icon, color: catColor, size: 20.sp),
-                ),
-                SizedBox(width: 14.w),
+            onDismissed: (_) async {
+              try {
+                final prefs = await SharedPreferences.getInstance();
+                double current = prefs.getDouble('total_balance') ?? 0.0;
+                final delta = transaction.amount * (isExpense ? -1.0 : 1.0);
+                current -= delta;
+                await prefs.setDouble('total_balance', current);
+                if (!mounted) return;
+                final idx = context.read<HomeCubit>().transactions.indexOf(
+                  transaction,
+                );
+                setState(() {
+                  context.read<HomeCubit>().totalBalance = current;
+                  if (idx >= 0)
+                    context.read<HomeCubit>().transactions.removeAt(idx);
+                });
+                if (transaction.id != null) {
+                  await dbService.deleteTransaction(transaction.id!);
 
-                // Title & category
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        transaction.title,
-                        style: AppText.body16(context).copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: isDarkMode ? Colors.white : Colors.black,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      SizedBox(height: 2.h),
-                      Text(
-                        context.read<HomeCubit>().getCategoryLabel(
-                          transaction.category,
-                        ),
-                        style: AppText.body12(context).copyWith(
-                          color: isDarkMode
-                              ? Colors.grey[500]
-                              : Colors.grey[500],
-                        ),
-                      ),
-                    ],
+                  await context.read<HomeCubit>().deleteTransactionFromFireBase(
+                    transaction.id.toString(),
+                  );
+                }
+              } catch (e) {
+                log('Failed to delete transaction: $e');
+              }
+            },
+            child: GestureDetector(
+              onTap: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        AddTransactionScreen(transaction: transaction),
                   ),
+                );
+                if (result == true) {
+                  if (!mounted) return;
+                  await context.read<HomeCubit>().loadTransactions();
+                  if (!mounted) return;
+                  await context.read<HomeCubit>().loadBalance();
+                }
+              },
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                decoration: BoxDecoration(
+                  color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+                  borderRadius: BorderRadius.circular(16.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDarkMode ? 0.15 : 0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-
-                // Amount
-                BlocBuilder<SettingsCubit, SettingsState>(
-                  bloc: context.read<SettingsCubit>(),
-                  builder: (context, state) {
-                    String currency = 'EGP';
-                    if (state is SettingsLoaded) {
-                      currency = state.selectedCurrency;
-                    }
-                    return Text(
-                      context.read<HomeCubit>().isArabicLocale(context)
-                          ? '${transaction.amount.toStringAsFixed(1)}${currency}${isExpense ? '-' : '+'}'
-                          : '${isExpense ? '-' : '+'}\$${transaction.amount.toStringAsFixed(2)}',
-                      style: AppText.body16(context).copyWith(
-                        color: isExpense
-                            ? Colors.redAccent
-                            : AppColors.greenColor,
-                        fontWeight: FontWeight.w700,
+                child: Row(
+                  children: [
+                    // Category icon
+                    Container(
+                      width: 46.w,
+                      height: 46.h,
+                      decoration: BoxDecoration(
+                        color: catColor.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(14.r),
                       ),
-                    );
-                  },
+                      child: Icon(
+                        transaction.icon,
+                        color: catColor,
+                        size: 20.sp,
+                      ),
+                    ),
+                    SizedBox(width: 14.w),
+
+                    // Title & category
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            transaction.title,
+                            style: AppText.body16(context).copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: 2.h),
+                          Text(
+                            context.read<HomeCubit>().getCategoryLabel(
+                              transaction.category,
+                            ),
+                            style: AppText.body12(context).copyWith(
+                              color: isDarkMode
+                                  ? Colors.grey[500]
+                                  : Colors.grey[500],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Amount
+                    BlocBuilder<SettingsCubit, SettingsState>(
+                      bloc: context.read<SettingsCubit>(),
+                      builder: (context, state) {
+                        String currency = 'EGP';
+                        if (state is SettingsLoaded) {
+                          currency = state.selectedCurrency;
+                        }
+                        return Text(
+                          context.read<HomeCubit>().isArabicLocale(context)
+                              ? '${transaction.amount.toStringAsFixed(1)}${currency}${isExpense ? '-' : '+'}'
+                              : '${isExpense ? '-' : '+'}\$${transaction.amount.toStringAsFixed(2)}',
+                          style: AppText.body16(context).copyWith(
+                            color: isExpense
+                                ? Colors.redAccent
+                                : AppColors.greenColor,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

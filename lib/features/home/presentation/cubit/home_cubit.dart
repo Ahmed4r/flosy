@@ -1,7 +1,9 @@
-import 'dart:math';
+import 'dart:developer';
 
 import 'package:bloc/bloc.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flosy/features/home/data/model/transaction_model.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:flutter/material.dart';
@@ -37,6 +39,52 @@ class HomeCubit extends Cubit<HomeState> {
 
   Future<void> refreshv2() async {
     await loadAll();
+  }
+
+  Future<void> deleteTransactionFromFireBase(String id) async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      log('User not logged in');
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('transactions')
+          .doc(id)
+          .delete();
+
+      log('Transaction with ID $id deleted from Firestore');
+    } catch (e) {
+      log('Failed to delete transaction with ID $id: $e');
+    }
+  }
+
+  Future<List<TransactionModel>> fetchTransactionsFromFireBase() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      log('User not logged in');
+      return [];
+    }
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('transactions')
+          .get();
+
+      return snapshot.docs
+          .map((doc) => TransactionModel.fromMap(doc.data()))
+          .toList();
+    } catch (e) {
+      log('Failed to fetch transactions from Firestore: $e');
+      return [];
+    }
   }
 
   String getCategoryLabel(String id) {
