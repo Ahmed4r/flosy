@@ -47,6 +47,7 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
       setState(() {
         _selectedLanguage = languageCode;
       });
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('settings.language_changed'.tr()),

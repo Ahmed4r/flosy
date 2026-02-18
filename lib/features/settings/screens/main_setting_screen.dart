@@ -1032,8 +1032,9 @@ class _MainSettingViewState extends State<_MainSettingView> {
           'Flosy_Transactions_${DateTime.now().millisecondsSinceEpoch}.pdf';
       final file = File('${directory!.path}/$fileName');
       await file.writeAsBytes(await pdf.save());
-
-      Navigator.pop(context); // Close loading dialog
+      if (context.mounted && Navigator.canPop(context)) {
+        Navigator.pop(context); // Close loading dialog
+      }
 
       // For iOS, share the file directly
       if (Platform.isIOS) {

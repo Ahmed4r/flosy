@@ -129,6 +129,7 @@ class SettingsCubit extends Cubit<SettingsState> {
       log('Local data cleared successfully');
       final user = FirebaseAuth.instance.currentUser;
       await user?.updateDisplayName('');
+      _prefs.remove('total_balance');
       emit(
         SettingsLoaded(
           themeMode: _currentThemeMode,
