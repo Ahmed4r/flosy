@@ -9,9 +9,16 @@ workflows:
       cocoapods: default
     cache:
       cache_paths:
+        # Flutter package cache
         - $FLUTTER_ROOT/.pub-cache
         - $HOME/.pub-cache
+        # CocoaPods cache
         - ios/Pods
+        - $HOME/.cocoapods
+        # Flutter build cache
+        - ios/.symlinks
+        # Dart tool cache
+        - $HOME/.dart
 
     scripts:
       - name: Flutter pub get
@@ -19,10 +26,19 @@ workflows:
           set -e
           flutter pub get
 
-      - name: Change CODE_SIGN_STYLE to Manual
+      - name: Disable Code Signing in pbxproj
         script: |
           set -e
+          # Switch to manual signing
           sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
+
+          # Clear team, identity, profile
+          sed -i '' 's/DEVELOPMENT_TEAM = .*;/DEVELOPMENT_TEAM = "";/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/CODE_SIGN_IDENTITY = .*;/CODE_SIGN_IDENTITY = "";/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/"CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]" = .*;/"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*;/PROVISIONING_PROFILE_SPECIFIER = "";/g' ios/Runner.xcodeproj/project.pbxproj
+
+          echo "✅ Code signing disabled"
 
       - name: Set iOS deployment target
         script: |
@@ -33,27 +49,29 @@ workflows:
           fi
           cd ..
 
-      - name: Clean and update CocoaPods
+      - name: Install CocoaPods (use cache if valid)
         script: |
           set -e
-          rm -f ios/Podfile.lock
           cd ios
-          pod repo update
-          pod deintegrate
-          pod install
+          if [ ! -d "Pods" ] || [ ! -f "Podfile.lock" ]; then
+            echo "⚠️ No Pods cache found — running full install"
+            rm -f Podfile.lock
+            pod repo update
+            pod deintegrate
+            pod install
+          else
+            echo "✅ Pods cache found — running pod install only"
+            pod install
+          fi
           cd ..
-
-      - name: Disable Code Signing
-        script: |
-          set -e
-          sed -i '' 's/DEVELOPMENT_TEAM = .*/DEVELOPMENT_TEAM = "";/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/CODE_SIGN_IDENTITY = .*/CODE_SIGN_IDENTITY = "";/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*/PROVISIONING_PROFILE_SPECIFIER = "";/g' ios/Runner.xcodeproj/project.pbxproj
 
       - name: Build iOS (no signing)
         script: |
           set -e
-          flutter build ios --release --no-codesign --no-tree-shake-icons
+          flutter build ios \
+            --release \
+            --no-codesign \
+            --no-tree-shake-icons
 
       - name: Create IPA
         script: |
@@ -62,6 +80,7 @@ workflows:
           mkdir -p Payload
           mv Runner.app Payload/
           zip -qq -r -9 FlutterIpaExport.ipa Payload
+          echo "✅ IPA created: $(du -sh FlutterIpaExport.ipa | cut -f1)"
 
     artifacts:
       - build/ios/iphoneos/FlutterIpaExport.ipa
