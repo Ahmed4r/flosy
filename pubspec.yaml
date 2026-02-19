@@ -63,3 +63,4 @@ flutter:
     - assets/translations/
     - assets/models/
     - assets/fonts/
+    - api.env
