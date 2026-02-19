@@ -32,7 +32,6 @@ dependencies:
   tflite_flutter: ^0.12.1
   device_info_plus: ^10.1.0
   flutter_secure_storage: ^10.0.0
-  google_mlkit_text_recognition: ^0.15.1
   connectivity_plus: ^7.0.0
   animate_do: ^4.2.0
   audioplayers: ^5.2.1
