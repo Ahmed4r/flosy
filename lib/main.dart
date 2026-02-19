@@ -1,22 +1,21 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flosy/core/network_check.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/features/auth/screens/cubit/auth_cubit_cubit.dart';
 import 'package:flosy/features/home/presentation/cubit/home_cubit.dart';
-import 'package:flosy/features/home/presentation/cubit/recording_cubit.dart';
-import 'package:flosy/features/home/presentation/screens/recording_screen.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flosy/firebase_options.dart';
 import 'package:flosy/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'features/settings/cubit/settings_state.dart';
 
 void main() async {
+  await dotenv.load(fileName: "api.env");
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);

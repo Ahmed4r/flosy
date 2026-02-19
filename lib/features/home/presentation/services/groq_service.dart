@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart'; // تأكد من وجود هذا الـ import لـ MediaType
@@ -8,8 +9,7 @@ import '../../data/model/transaction_model.dart';
 import 'db.dart';
 
 class AIExtractionService {
-  final String apiKey =
-      "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";
+    final String apiKey = dotenv.env['GROQ_API_KEY'] ?? '';
 
   final List<Map<String, dynamic>> availableCategories = [
     {
