@@ -32,14 +32,20 @@ class HomeCubit extends Cubit<HomeState> {
   // If online → sync from Firestore first, then load from local DB.
   // If offline → load from local DB only (works without internet).
 
+  bool _hasSyncedThisSession = false;
+
   Future<void> loadAll() async {
-    emit(HomeLoading());
+    if (state is! HomeLoaded) {
+      emit(HomeLoading());
+    }
     try {
       final online = await _hasInternet();
-      if (online) {
-        await _syncFromFirestore(); // ① pull cloud → local (safe, no duplicates)
+      // Only sync from Firebase once per session
+      if (online && !_hasSyncedThisSession) {
+        await _syncFromFirestore();
+        _hasSyncedThisSession = true;
       }
-      await _loadFromLocal(); // ② always read from local DB for UI
+      await _loadFromLocal();
     } catch (e) {
       emit(HomeError('Failed to load data: $e'));
     }
@@ -48,6 +54,7 @@ class HomeCubit extends Cubit<HomeState> {
   // ─── REFRESH ─────────────────────────────────────────────────────────────────
 
   Future<void> refresh() async {
+    _hasSyncedThisSession = false; // force re-sync on manual pull
     await loadAll();
   }
 
