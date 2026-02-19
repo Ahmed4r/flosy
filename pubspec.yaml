@@ -39,6 +39,7 @@ dependencies:
   audio_waveforms: ^1.0.4
   google_generative_ai: ^0.4.7
   flutter_sound: ^9.30.0
+  equatable: ^2.0.8
 
 
 dev_dependencies:

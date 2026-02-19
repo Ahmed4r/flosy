@@ -1,12 +1,17 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
+import 'package:flosy/features/home/data/model/transaction_model.dart';
 import 'package:flosy/features/home/presentation/screens/recording_screen.dart';
 import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../settings/cubit/settings_state.dart';
+import '../cubit/home_cubit.dart';
 
 Widget buildAmountCard(
   BuildContext context,
@@ -122,13 +127,36 @@ Widget buildAmountCard(
                     ),
                     SizedBox(width: 8.w),
                     InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const RecordingPage(),
-                          ),
-                        );
+                      onTap: () async {
+                        // 1. انتظر حتى تنتهي صفحة التسجيل ويتم إغلاقها
+                        final TransactionModel? tx =
+                            await Navigator.push<TransactionModel?>(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const RecordingPage(),
+                              ),
+                            );
+
+                        // 2. بعد العودة مباشرة، اطلب من الـ Cubit تحديث البيانات
+                        // fix home screen not updated after recording
+                        if (context.mounted) {
+                          context.read<HomeCubit>().loadAll();
+                          // Update stored total balance
+                          final prefs = await SharedPreferences.getInstance();
+                          double current =
+                              prefs.getDouble('total_balance') ?? 0.0;
+
+                          if (tx != null) {
+                            final bool isExpense =
+                                tx.type == TransactionType.expense;
+                            final double amount = tx.amount;
+                            final double delta = isExpense
+                                ? -amount
+                                : amount; // expense reduces balance, income increases
+                            final newBalance = current + delta;
+                            await prefs.setDouble('total_balance', newBalance);
+                          }
+                        }
                       },
                       child: FaIcon(
                         FontAwesomeIcons.microphone,
@@ -197,11 +225,11 @@ Widget buildAmountCard(
                             ? 1.0 - spentRatio.clamp(0.0, 1.0)
                             : spentRatio.clamp(0.0, 1.0),
                         minHeight: 6.h,
-                        backgroundColor: AppColors.greenColor,
+                        backgroundColor: AppColors.whiteColor,
                         valueColor: AlwaysStoppedAnimation<Color>(
                           spentRatio > 0.8
                               ? Colors.redAccent
-                              : Colors.white.withOpacity(0.9),
+                              : AppColors.greenColor,
                         ),
                       ),
                     ),

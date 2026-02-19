@@ -8,6 +8,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+import '../cubit/settings_state.dart';
+
 class CurrencySettingsScreen extends StatelessWidget {
   const CurrencySettingsScreen({super.key});
 

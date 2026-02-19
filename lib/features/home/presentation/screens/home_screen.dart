@@ -19,6 +19,8 @@ import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../settings/cubit/settings_state.dart';
+
 enum TransactionColors {
   food(Colors.orange),
   rent(Colors.blue),

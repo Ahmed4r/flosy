@@ -5,11 +5,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flosy/core/network_check.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
+import 'package:flosy/features/settings/cubit/settings_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:local_auth/local_auth.dart';
-part 'settings_state.dart';
+
+import '../../home/presentation/cubit/home_cubit.dart';
 
 class SettingsCubit extends Cubit<SettingsState> {
   SettingsCubit() : super(SettingsInitial());
@@ -40,71 +42,88 @@ class SettingsCubit extends Cubit<SettingsState> {
     try {
       internetAvailable = await networkCheck.checkNetwork(context);
 
-      if (internetAvailable == true) {
+      if (internetAvailable) {
         _isSyncing = isSyncing;
         await _prefs.setBool('is_syncing', isSyncing);
-        await syncTransactionsToCloud(context);
-        log('Transactions synced to cloud after toggling sync');
-        emit(
-          SettingsLoaded(
-            themeMode: _currentThemeMode,
-            isDarkMode: _isDarkMode,
-            faceIdEnabled: _faceIdEnabled,
-            selectedCurrency: _selectedCurrency,
-            profileImage: _image,
-            isSyncing: isSyncing,
-            internetAvailable: internetAvailable,
-            isCloudDataDeleted: true,
-          ),
-        );
+
+        // منطق ذكي: لا ترفع البيانات إلا إذا كانت المزامنة ON وهناك بيانات فعلياً
+        final homeCubit = context.read<HomeCubit>();
+        if (isSyncing && homeCubit.transactions.isNotEmpty) {
+          await syncTransactionsToCloud(context);
+          log('✅ Data synced because sync was turned ON');
+        }
+        // إذا كانت OFF، نحن فقط نغير الإعداد ولا نلمس الفايربيز
+        else if (!isSyncing) {
+          log('Sync turned OFF - Cloud data remains as is');
+        }
+
+        _emitLoadedState(); // دالة مساعدة لتقليل تكرار الكود
       } else {
-        emit(
-          SettingsLoaded(
-            themeMode: _currentThemeMode,
-            isDarkMode: _isDarkMode,
-            faceIdEnabled: _faceIdEnabled,
-            selectedCurrency: _selectedCurrency,
-            profileImage: _image,
-            isSyncing: false,
-            internetAvailable: internetAvailable,
-            isCloudDataDeleted: false,
-          ),
-        );
+        // إذا لم يوجد إنترنت، ارفض تغيير حالة السويتش
+        _emitLoadedState();
       }
     } catch (e) {
       log(e.toString());
-      emit(SettingsError('Failed to sync data: ${e.toString()}'));
+      emit(SettingsError('Failed to toggle sync: ${e.toString()}'));
     }
+  }
+
+  void _emitLoadedState() {
+    emit(
+      SettingsLoaded(
+        themeMode: _currentThemeMode,
+        isDarkMode: _isDarkMode,
+        faceIdEnabled: _faceIdEnabled,
+        selectedCurrency: _selectedCurrency,
+        profileImage: _image,
+        isSyncing: _isSyncing, // القيمة اللي اتغيرت لـ false
+        internetAvailable: internetAvailable,
+        isCloudDataDeleted: true,
+      ),
+    );
   }
 
   Future<void> deleteCloudData() async {
     final user = FirebaseAuth.instance.currentUser;
-
-    if (user == null) {
-      throw Exception('User not logged in');
-    }
+    if (user == null) throw Exception('User not logged in');
 
     final store = FirebaseFirestore.instance;
+    final batch = store.batch();
 
+    // 1. حذف كل المعاملات من السحاب
     final snapshot = await store
         .collection('users')
         .doc(user.uid)
         .collection('transactions')
         .get();
 
-    final batch = store.batch();
-
     for (var doc in snapshot.docs) {
       batch.delete(doc.reference);
     }
 
+    // 2. تصفير العدادات تماماً
+    final userDocRef = store.collection('users').doc(user.uid);
+    batch.update(userDocRef, {
+      // استخدم update بدلاً من set لضمان عدم المساس ببيانات أخرى
+      'totalBalance': 0.0,
+      'totalIncome': 0.0,
+      'totalExpense': 0.0,
+      'lastSync': FieldValue.serverTimestamp(),
+    });
+
     await batch.commit();
+    log("✅ Cloud data wiped clean");
   }
 
   Future<void> clearCloudData() async {
     try {
-      emit(SettingsLoading());
       await deleteCloudData();
+
+      // 1. تحديث المتغير المحلي
+      _isSyncing = false;
+      await _prefs.setBool('is_syncing', false);
+
+      // 2. إرسال كائن جديد تماماً (New Reference)
       emit(
         SettingsLoaded(
           themeMode: _currentThemeMode,
@@ -112,14 +131,15 @@ class SettingsCubit extends Cubit<SettingsState> {
           faceIdEnabled: _faceIdEnabled,
           selectedCurrency: _selectedCurrency,
           profileImage: _image,
-          isSyncing: false,
+          isSyncing: false, // قيمة صريحة
           internetAvailable: internetAvailable,
           isCloudDataDeleted: true,
         ),
       );
-      // Optionally, trigger a snackbar/dialog via a callback or BlocListener
+
+      log('✅ تم إرسال حالة جديدة تماماً والقيمة فيها false');
     } catch (e) {
-      emit(SettingsError(e.toString()));
+      _emitLoadedState();
     }
   }
 
@@ -150,27 +170,33 @@ class SettingsCubit extends Cubit<SettingsState> {
 
   Future<void> clearAllData(BuildContext context) async {
     try {
-      await clearCloudData();
-      await clearLocalData(context);
-      await _prefs.clear();
+      emit(SettingsLoading());
+
+      // // مسح السحاب
+      // await deleteCloudData();
+
+      // مسح المحلي
+      await dbService.deleteAllTransactions();
+      await _prefs.remove('total_balance');
+      _image = null;
+      await _prefs.remove('profile_image');
+
+      // تصفير المزامنة محلياً وحفظها
+      _isSyncing = false;
+      await _prefs.setBool('is_syncing', false);
+
+      // تصفير اسم المستخدم
       final user = FirebaseAuth.instance.currentUser;
       await user?.updateDisplayName('');
-      log('All data cleared successfully');
-      emit(
-        SettingsLoaded(
-          themeMode: _currentThemeMode,
-          isDarkMode: _isDarkMode,
-          faceIdEnabled: _faceIdEnabled,
-          selectedCurrency: _selectedCurrency,
-          profileImage: null,
-          isSyncing: _isSyncing,
-          internetAvailable: internetAvailable,
-          isCloudDataDeleted: _isCloudDataDeleted,
-        ),
-      );
+
+      log('✅ All data cleared & sync killed');
+
+      // إرسال حالة واحدة نهائية
+      _emitLoadedState();
     } catch (e) {
-      log(e.toString());
-      emit(SettingsError('Failed to clear all data: ${e.toString()}'));
+      log("❌ Error: $e");
+      emit(SettingsError(e.toString()));
+      _emitLoadedState();
     }
   }
 
@@ -181,21 +207,44 @@ class SettingsCubit extends Cubit<SettingsState> {
       throw Exception('User not logged in');
     }
 
+    // 1. جلب البيانات من قاعدة البيانات المحلية ومن Cubit أو Prefs
     final transactions = await dbService.getTransactions();
+    final homeCubit = context.read<HomeCubit>(); // نفترض أن البيانات موجودة هنا
+    final prefs = await SharedPreferences.getInstance();
 
-    final batch = FirebaseFirestore.instance.batch();
+    // جلب القيم (لو مش موجودة في الـ Cubit، هاتها من الـ Prefs مباشرة)
+    final double totalBalance = homeCubit.totalBalance;
+    final double totalIncome = homeCubit.totalIncome;
+    final double totalExpense = homeCubit.totalExpenses;
+    final String userName =
+        user.displayName ?? "User"; // من Firebase Auth أو Prefs
 
+    final firestore = FirebaseFirestore.instance;
+    final batch = firestore.batch();
+
+    // 2. تحديث بيانات المستخدم العامة (الملخص)
+    final userDocRef = firestore.collection('users').doc(user.uid);
+    batch.set(userDocRef, {
+      'userName': userName ?? 'Guest',
+      'totalBalance': totalBalance ?? 0.0,
+      'totalIncome': totalIncome ?? 0.0,
+      'totalExpense': totalExpense ?? 0.0,
+      'lastSync': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    // 3. تحديث قائمة المعاملات
     for (final tx in transactions) {
-      final docRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
+      final docRef = userDocRef
           .collection('transactions')
           .doc(tx.id.toString());
 
       batch.set(docRef, tx.toMap(), SetOptions(merge: true));
     }
 
+    // 4. تنفيذ العملية دفعة واحدة (Batch)
     await batch.commit();
+
+    log("✅ تم مزامنة البيانات والملخص بنجاح!");
   }
 
   Future<void> loadSettings() async {

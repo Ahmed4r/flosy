@@ -2,11 +2,13 @@ import 'dart:developer';
 
 import 'package:bloc/bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flosy/features/home/data/model/transaction_model.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 part 'home_state.dart';
@@ -18,37 +20,102 @@ class HomeCubit extends Cubit<HomeState> {
   bool isLoading = true;
   bool showAllTransactions = false;
 
+  // ─── CONNECTIVITY CHECK ──────────────────────────────────────────────────────
 
-  Future<void> refresh() async {
-    await refreshv2();
+  Future<bool> _hasInternet() async {
+    final result = await Connectivity().checkConnectivity();
+    return result != ConnectivityResult.none;
   }
+
+  // ─── LOAD ALL ────────────────────────────────────────────────────────────────
+  // Entry point called from HomeScreen.initState().
+  // If online → sync from Firestore first, then load from local DB.
+  // If offline → load from local DB only (works without internet).
 
   Future<void> loadAll() async {
     emit(HomeLoading());
     try {
-      final loadedTransactions = await dbService.getTransactions();
-      final prefs = await SharedPreferences.getInstance();
-      final loadedBalance = prefs.getDouble('total_balance') ?? 0.0;
-      // Update cubit fields!
-      transactions = loadedTransactions;
-      totalBalance = loadedBalance;
-      emit(HomeLoaded(loadedTransactions, loadedBalance));
+      final online = await _hasInternet();
+      if (online) {
+        await _syncFromFirestore(); // ① pull cloud → local (safe, no duplicates)
+      }
+      await _loadFromLocal(); // ② always read from local DB for UI
     } catch (e) {
       emit(HomeError('Failed to load data: $e'));
     }
   }
 
-  Future<void> refreshv2() async {
+  // ─── REFRESH ─────────────────────────────────────────────────────────────────
+
+  Future<void> refresh() async {
     await loadAll();
   }
 
-  Future<void> deleteTransactionFromFireBase(String id) async {
-    final user = FirebaseAuth.instance.currentUser;
+  // ─── SYNC FROM FIRESTORE → LOCAL DB ─────────────────────────────────────────
+  // Pulls all transactions + balance from Firestore and overwrites local DB.
+  // Uses the Firestore doc ID as the source of truth to avoid duplicates.
 
+  Future<void> _syncFromFirestore() async {
+    final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      log('User not logged in');
+      log('⚠️ No logged-in user, skipping Firebase sync');
       return;
     }
+
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final userDocRef = firestore.collection('users').doc(user.uid);
+
+      // 1. Sync balance from Firestore
+      final userDoc = await userDocRef.get();
+      if (userDoc.exists) {
+        final data = userDoc.data()!;
+        final cloudBalance = (data['totalBalance'] ?? 0.0).toDouble();
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setDouble('total_balance', cloudBalance);
+        totalBalance = cloudBalance;
+        log('✅ Balance synced from Firestore: $cloudBalance');
+      }
+
+      // 2. Sync transactions from Firestore
+      final snapshot = await userDocRef.collection('transactions').get();
+      if (snapshot.docs.isEmpty) {
+        log('ℹ️ No transactions found in Firestore');
+        return;
+      }
+
+      final cloudTransactions = snapshot.docs
+          .map((doc) => TransactionModel.fromMap(doc.data()))
+          .toList();
+
+      // Clear local DB and replace with cloud data (avoids duplicates completely)
+      await dbService.deleteAllTransactions();
+      for (final tx in cloudTransactions) {
+        await dbService.addTransaction(tx);
+      }
+
+      log('✅ Synced ${cloudTransactions.length} transactions from Firestore');
+    } catch (e) {
+      // Don't crash the app if sync fails — fall back to local data
+      log('❌ Firebase sync failed: $e');
+    }
+  }
+
+  // ─── LOAD FROM LOCAL DB → STATE ──────────────────────────────────────────────
+
+  Future<void> _loadFromLocal() async {
+    final loadedTransactions = await dbService.getTransactions();
+    final prefs = await SharedPreferences.getInstance();
+    totalBalance = prefs.getDouble('total_balance') ?? 0.0;
+    transactions = loadedTransactions;
+    emit(HomeLoaded(transactions, totalBalance));
+  }
+
+  // ─── DELETE FROM FIREBASE ────────────────────────────────────────────────────
+
+  Future<void> deleteTransactionFromFireBase(String id) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
     try {
       await FirebaseFirestore.instance
@@ -57,36 +124,20 @@ class HomeCubit extends Cubit<HomeState> {
           .collection('transactions')
           .doc(id)
           .delete();
-
-      log('Transaction with ID $id deleted from Firestore');
+      log('✅ تم الحذف من Firestore');
     } catch (e) {
-      log('Failed to delete transaction with ID $id: $e');
+      log('❌ فشل الحذف من Firestore: $e');
     }
   }
 
-  Future<List<TransactionModel>> fetchTransactionsFromFireBase() async {
-    final user = FirebaseAuth.instance.currentUser;
+  // ─── KEPT FOR BACKWARDS COMPATIBILITY ────────────────────────────────────────
+  // (was called manually before — now loadAll() handles this automatically)
 
-    if (user == null) {
-      log('User not logged in');
-      return [];
-    }
-
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('transactions')
-          .get();
-
-      return snapshot.docs
-          .map((doc) => TransactionModel.fromMap(doc.data()))
-          .toList();
-    } catch (e) {
-      log('Failed to fetch transactions from Firestore: $e');
-      return [];
-    }
+  Future<void> fetchDataFromFireBase() async {
+    await loadAll();
   }
+
+  // ─── CATEGORY LABELS ─────────────────────────────────────────────────────────
 
   String getCategoryLabel(String id) {
     switch (id) {
@@ -111,33 +162,58 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
+  // ─── LOAD TRANSACTIONS (used after add/edit) ──────────────────────────────────
+
   Future<void> loadTransactions() async {
     try {
       final data = await dbService.getTransactions();
       transactions = data;
+      emit(HomeLoaded(transactions, totalBalance));
     } catch (e) {
       emit(HomeError('Failed to load transactions: $e'));
     }
   }
 
+  // ─── LOAD BALANCE ─────────────────────────────────────────────────────────────
+
   Future<void> loadBalance() async {
     final prefs = await SharedPreferences.getInstance();
     try {
       totalBalance = prefs.getDouble('total_balance') ?? 0.0;
+      emit(HomeLoaded(transactions, totalBalance));
     } catch (e) {
       emit(HomeError('Failed to load balance: $e'));
     }
   }
+
+  // ─── SET BALANCE ──────────────────────────────────────────────────────────────
 
   Future<void> setBalance(double value) async {
     final prefs = await SharedPreferences.getInstance();
     try {
       await prefs.setDouble('total_balance', value);
       totalBalance = value;
+
+      // Also persist balance to Firestore so other devices get it too
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final online = await _hasInternet();
+        if (online) {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .set({'totalBalance': value}, SetOptions(merge: true));
+          log('✅ Balance saved to Firestore: $value');
+        }
+      }
+
+      emit(HomeLoaded(transactions, totalBalance));
     } catch (e) {
       emit(HomeError('Failed to set balance: $e'));
     }
   }
+
+  // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
   bool isArabicLocale(BuildContext context) {
     return Localizations.localeOf(context).languageCode == 'ar';
@@ -191,7 +267,6 @@ class HomeCubit extends Cubit<HomeState> {
     return categoryMap;
   }
 
-  // Group transactions by date label
   String getDateLabel(DateTime date) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -205,7 +280,6 @@ class HomeCubit extends Cubit<HomeState> {
       String weekdayKey =
           'home.${DateFormat('EEEE').format(date).toLowerCase()}';
       return weekdayKey.tr();
-      // return DateFormat('EEEE').format(date); // e.g. "Monday"
     }
     return DateFormat('MMM d, yyyy').format(date);
   }

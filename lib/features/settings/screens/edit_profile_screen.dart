@@ -11,6 +11,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../cubit/settings_state.dart';
+
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
 
@@ -43,7 +45,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _loadProfileImage() async {
     SharedPreferences pref = await SharedPreferences.getInstance();
     String? imagePath = pref.getString('profile_image');
-      if (!mounted) return;
+    if (!mounted) return;
     if (imagePath != null) {
       context.read<SettingsCubit>().updateProfileImage(File(imagePath));
     }
@@ -93,7 +95,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       image = pickedImage;
       SharedPreferences pref = await SharedPreferences.getInstance();
       pref.setString('profile_image', pickedImage.path);
-        if (!mounted) return;
+      if (!mounted) return;
       context.read<SettingsCubit>().updateProfileImage(File(pickedImage.path));
       setState(() {});
     }

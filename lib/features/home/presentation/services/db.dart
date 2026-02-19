@@ -207,15 +207,9 @@ class DatabaseService {
 
   Future<void> processAndSaveAiResponse(Map<String, dynamic> aiJson) async {
     try {
-      // 1. تحديد نوع المعاملة (Enum) بناءً على الرقم القادم من AI
-      // الـ AI بيرجع 0 للدخل و 1 للمصاريف، وده بيتوافق مع ترتيب الـ Enum عندك
       TransactionType txType = TransactionType.values[aiJson['type'] ?? 1];
-
-      // 2. خريطة بسيطة لاختيار أيقونة بناءً على التصنيف (اختياري لكن احترافي)
-      // لو الـ AI بعت category مش موجودة هنا، هنستخدم أيقونة افتراضية
       IconData categoryIcon = _getIconForCategory(aiJson['category']);
 
-      // 3. بناء الموديل مع مراعاة كافة الـ Data Types
       final newTransaction = TransactionModel(
         title: aiJson['title'] ?? 'معاملة صوتية',
         amount: (aiJson['amount'] as num)
@@ -227,8 +221,6 @@ class DatabaseService {
         iconFontFamily: categoryIcon.fontFamily ?? 'MaterialIcons',
         iconFontPackage: categoryIcon.fontPackage,
       );
-
-      // 4. الحفظ في قاعدة البيانات باستخدام الـ Global Instance بتاعك
       int id = await dbService.addTransaction(newTransaction);
 
       print('✅ تم التخزين بنجاح! رقم المعاملة: $id');

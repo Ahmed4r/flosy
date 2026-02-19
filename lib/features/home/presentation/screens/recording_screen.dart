@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:flosy/features/home/presentation/services/gemini_service.dart';
+import 'package:flosy/features/home/presentation/services/groq_service.dart';
 import 'package:flosy/features/home/presentation/widgets/audio_wave.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart'; // سطر الاستيراد المفقود
@@ -35,9 +35,14 @@ class _RecordingPageState extends State<RecordingPage> {
     await _recorder.openRecorder();
     // 3. بدء التسجيل الفعلي في مسار حقيقي
     final tempDir = await getTemporaryDirectory();
-    _actualPath = '${tempDir.path}/temp_voice.m4a';
+    _actualPath = '${tempDir.path}/temp_voice.wav';
 
-    await _recorder.startRecorder(toFile: _actualPath, codec: Codec.aacMP4);
+    await _recorder.startRecorder(
+      toFile: _actualPath,
+      codec: Codec.pcm16WAV,
+      sampleRate: 44100,
+      numChannels: 1,
+    );
     setState(() => _isRecording = true);
   }
 

@@ -23,6 +23,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:printing/printing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../cubit/settings_state.dart';
+
 class MainSettingScreen extends StatelessWidget {
   const MainSettingScreen({super.key});
 
@@ -512,22 +514,21 @@ class _MainSettingViewState extends State<_MainSettingView> {
               builder: (context, state) {
                 if (state is SettingsLoaded) {
                   return Switch(
+                    key: ValueKey('sync_switch_${state.isSyncing}'),
                     value: state.isSyncing,
                     onChanged: (value) {
                       context.read<SettingsCubit>().toggleSync(value, context);
                     },
-                    activeColor: AppColors.orangeColor,
-                    inactiveThumbColor: Colors.grey[400],
-                  );
-                } else {
-                  return CircularProgressIndicator(
-                    color: AppColors.orangeColor,
-                    strokeWidth: 2,
+                    activeColor: Colors.orange,
                   );
                 }
+                return const SizedBox(
+                  width: 25,
+                  height: 25,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                );
               },
             ),
-            onTap: null,
           ),
         ],
       ),
@@ -579,7 +580,20 @@ class _MainSettingViewState extends State<_MainSettingView> {
                   color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
                   size: 20.sp,
                 ),
-                onTap: () => context.read<SettingsCubit>().deleteCloudData(),
+                onTap: () async {
+                  await context.read<SettingsCubit>().clearCloudData();
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('settings.cloud_data_removed'.tr()),
+                      backgroundColor: Colors.blueAccent,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                    ),
+                  );
+                },
               ),
               Divider(
                 height: 1,
@@ -597,8 +611,20 @@ class _MainSettingViewState extends State<_MainSettingView> {
                   color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
                   size: 20.sp,
                 ),
-                onTap: () =>
-                    context.read<SettingsCubit>().clearLocalData(context),
+                onTap: () async {
+                  await context.read<SettingsCubit>().clearLocalData(context);
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('settings.local_data_removed'.tr()),
+                      backgroundColor: Colors.pink,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                    ),
+                  );
+                },
               ),
               Divider(
                 height: 1,
@@ -616,8 +642,20 @@ class _MainSettingViewState extends State<_MainSettingView> {
                   color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
                   size: 20.sp,
                 ),
-                onTap: () =>
-                    context.read<SettingsCubit>().clearAllData(context),
+                onTap: () async {
+                  await context.read<SettingsCubit>().clearAllData(context);
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('settings.all_data_removed'.tr()),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           );

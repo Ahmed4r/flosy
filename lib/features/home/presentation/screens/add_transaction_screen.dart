@@ -13,6 +13,8 @@ import 'package:flosy/features/home/data/model/transaction_model.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../settings/cubit/settings_state.dart';
+
 class AddTransactionScreen extends StatefulWidget {
   final TransactionModel? transaction;
 
