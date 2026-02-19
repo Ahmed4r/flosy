@@ -12,120 +12,56 @@ workflows:
         - $FLUTTER_ROOT/.pub-cache
         - $HOME/.pub-cache
         - ios/Pods
+
     scripts:
       - name: Flutter pub get
         script: |
           set -e
           flutter pub get
 
-      - name: Disable Code Signing in project.pbxproj FIRST
+      - name: Change CODE_SIGN_STYLE to Manual
         script: |
           set -e
           sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
-          
-          awk '/buildSettings = \{/ {print $0; print "\t\t\t\tCODE_SIGNING_REQUIRED = NO;"; print "\t\t\t\tCODE_SIGNING_ALLOWED = NO;"; print "\t\t\t\tCODE_SIGN_IDENTITY = \"\";"; next} {print}' ios/Runner.xcodeproj/project.pbxproj > temp.pbxproj
-          mv temp.pbxproj ios/Runner.xcodeproj/project.pbxproj
-          
-          sed -i '' 's/"CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]" = "iPhone Developer";/"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";/g' ios/Runner.xcodeproj/project.pbxproj
-          
-          echo "✅ Code signing disabled before Flutter build"
 
-      - name: Generate iOS files
+      - name: Set iOS deployment target
         script: |
           set -e
-          flutter build ios-framework --no-debug --no-profile --no-tree-shake-icons --output=./build/ios/framework
-          
           cd ios
-          if [ ! -f "Podfile" ]; then
-            flutter build ios --config-only --no-tree-shake-icons || true
+          if ! grep -q "platform :ios, '16.0'" Podfile; then
+            echo "platform :ios, '16.0'" | cat - Podfile > temp && mv temp Podfile
           fi
           cd ..
 
-      - name: Update Podfile platform version
+      - name: Clean and update CocoaPods
         script: |
           set -e
+          rm -f ios/Podfile.lock
           cd ios
-          if [ -f "Podfile" ]; then
-            if ! grep -q "platform :ios, '15.0'" Podfile; then
-              sed -i '' "1s/^/platform :ios, '15.0'\n/" Podfile
-            fi
-            
-            if ! grep -q "CODE_SIGNING_REQUIRED" Podfile; then
-              cat >> Podfile <<'EOFPOD'
-          
-          post_install do |installer|
-            installer.pods_project.targets.each do |target|
-              target.build_configurations.each do |config|
-                config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
-                config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
-                config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
-              end
-            end
-          end
-          EOFPOD
-            fi
-          fi
-          cd ..
-
-      - name: Install CocoaPods
-        script: |
-          set -e
-          cd ios
+          pod repo update
+          pod deintegrate
           pod install
           cd ..
 
-      - name: Re-disable Code Signing (after pod install)
+      - name: Disable Code Signing
         script: |
           set -e
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/CODE_SIGNING_REQUIRED = YES;/CODE_SIGNING_REQUIRED = NO;/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/CODE_SIGNING_ALLOWED = YES;/CODE_SIGNING_ALLOWED = NO;/g' ios/Runner.xcodeproj/project.pbxproj
-          echo "✅ Code signing still disabled"
+          sed -i '' 's/DEVELOPMENT_TEAM = .*/DEVELOPMENT_TEAM = "";/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/CODE_SIGN_IDENTITY = .*/CODE_SIGN_IDENTITY = "";/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*/PROVISIONING_PROFILE_SPECIFIER = "";/g' ios/Runner.xcodeproj/project.pbxproj
 
-      - name: Build with xcodebuild
+      - name: Build iOS (no signing)
         script: |
           set -e
-          cd ios
-          xcodebuild \
-            -workspace Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -sdk iphoneos \
-            -archivePath ../build/ios/Runner.xcarchive \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            DEVELOPMENT_TEAM="" \
-            clean archive
-          cd ..
+          flutter build ios --release --no-codesign --no-tree-shake-icons
 
-      - name: Export IPA from archive
+      - name: Create IPA
         script: |
           set -e
-          cd build/ios
-          
-          cat > ExportOptions.plist <<'EOFPLIST'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>method</key>
-              <string>development</string>
-              <key>signingStyle</key>
-              <string>manual</string>
-              <key>generateAppStoreInformation</key>
-              <false/>
-          </dict>
-          </plist>
-          EOFPLIST
-          
-          mkdir -p iphoneos/Payload
-          cp -r Runner.xcarchive/Products/Applications/Runner.app iphoneos/Payload/
-          
-          cd iphoneos
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          mv Runner.app Payload/
           zip -qq -r -9 FlutterIpaExport.ipa Payload
-          ls -lh FlutterIpaExport.ipa
-          echo "✅ IPA created successfully"
 
     artifacts:
       - build/ios/iphoneos/FlutterIpaExport.ipa
