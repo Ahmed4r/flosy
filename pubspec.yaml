@@ -36,7 +36,6 @@ dependencies:
   animate_do: ^4.2.0
   audioplayers: ^5.2.1
   audio_waveforms: ^1.0.4
-  google_generative_ai: ^0.4.7
   flutter_sound: ^9.30.0
   equatable: ^2.0.8
   flutter_dotenv: ^6.0.0
