@@ -22,11 +22,6 @@ workflows:
           set -e
           flutter pub get
 
-      - name: Change CODE_SIGN_STYLE to Manual
-        script: |
-          set -e
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
-
       - name: Set iOS deployment target
         script: |
           set -e
@@ -36,7 +31,7 @@ workflows:
           fi
           cd ..
 
-      - name: Clean and update CocoaPods
+      - name: Install CocoaPods
         script: |
           set -e
           rm -f ios/Podfile.lock
@@ -49,22 +44,47 @@ workflows:
       - name: Disable Code Signing
         script: |
           set -e
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
           sed -i '' 's/DEVELOPMENT_TEAM = .*/DEVELOPMENT_TEAM = "";/g' ios/Runner.xcodeproj/project.pbxproj
           sed -i '' 's/CODE_SIGN_IDENTITY = .*/CODE_SIGN_IDENTITY = "";/g' ios/Runner.xcodeproj/project.pbxproj
           sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*/PROVISIONING_PROFILE_SPECIFIER = "";/g' ios/Runner.xcodeproj/project.pbxproj
+          echo "✅ Code signing disabled"
 
-      - name: Build iOS (no signing)
+      - name: Generate Flutter engine & plugins
         script: |
           set -e
-          flutter build ios --release --no-codesign --no-tree-shake-icons
+          # Generates Flutter.framework and plugin registrants without triggering a full build
+          flutter build ios --config-only --no-tree-shake-icons
+
+      - name: Build with xcodebuild (no signing)
+        script: |
+          set -e
+          cd ios
+          xcodebuild \
+            -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath $CM_BUILD_DIR/derived \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            build
+          cd ..
 
       - name: Create IPA
         script: |
           set -e
+          APP_PATH=$(find $CM_BUILD_DIR/derived -name "Runner.app" | head -1)
+          echo "Found app at: $APP_PATH"
+          mkdir -p build/ios/iphoneos/Payload
+          cp -r "$APP_PATH" build/ios/iphoneos/Payload/
           cd build/ios/iphoneos
-          mkdir -p Payload
-          mv Runner.app Payload/
           zip -qq -r -9 FlutterIpaExport.ipa Payload
+          echo "✅ IPA created: $(du -sh FlutterIpaExport.ipa | cut -f1)"
 
     artifacts:
       - build/ios/iphoneos/FlutterIpaExport.ipa
