@@ -115,7 +115,7 @@ Widget buildAmountCard(
                             fit: BoxFit.scaleDown,
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              '$currency ${totalBalance.toStringAsFixed(1)}',
+                              '$currency ${totalBalance.toStringAsFixed(0)}',
                               style: AppText.head32(context).copyWith(
                                 color: isDarkMode ? Colors.white : Colors.black,
                                 fontWeight: FontWeight.bold,
@@ -140,7 +140,6 @@ Widget buildAmountCard(
                         // 2. بعد العودة مباشرة، اطلب من الـ Cubit تحديث البيانات
                         // fix home screen not updated after recording
                         if (context.mounted) {
-                          context.read<HomeCubit>().loadAll();
                           // Update stored total balance
                           final prefs = await SharedPreferences.getInstance();
                           double current =
@@ -156,6 +155,7 @@ Widget buildAmountCard(
                             final newBalance = current + delta;
                             await prefs.setDouble('total_balance', newBalance);
                           }
+                          context.read<HomeCubit>().loadAll();
                         }
                       },
                       child: FaIcon(

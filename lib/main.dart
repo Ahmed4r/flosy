@@ -11,8 +11,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
 import 'features/settings/cubit/settings_state.dart';
+// changes to make
+// when add tx and app is offline , it didnt add it local then firebases after internet is back , so we need to add it local first then add it to firebase when internet is back
+// also we need to add a loading state when adding tx to firebase and show it in the ui
+// 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
