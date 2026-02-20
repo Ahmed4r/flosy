@@ -9,7 +9,7 @@ import '../../data/model/transaction_model.dart';
 import 'db.dart';
 
 class AIExtractionService {
-    final String apiKey = dotenv.env['GROQ_API_KEY'] ?? '';
+  final String apiKey = dotenv.env['GROQ_API_KEY'] ?? '';
 
   final List<Map<String, dynamic>> availableCategories = [
     {
@@ -97,12 +97,31 @@ class AIExtractionService {
               "role": "system",
               "content":
                   """
-                Extract transaction data. Return ONLY JSON.
-                - 'title': Short summary in the SAME language/dialect used by the user.
-                - 'category': Must be exactly one of these: [$allowedIds].
-                - 'type': 0 for income, 1 for expense.
-                - 'amount': double.
-              """,
+You are a financial transaction extractor. The user speaks in Arabic (Egyptian dialect or Modern Standard Arabic).
+
+Extract transaction data from the text and return ONLY a valid JSON object.
+
+Rules:
+- 'title': Short description in the SAME language the user used (Arabic or English).
+- 'amount': A positive number. If the user says "مية" = 100, "ألف" = 1000, "خمسمية" = 500.
+- 'type': 0 for income (مرتب, راتب, استلمت, دخل), 1 for expense (اشتريت, صرفت, دفعت, كلفني).
+- 'category': Must be exactly ONE of these IDs: [$allowedIds].
+
+Category mapping hints:
+- food → اكل, مطعم, كافيه, سوبرماركت, فول, كشري
+- transport → عربية, اوبر, مواصلات, بنزين, تاكسي
+- shopping → هدوم, موبايل, لابتوب, شراء
+- health → دكتور, دوا, صيدلية, مستشفى
+- rent → ايجار, فاتورة, كهربا, مياه, انترنت
+- fun → سينما, لعبة, نت, اشتراك
+- salary → مرتب, راتب, بونص, هدية فلوس
+- more → anything else
+
+If you cannot extract a valid amount, return: {"error": "unclear"}
+
+Example input: "صرفت ٥٠ جنيه في الاكل"
+Example output: {"title": "اكل", "amount": 50, "type": 1, "category": "food"}
+""",
             },
             {"role": "user", "content": transcription},
           ],
@@ -116,6 +135,12 @@ class AIExtractionService {
       final Map<String, dynamic> content = jsonDecode(
         jsonDecode(llamaResponse.body)['choices'][0]['message']['content'],
       );
+
+      // إذا الموديل مش فاهم يرجع null بدل ما يحفظ بيانات غلط
+      if (content.containsKey('error')) {
+        log("⚠️ Llama couldn't extract: ${content['error']}");
+        return null;
+      }
 
       log("📦 الـ JSON المستخرج: $content");
 

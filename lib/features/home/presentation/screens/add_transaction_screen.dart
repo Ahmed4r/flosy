@@ -600,7 +600,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 iconFontPackage: categoryIcon.fontPackage,
               );
 
-              // FIX: Use updateTransaction if editing
+              // Save locally first
               if (widget.transaction != null &&
                   widget.transaction!.id != null) {
                 transaction.id = widget.transaction!.id;
@@ -612,25 +612,32 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               // Update stored total balance
               final prefs = await SharedPreferences.getInstance();
               double current = prefs.getDouble('total_balance') ?? 0.0;
-              final delta = isExpense
-                  ? -amount
-                  : amount; // expense reduces balance, income increases
-              final newBalance = current + delta;
-              await prefs.setDouble('total_balance', newBalance);
+              final delta = isExpense ? -amount : amount;
+              await prefs.setDouble('total_balance', current + delta);
 
-              final settingsCubit = BlocProvider.of<SettingsCubit>(context);
-              if (settingsCubit.isSyncing) {
-                await settingsCubit.syncTransactionsToCloud(context);
-                log(
-                  'Transactions synced to cloud after adding/updating transaction',
-                );
+              // Sync to cloud in its own try/catch
+              // so a sync failure NEVER blocks navigation (fixes iOS black screen)
+              if (mounted) {
+                try {
+                  final settingsCubit = BlocProvider.of<SettingsCubit>(context);
+                  if (settingsCubit.isSyncing) {
+                    await settingsCubit.syncTransactionsToCloud(context);
+                    log('✅ Transactions synced to cloud');
+                  }
+                } catch (syncError) {
+                  log(
+                    '⚠️ Sync failed but transaction saved locally: $syncError',
+                  );
+                  // Do NOT rethrow — transaction is saved, just continue
+                }
               }
 
+              // Always navigate back regardless of sync result
               if (mounted) {
-                Navigator.of(context).pop(true); // Return true on success
+                Navigator.of(context).pop(true);
               }
             } catch (e) {
-              // log(e.toString());
+              log('❌ Save transaction error: $e');
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

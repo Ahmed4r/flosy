@@ -15,8 +15,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'features/settings/cubit/settings_state.dart';
 
 void main() async {
-  await dotenv.load(fileName: "api.env");
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: "api.env");
   await EasyLocalization.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await dbService.init();

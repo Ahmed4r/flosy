@@ -42,6 +42,8 @@ class AppText {
       _getFontStyle(context, 14, FontWeight.w400, const Color(0xff333333));
   static TextStyle body15(BuildContext context) =>
       _getFontStyle(context, 15, FontWeight.w400, const Color(0xff333333));
+  static TextStyle body17(BuildContext context) =>
+      _getFontStyle(context, 17, FontWeight.w400, const Color(0xff333333));
   static TextStyle body18(BuildContext context) =>
       _getFontStyle(context, 18, FontWeight.w400, const Color(0xff333333));
   static TextStyle body12grey(BuildContext context) =>
@@ -58,4 +60,6 @@ class AppText {
       _getFontStyle(context, 28, FontWeight.bold, const Color(0xff333333));
   static TextStyle head28(BuildContext context) =>
       _getFontStyle(context, 28, FontWeight.bold, const Color(0xff333333));
+  static TextStyle body36(BuildContext context) =>
+      _getFontStyle(context, 36, FontWeight.bold, const Color(0xff333333));
 }
