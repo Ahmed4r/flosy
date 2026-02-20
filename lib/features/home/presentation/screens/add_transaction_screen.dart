@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flosy/features/home/presentation/cubit/home_cubit.dart';
 import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flosy/core/utils/app_colors.dart';
@@ -614,6 +615,16 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               double current = prefs.getDouble('total_balance') ?? 0.0;
               final delta = isExpense ? -amount : amount;
               await prefs.setDouble('total_balance', current + delta);
+              await prefs.setInt(
+                'last_sync',
+                DateTime.now().millisecondsSinceEpoch,
+              );
+
+              // reload local-only
+              await context.read<HomeCubit>().loadTransactions();
+              await context.read<HomeCubit>().loadBalance();
+
+              // then optionally call SettingsCubit.syncTransactionsToCloud(context) if online
 
               // Sync to cloud in its own try/catch
               // so a sync failure NEVER blocks navigation (fixes iOS black screen)

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math';
 import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/home/presentation/services/groq_service.dart';
 import 'package:flosy/features/home/presentation/widgets/audio_wave.dart';
@@ -117,27 +116,57 @@ class _RecordingPageState extends State<RecordingPage>
   }
 
   Future<void> _initAndStart() async {
-    final status = await Permission.microphone.request();
-    if (status != PermissionStatus.granted) {
-      if (mounted) {
-        _showErrorSnackBar('تحتاج إذن الميكروفون للتسجيل');
-        Navigator.pop(context);
-      }
+    final statusBefore = await Permission.microphone.status;
+    print('Mic permission before request: $statusBefore');
+
+    var status = statusBefore;
+    if (!status.isGranted) {
+      status = await Permission.microphone.request();
+      print('Mic permission after request: $status');
+    }
+
+    if (status.isPermanentlyDenied) {
+      _showErrorSnackBar(
+        'تحتاج إذن الميكروفون للتسجيل — رجاءً فعّله من الإعدادات',
+      );
+      openAppSettings();
+      Navigator.pop(context);
       return;
     }
 
-    await Future.delayed(const Duration(milliseconds: 300));
-    await _recorder.openRecorder();
+    if (!status.isGranted) {
+      _showErrorSnackBar('تحتاج إذن الميكروفون للتسجيل');
+      Navigator.pop(context);
+      return;
+    }
+
+    try {
+      await _recorder.openRecorder();
+      await _recorder.setSubscriptionDuration(const Duration(milliseconds: 50));
+    } catch (e) {
+      print('Recorder init error: $e');
+      _showErrorSnackBar('فشل تهيئة الميكروفون: $e');
+      Navigator.pop(context);
+      return;
+    }
 
     final tempDir = await getTemporaryDirectory();
     _actualPath = '${tempDir.path}/temp_voice.wav';
 
-    await _recorder.startRecorder(
-      toFile: _actualPath,
-      codec: Codec.pcm16WAV,
-      sampleRate: 44100,
-      numChannels: 1,
-    );
+    try {
+      await _recorder.startRecorder(
+        toFile: _actualPath,
+        codec: Codec.pcm16WAV,
+        sampleRate: 44100,
+        numChannels: 1,
+      );
+    } catch (e) {
+      print('startRecorder error: $e');
+      _showErrorSnackBar('فشل بدء التسجيل: $e');
+      await _recorder.closeRecorder();
+      Navigator.pop(context);
+      return;
+    }
 
     if (mounted) {
       setState(() => _isRecording = true);

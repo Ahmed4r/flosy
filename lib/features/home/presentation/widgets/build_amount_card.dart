@@ -155,7 +155,15 @@ Widget buildAmountCard(
                             final newBalance = current + delta;
                             await prefs.setDouble('total_balance', newBalance);
                           }
-                          context.read<HomeCubit>().loadAll();
+                          // mark local change as newest
+                          await prefs.setInt(
+                            'last_sync',
+                            DateTime.now().millisecondsSinceEpoch,
+                          );
+
+                          // reload local-only state to reflect change immediately
+                          context.read<HomeCubit>().loadTransactions();
+                          context.read<HomeCubit>().loadBalance();
                         }
                       },
                       child: FaIcon(

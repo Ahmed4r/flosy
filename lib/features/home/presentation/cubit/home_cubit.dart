@@ -77,11 +77,20 @@ class HomeCubit extends Cubit<HomeState> {
       final userDoc = await userDocRef.get();
       if (userDoc.exists) {
         final data = userDoc.data()!;
-        final cloudBalance = (data['totalBalance'] ?? 0.0).toDouble();
+        final cloudLastTimestamp =
+            (data['lastSync'] as Timestamp?)?.toDate().millisecondsSinceEpoch ??
+            0;
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setDouble('total_balance', cloudBalance);
-        totalBalance = cloudBalance;
-        log('✅ Balance synced from Firestore: $cloudBalance');
+        final localLast = prefs.getInt('last_sync') ?? 0;
+
+        if (cloudLastTimestamp > localLast) {
+          final cloudBalance = (data['totalBalance'] ?? 0.0).toDouble();
+          await prefs.setDouble('total_balance', cloudBalance);
+          totalBalance = cloudBalance;
+          log('✅ Balance synced from Firestore: $cloudBalance (cloud newer)');
+        } else {
+          log('ℹ️ Skipping cloud balance (local changes newer)');
+        }
       }
 
       // 2. Sync transactions from Firestore

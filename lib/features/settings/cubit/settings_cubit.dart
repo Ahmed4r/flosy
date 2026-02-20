@@ -242,9 +242,15 @@ class SettingsCubit extends Cubit<SettingsState> {
     }
 
     // 4. تنفيذ العملية دفعة واحدة (Batch)
-    await batch.commit();
+    try {
+      await batch.commit();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('last_sync', DateTime.now().millisecondsSinceEpoch);
+      log("✅ تم مزامنة البيانات والملخص بنجاح!");
+    } catch (e) {
+      log("❌ Cloud sync failed: $e");
+    }
 
-    log("✅ تم مزامنة البيانات والملخص بنجاح!");
   }
 
   Future<void> loadSettings() async {
