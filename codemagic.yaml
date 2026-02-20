@@ -7,6 +7,8 @@ workflows:
       flutter: stable
       xcode: latest
       cocoapods: default
+      vars:
+        API_ENV: $API_ENV  # set this in Codemagic dashboard → Environment Variables
     cache:
       cache_paths:
         - $FLUTTER_ROOT/.pub-cache
@@ -21,6 +23,14 @@ workflows:
         script: |
           set -e
           flutter pub get
+
+      - name: Create api.env file
+        script: |
+          set -e
+          # Write the env file to the project root where Flutter expects it
+          echo "$API_ENV" > "$CM_BUILD_DIR/api.env"
+          echo "✅ api.env created at $CM_BUILD_DIR/api.env"
+          cat "$CM_BUILD_DIR/api.env"  # print to verify contents
 
       - name: Set iOS deployment target
         script: |
