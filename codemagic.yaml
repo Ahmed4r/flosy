@@ -50,13 +50,7 @@ workflows:
           sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*/PROVISIONING_PROFILE_SPECIFIER = "";/g' ios/Runner.xcodeproj/project.pbxproj
           echo "✅ Code signing disabled"
 
-      - name: Generate Flutter engine & plugins
-        script: |
-          set -e
-          # Generates Flutter.framework and plugin registrants without triggering a full build
-          flutter build ios --config-only --no-tree-shake-icons
-
-      - name: Build with xcodebuild (no signing)
+      - name: Build with xcodebuild
         script: |
           set -e
           cd ios
@@ -79,7 +73,7 @@ workflows:
         script: |
           set -e
           APP_PATH=$(find $CM_BUILD_DIR/derived -name "Runner.app" | head -1)
-          echo "Found app at: $APP_PATH"
+          echo "✅ Found app at: $APP_PATH"
           mkdir -p build/ios/iphoneos/Payload
           cp -r "$APP_PATH" build/ios/iphoneos/Payload/
           cd build/ios/iphoneos
