@@ -27,6 +27,7 @@ class SettingsCubit extends Cubit<SettingsState> {
   bool _isSyncing = false;
   bool internetAvailable = false;
   final bool _isCloudDataDeleted = false;
+  String userName = '';
 
   ThemeMode get currentThemeMode => _currentThemeMode;
   bool get isDarkMode => _isDarkMode;
@@ -37,6 +38,105 @@ class SettingsCubit extends Cubit<SettingsState> {
   bool get isCloudDataDeleted => _isCloudDataDeleted;
 
   NetworkCheck networkCheck = NetworkCheck();
+
+  // Try to get the user name from prefs -> FirebaseAuth -> Firestore, and save to prefs.
+  Future<String> getUserName() async {
+    try {
+      _prefs = await SharedPreferences.getInstance();
+
+      final cached = _prefs.getString('user_name');
+      if (cached != null && cached.isNotEmpty) {
+        userName = cached;
+        return userName;
+      }
+
+      final authUser = FirebaseAuth.instance.currentUser;
+      final displayName = authUser?.displayName;
+      if (displayName != null && displayName.isNotEmpty) {
+        userName = displayName;
+        await _prefs.setString('user_name', userName);
+        return userName;
+      }
+
+      if (authUser != null) {
+        final store = FirebaseFirestore.instance;
+        final doc = await store.collection('users').doc(authUser.uid).get();
+        if (doc.exists) {
+          final nameFromFirestore =
+              doc.data()?['userName'] as String? ?? 'User';
+          userName = nameFromFirestore;
+          await _prefs.setString('user_name', userName);
+          return userName;
+        }
+      }
+
+      userName = _prefs.getString('user_name') ?? '';
+      await _prefs.setString('user_name', userName);
+      return userName;
+    } catch (e) {
+      log("Error fetching user name: $e");
+      userName = 'User';
+      try {
+        _prefs = await SharedPreferences.getInstance();
+        await _prefs.setString('user_name', userName);
+      } catch (_) {}
+      return userName;
+    } finally {
+      if (state is SettingsLoaded) {
+        final s = state as SettingsLoaded;
+        emit(
+          SettingsLoaded(
+            themeMode: s.themeMode,
+            isDarkMode: s.isDarkMode,
+            faceIdEnabled: s.faceIdEnabled,
+            selectedCurrency: s.selectedCurrency,
+            profileImage: s.profileImage,
+            isSyncing: s.isSyncing,
+            internetAvailable: s.internetAvailable,
+            isCloudDataDeleted: s.isCloudDataDeleted,
+          ),
+        );
+      }
+    }
+  }
+
+  // Save user name to SharedPreferences, Firebase Auth displayName, and Firestore
+  Future<void> saveUserName(String name) async {
+    try {
+      _prefs = await SharedPreferences.getInstance();
+      await _prefs.setString('user_name', name);
+      userName = name;
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await user.updateDisplayName(name);
+        final store = FirebaseFirestore.instance;
+        await store.collection('users').doc(user.uid).set({
+          'userName': name,
+          'lastSync': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+
+      if (state is SettingsLoaded) {
+        final s = state as SettingsLoaded;
+        emit(
+          SettingsLoaded(
+            themeMode: s.themeMode,
+            isDarkMode: s.isDarkMode,
+            faceIdEnabled: s.faceIdEnabled,
+            selectedCurrency: s.selectedCurrency,
+            profileImage: s.profileImage,
+            isSyncing: s.isSyncing,
+            internetAvailable: s.internetAvailable,
+            isCloudDataDeleted: s.isCloudDataDeleted,
+          ),
+        );
+      }
+    } catch (e) {
+      log("Failed to save user name: $e");
+      emit(SettingsError('Failed to save user name: ${e.toString()}'));
+    }
+  }
 
   Future<void> toggleSync(bool isSyncing, BuildContext context) async {
     try {
@@ -250,7 +350,6 @@ class SettingsCubit extends Cubit<SettingsState> {
     } catch (e) {
       log("❌ Cloud sync failed: $e");
     }
-
   }
 
   Future<void> loadSettings() async {

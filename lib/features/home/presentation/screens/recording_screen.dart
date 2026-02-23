@@ -53,7 +53,6 @@ class _RecordingPageState extends State<RecordingPage>
   void initState() {
     super.initState();
     _setupAnimations();
-    _initAndStart();
   }
 
   void _setupAnimations() {
@@ -125,17 +124,20 @@ class _RecordingPageState extends State<RecordingPage>
       print('Mic permission after request: $status');
     }
 
-    if (status.isPermanentlyDenied) {
-      _showErrorSnackBar(
-        'تحتاج إذن الميكروفون للتسجيل — رجاءً فعّله من الإعدادات',
-      );
-      openAppSettings();
-      Navigator.pop(context);
-      return;
-    }
-
+    // Handle permission denial
     if (!status.isGranted) {
-      _showErrorSnackBar('تحتاج إذن الميكروفون للتسجيل');
+      // On iOS: after first denial, status is 'denied' (not permanentlyDenied)
+      // On Android: after multiple denials or "don't ask again", it's permanentlyDenied
+      if (status.isPermanentlyDenied || status.isDenied) {
+        _showErrorSnackBar(
+          'تحتاج إذن الميكروفون للتسجيل — رجاءً فعّله من الإعدادات',
+        );
+        // Give user a moment to read the message before opening settings
+        await Future.delayed(const Duration(milliseconds: 500));
+        openAppSettings();
+      } else {
+        _showErrorSnackBar('تحتاج إذن الميكروفون للتسجيل');
+      }
       Navigator.pop(context);
       return;
     }
@@ -240,347 +242,311 @@ class _RecordingPageState extends State<RecordingPage>
   }
 
   Future<bool> _confirmStopRecording(isDarkMode) async {
-    return await showModalBottomSheet<bool>(
+    return await showDialog<bool>(
           context: context,
-          backgroundColor: Colors.transparent,
-          builder: (context) => _buildConfirmSheet(isDarkMode),
-        ) ??
-        false;
-  }
-
-  Widget _buildConfirmSheet(isDarkMode) {
-    return Container(
-      margin: EdgeInsets.all(16.w),
-      padding: EdgeInsets.all(24.w),
-      decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 26, 22, 23),
-        borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40.w,
-            height: 4.h,
-            decoration: BoxDecoration(
-              color: Colors.white24,
-              borderRadius: BorderRadius.circular(2.r),
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            backgroundColor: isDarkMode
+                ? const Color.fromARGB(255, 31, 41, 31)
+                : Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-          ),
-          SizedBox(height: 24.h),
-          Container(
-            width: 56.w,
-            height: 56.w,
-            decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 157, 219, 134).withOpacity(0.1),
-              shape: BoxShape.circle,
+            title: Text(
+              'إيقاف التسجيل؟',
+              style: AppText.head20(
+                context,
+              ).copyWith(color: isDarkMode ? Colors.white : Colors.black),
+              textAlign: TextAlign.right,
             ),
-            child: Icon(Icons.mic_none_outlined, color: Colors.white, size: 28),
-          ),
-          SizedBox(height: 16.h),
-          Text(
-            'تحليل التسجيل؟',
-            style: TextStyle(
-              color: isDarkMode ? Colors.black : Colors.white,
-              fontSize: 18.sp,
-              fontWeight: FontWeight.bold,
+            content: Text(
+              'هتوقف التسجيل وترسل الصوت للـ AI عشان يحلله؟',
+              style: AppText.body14(context).copyWith(
+                color: isDarkMode
+                    ? Colors.white.withOpacity(0.7)
+                    : Colors.black.withOpacity(0.7),
+              ),
+              textAlign: TextAlign.right,
             ),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            'هيتم تحليل كلامك واستخراج بيانات العملية',
-            style: TextStyle(
-              fontSize: 13.sp,
-              color: isDarkMode ? Colors.black : Colors.white,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 24.h),
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context, false),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 14.h),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.06),
-                      borderRadius: BorderRadius.circular(14.r),
-                    ),
-                    child: Text(
-                      'إلغاء',
-                      textAlign: TextAlign.center,
-                      style: AppText.body15(context).copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: isDarkMode ? Colors.black : Colors.white,
-                      ),
-                    ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(
+                  'إلغاء',
+                  style: AppText.body14(context).copyWith(
+                    color: isDarkMode
+                        ? Colors.white.withOpacity(0.6)
+                        : Colors.black.withOpacity(0.6),
                   ),
                 ),
               ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context, true),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 14.h),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color.fromARGB(255, 53, 207, 53),
-                          Color.fromARGB(255, 10, 81, 28),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(14.r),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color.fromARGB(
-                            255,
-                            167,
-                            233,
-                            177,
-                          ).withOpacity(0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      'تحليل ✨',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: isDarkMode ? Colors.black : Colors.white,
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 37, 167, 61),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                ),
+                child: Text(
+                  'تأكيد',
+                  style: AppText.body14(context).copyWith(color: Colors.white),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 8.h),
-        ],
-      ),
-    );
-  }
-
-  String _formatTime(int seconds) {
-    final m = (seconds ~/ 60).toString().padLeft(2, '0');
-    final s = (seconds % 60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
-
-  Future<void> _safeStop() async {
-    if (_isDisposing) return;
-    _isDisposing = true;
-    try {
-      if (_recorder.isRecording) await _recorder.stopRecorder();
-      await _recorder.closeRecorder();
-    } catch (_) {}
+        ) ??
+        false;
   }
 
   @override
   void dispose() {
-    _pulseController.dispose();
-    _rippleController.dispose();
-    _loadingController.dispose();
-    _timerController.dispose();
-    _hintController.dispose();
-    _safeStop();
+    if (!_isDisposing) {
+      _isDisposing = true;
+      _recorder.closeRecorder();
+      _pulseController.dispose();
+      _rippleController.dispose();
+      _loadingController.dispose();
+      _timerController.dispose();
+      _hintController.dispose();
+    }
     super.dispose();
+  }
+
+  String _formatTime(int seconds) {
+    final mins = seconds ~/ 60;
+    final secs = seconds % 60;
+    return '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    return Scaffold(
-      body: SingleChildScrollView(
-        child: Stack(
-          children: [
-            // Background gradient circles
-            Positioned(
-              top: -80,
-              right: -80,
-              child: Container(
-                width: 300.w,
-                height: 300.w,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      const Color.fromARGB(255, 36, 146, 67).withOpacity(0.08),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: -100,
-              left: -60,
-              child: Container(
-                width: 280.w,
-                height: 280.w,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      const Color.fromARGB(255, 12, 30, 2).withOpacity(0.06),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
 
-            SafeArea(
-              child: Column(
+    // Start recording as soon as the page opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_isRecording && !_isLoading && !_isDisposing) {
+        _initAndStart();
+      }
+    });
+
+    return WillPopScope(
+      onWillPop: () async {
+        if (_isRecording && !_isLoading) {
+          await _recorder.stopRecorder();
+        }
+        return true;
+      },
+      child: Scaffold(
+        backgroundColor: isDarkMode
+            ? const Color.fromARGB(255, 18, 18, 18)
+            : const Color(0xFFF5F9F6),
+        body: SingleChildScrollView(
+          child: Stack(
+            children: [
+              // Gradient background circles
+              Positioned(
+                top: -150.h,
+                right: -100.w,
+                child: Container(
+                  width: 400.w,
+                  height: 400.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        (isDarkMode
+                                ? const Color.fromARGB(255, 48, 165, 100)
+                                : const Color.fromARGB(255, 112, 211, 88))
+                            .withOpacity(0.15),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: -150.h,
+                left: -100.w,
+                child: Container(
+                  width: 350.w,
+                  height: 350.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        const Color(0xFFE53935).withOpacity(0.1),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // Main content
+              Column(
                 children: [
-                  // App Bar
+                  // AppBar
                   Padding(
                     padding: EdgeInsets.symmetric(
-                      horizontal: 20.w,
-                      vertical: 12.h,
+                      horizontal: 16.w,
+                      vertical: 16.h,
                     ),
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        GestureDetector(
-                          onTap: () async {
-                            await _safeStop();
-                            if (mounted) Navigator.pop(context);
+                        IconButton(
+                          onPressed: () async {
+                            if (_isRecording && !_isLoading) {
+                              await _recorder.stopRecorder();
+                            }
+                            Navigator.pop(context);
                           },
-                          child: Container(
-                            width: 40.w,
-                            height: 40.w,
-                            decoration: BoxDecoration(
-                              color: isDarkMode
-                                  ? Colors.white.withOpacity(0.06)
-                                  : Colors.black.withOpacity(0.06),
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                            child: const Icon(
-                              Icons.arrow_back_ios_new_rounded,
-
-                              size: 18,
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 20.w),
-                        Text(
-                          _isLoading ? 'جاري التحليل...' : 'تسجيل صوتي',
-                          textAlign: TextAlign.center,
-                          style: AppText.body16(context).copyWith(
+                          icon: Icon(
+                            Icons.close_rounded,
                             color: isDarkMode ? Colors.white : Colors.black,
+                            size: 26.sp,
                           ),
                         ),
-                        SizedBox(width: 40.w), // balance
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          transitionBuilder: (child, animation) {
+                            return FadeTransition(
+                              opacity: animation,
+                              child: ScaleTransition(
+                                scale: animation,
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: _isLoading
+                              ? _buildLoadingBadge(isDarkMode)
+                              : (_isRecording
+                                    ? _buildRecordingBadge()
+                                    : const SizedBox.shrink()),
+                        ),
+                        SizedBox(width: 48.w), // Balance the layout
                       ],
                     ),
                   ),
 
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Status badge
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 400),
-                        child: _isLoading
-                            ? _buildLoadingBadge(isDarkMode)
-                            : _buildRecordingBadge(),
-                      ),
-
-                      SizedBox(height: 48.h),
-
-                      // Main mic button with ripples
-                      _buildMicButton(),
-
-                      SizedBox(height: 32.h),
-
-                      // Timer
-                      AnimatedOpacity(
-                        opacity: _isRecording ? 1.0 : 0.0,
-                        duration: const Duration(milliseconds: 300),
-                        child: Text(
-                          _formatTime(_secondsElapsed),
-                          style: AppText.body28(context).copyWith(
-                            fontWeight: FontWeight.w200,
-                            letterSpacing: 4,
-                            color: isDarkMode ? Colors.white : Colors.black,
-                          ),
-                        ),
-                      ),
-
-                      SizedBox(height: 24.h),
-
-                      // Audio wave
-                      if (_isRecording && !_isLoading)
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 40.w),
-                          child: AudioWave(isRecording: _isRecording),
-                        ),
-
-                      SizedBox(height: 48.h),
-
-                      // Hint text
-                      if (!_isLoading)
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 32.w),
-                          child: FadeTransition(
-                            opacity: _hintOpacity,
+          
+                  // Timer
+                  if (_isRecording && !_isLoading)
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 400),
+                      builder: (context, value, child) {
+                        return Opacity(
+                          opacity: value,
+                          child: Transform.scale(
+                            scale: 0.8 + (value * 0.2),
                             child: Container(
                               padding: EdgeInsets.symmetric(
                                 horizontal: 20.w,
-                                vertical: 12.h,
+                                vertical: 10.h,
                               ),
                               decoration: BoxDecoration(
                                 color: isDarkMode
-                                    ? const Color.fromARGB(
-                                        255,
-                                        118,
-                                        34,
-                                        34,
-                                      ).withOpacity(0.05)
-                                    : const Color.fromARGB(
-                                        255,
-                                        39,
-                                        26,
-                                        26,
-                                      ).withOpacity(0.05),
-                                borderRadius: BorderRadius.circular(16.r),
-                                border: Border.all(
-                                  color: isDarkMode
-                                      ? Colors.white.withOpacity(0.08)
-                                      : Colors.black.withOpacity(0.08),
-                                ),
+                                    ? Colors.white.withOpacity(0.1)
+                                    : Colors.black.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(20.r),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    '💡 ',
-                                    style: TextStyle(fontSize: 14.sp),
-                                  ),
-                                  Flexible(
-                                    child: Text(
-                                      _hints[_currentHint],
-                                      style: AppText.body15(context).copyWith(
-                                        color: isDarkMode
-                                            ? Colors.white
-                                            : Colors.black,
-                                        height: 1.4,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ],
+                              child: Text(
+                                _formatTime(_secondsElapsed),
+                                style: TextStyle(
+                                  fontSize: 32.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDarkMode
+                                      ? Colors.white
+                                      : Colors.black,
+                                  letterSpacing: 2,
+                                ),
                               ),
                             ),
                           ),
+                        );
+                      },
+                    ),
+
+                  SizedBox(height: 40.h),
+
+                  // Mic button
+                  _buildMicButton(),
+
+                  SizedBox(height: 40.h),
+
+                  // Audio wave
+                  if (_isRecording && !_isLoading)
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 500),
+                      builder: (context, value, child) {
+                        return Opacity(
+                          opacity: value,
+                          child: Transform.scale(
+                            scale: 0.8 + (value * 0.2),
+                            child: AudioWave(isRecording: _isRecording),
+                          ),
+                        );
+                      },
+                    ),
+
+                  // Hints
+                  if (!_isLoading)
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 40.w),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 400),
+                        transitionBuilder: (child, animation) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: const Offset(0, 0.1),
+                                end: Offset.zero,
+                              ).animate(animation),
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: Container(
+                          key: ValueKey(_currentHint),
+                          padding: EdgeInsets.all(20.w),
+                          decoration: BoxDecoration(
+                            color: isDarkMode
+                                ? Colors.white.withOpacity(0.08)
+                                : Colors.white.withOpacity(0.7),
+                            borderRadius: BorderRadius.circular(20.r),
+                            border: Border.all(
+                              color: isDarkMode
+                                  ? Colors.white.withOpacity(0.1)
+                                  : Colors.black.withOpacity(0.1),
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.lightbulb_outline_rounded,
+                                color: const Color.fromARGB(255, 37, 167, 61),
+                                size: 28.sp,
+                              ),
+                              SizedBox(height: 12.h),
+                              Text(
+                                _hints[_currentHint],
+                                style: AppText.body14(context).copyWith(
+                                  color: isDarkMode
+                                      ? Colors.white.withOpacity(0.9)
+                                      : Colors.black,
+                                  height: 1.4,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
                         ),
-                    ],
-                  ),
+                      ),
+                    ),
                   SizedBox(height: 20.h),
 
                   // Stop button
@@ -638,8 +604,8 @@ class _RecordingPageState extends State<RecordingPage>
                     ),
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

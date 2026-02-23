@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
@@ -49,20 +49,22 @@
     <string>We need to use Face ID to secure your account</string>
     <key>NSBiometricUsageDescription</key>
     <string>We need to use biometric authentication to secure your account</string>
-    <!-- ocr -->
+    <!-- Camera for OCR -->
     <key>NSCameraUsageDescription</key>
     <string>We need to use the camera to scan receipts for automatic transaction entry.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>We need access to your photo library to select receipts for scanning.</string>
     <key>NSPhotoLibraryAddUsageDescription</key>
     <string>We may save scanned receipts to your photo library if you choose to.</string>
+    <!-- Microphone for voice recording -->
     <key>NSMicrophoneUsageDescription</key>
-    <string>نحتاج الوصول للميكروفون لتسجيل مصاريفك صوتياً وتحليلها.</string>
+    <string>Flosy needs microphone access to record your voice for adding transactions by voice.</string>
     <key>UIBackgroundModes</key>
     <array>
         <string>audio</string>
     </array>
+    <!-- Speech Recognition -->
     <key>NSSpeechRecognitionUsageDescription</key>
-    <string>نستخدم التعرف على الكلام لتحويل تسجيلاتك الصوتية إلى بيانات مصاريف مسجلة.</string>
+    <string>Flosy uses speech recognition to convert your voice recordings into transaction data.</string>
 </dict>
 </plist>

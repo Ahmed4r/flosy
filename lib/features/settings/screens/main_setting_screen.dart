@@ -5,6 +5,7 @@ import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/auth/screens/login_screen.dart';
+import 'package:flosy/features/home/presentation/cubit/home_cubit.dart';
 import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flosy/features/settings/screens/currency_settings_screen.dart';
 import 'package:flosy/features/settings/screens/edit_profile_screen.dart';
@@ -47,7 +48,11 @@ class _MainSettingViewState extends State<_MainSettingView> {
   @override
   initState() {
     super.initState();
-    getTotalBalance(); // Call the method to log total balance
+    getTotalBalance();
+    // Load cached/remote user name
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<SettingsCubit>().getUserName();
+    });
   }
 
   @override
@@ -245,13 +250,24 @@ class _MainSettingViewState extends State<_MainSettingView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    user?.displayName ?? 'settings.user_name'.tr(),
-                    style: AppText.body16(context).copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18.sp,
-                      color: isDarkMode ? Colors.white : Colors.black,
-                    ),
+                  BlocBuilder<SettingsCubit, SettingsState>(
+                    bloc: context.read<SettingsCubit>(),
+                    builder: (context, state) {
+                      final cubit = context.read<SettingsCubit>();
+                      final displayName = user?.displayName?.isNotEmpty == true
+                          ? user!.displayName!
+                          : (cubit.userName.isNotEmpty
+                                ? cubit.userName
+                                : 'User');
+                      return Text(
+                        displayName,
+                        style: AppText.body16(context).copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18.sp,
+                          color: isDarkMode ? Colors.white : Colors.black,
+                        ),
+                      );
+                    },
                   ),
                   SizedBox(height: 4.h),
                   Text(

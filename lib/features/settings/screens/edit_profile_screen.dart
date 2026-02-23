@@ -57,8 +57,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final newName = _nameController.text.trim();
       final user = FirebaseAuth.instance.currentUser;
-      await user?.updateDisplayName(_nameController.text.trim());
+      await user?.updateDisplayName(newName);
+
+      // Persist via cubit (prefs + firestore + auth)
+      await context.read<SettingsCubit>().saveUserName(newName);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -79,9 +83,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
