@@ -1,6 +1,6 @@
 workflows:
   ios-ipa-build:
-    name: 🎉 iOS Build (WITH MICROPHONE FIX)
+    name: 🎉 iOS Build (FIXED v2)
     max_build_duration: 120
     instance_type: mac_mini_m1
     environment:
@@ -28,54 +28,30 @@ workflows:
         script: |
           set -e
           echo "$API_ENV" > "$CM_BUILD_DIR/api.env"
-          echo "✅ api.env created at $CM_BUILD_DIR/api.env"
-          cat "$CM_BUILD_DIR/api.env"
+          echo "✅ api.env created"
 
-      # ⭐ NEW: FORCE ADD MICROPHONE PERMISSION
-      - name: 🎤 FORCE Add Microphone Permission to Info.plist
+      - name: 🎤 FORCE Add Microphone Permission
         script: |
           set -e
           
           PLIST_PATH="ios/Runner/Info.plist"
           
-          echo "🔧 ============================================"
-          echo "🔧 FORCING MICROPHONE PERMISSION INTO BUILD"
-          echo "🔧 ============================================"
-          echo ""
+          echo "=========================================="
+          echo "FORCING MICROPHONE PERMISSION"
+          echo "=========================================="
           
-          # Backup original
-          cp "$PLIST_PATH" "${PLIST_PATH}.backup"
-          
-          # Remove any existing microphone permission (to avoid duplicates)
+          # Remove any existing (to avoid duplicates)
           /usr/libexec/PlistBuddy -c "Delete :NSMicrophoneUsageDescription" "$PLIST_PATH" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Delete :NSSpeechRecognitionUsageDescription" "$PLIST_PATH" 2>/dev/null || true
           
-          # Add microphone permission
+          # Add permissions
           /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'Flosy needs microphone access to record your voice for adding transactions by voice.'" "$PLIST_PATH"
-          echo "✅ Added NSMicrophoneUsageDescription"
-          
-          # Add speech recognition permission
           /usr/libexec/PlistBuddy -c "Add :NSSpeechRecognitionUsageDescription string 'Flosy uses speech recognition to convert your voice recordings into transaction data.'" "$PLIST_PATH"
-          echo "✅ Added NSSpeechRecognitionUsageDescription"
           
-          # Verify they were added
-          echo ""
-          echo "🔍 Verification:"
-          MIC_DESC=$(/usr/libexec/PlistBuddy -c "Print :NSMicrophoneUsageDescription" "$PLIST_PATH" 2>/dev/null || echo "NOT FOUND")
-          SPEECH_DESC=$(/usr/libexec/PlistBuddy -c "Print :NSSpeechRecognitionUsageDescription" "$PLIST_PATH" 2>/dev/null || echo "NOT FOUND")
-          
-          echo "  Microphone: $MIC_DESC"
-          echo "  Speech: $SPEECH_DESC"
-          
-          if [ "$MIC_DESC" = "NOT FOUND" ]; then
-            echo ""
-            echo "❌ ERROR: Failed to add microphone permission!"
-            exit 1
-          fi
-          
-          echo ""
-          echo "🔧 ============================================"
-          echo ""
+          # Verify
+          MIC=$(/usr/libexec/PlistBuddy -c "Print :NSMicrophoneUsageDescription" "$PLIST_PATH" 2>&1)
+          echo "Microphone permission added: $MIC"
+          echo "=========================================="
 
       - name: Set iOS deployment target
         script: |
@@ -96,27 +72,20 @@ workflows:
           pod install
           cd ..
 
-      # ⭐ VERIFY AFTER COCOAPODS (sometimes pods overwrite Info.plist)
-      - name: 🔍 Verify Permissions After CocoaPods
+      - name: 🔍 Verify After CocoaPods
         script: |
           set -e
-          
           PLIST_PATH="ios/Runner/Info.plist"
           
-          echo "🔍 Checking if CocoaPods kept our permissions..."
+          echo "Checking if CocoaPods kept the permission..."
           
-          MIC_DESC=$(/usr/libexec/PlistBuddy -c "Print :NSMicrophoneUsageDescription" "$PLIST_PATH" 2>/dev/null || echo "NOT FOUND")
-          
-          if [ "$MIC_DESC" = "NOT FOUND" ]; then
-            echo "❌ CocoaPods REMOVED the permission! Re-adding it..."
-            
-            # Re-add it
+          if /usr/libexec/PlistBuddy -c "Print :NSMicrophoneUsageDescription" "$PLIST_PATH" >/dev/null 2>&1; then
+            MIC=$(/usr/libexec/PlistBuddy -c "Print :NSMicrophoneUsageDescription" "$PLIST_PATH")
+            echo "✅ Still there: $MIC"
+          else
+            echo "❌ REMOVED! Re-adding..."
             /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'Flosy needs microphone access to record your voice for adding transactions by voice.'" "$PLIST_PATH"
             /usr/libexec/PlistBuddy -c "Add :NSSpeechRecognitionUsageDescription string 'Flosy uses speech recognition to convert your voice recordings into transaction data.'" "$PLIST_PATH"
-            
-            echo "✅ Re-added permissions after CocoaPods"
-          else
-            echo "✅ Permissions survived CocoaPods install"
           fi
 
       - name: Disable Code Signing
@@ -126,7 +95,7 @@ workflows:
           sed -i '' 's/DEVELOPMENT_TEAM = .*/DEVELOPMENT_TEAM = "";/g' ios/Runner.xcodeproj/project.pbxproj
           sed -i '' 's/CODE_SIGN_IDENTITY = .*/CODE_SIGN_IDENTITY = "";/g' ios/Runner.xcodeproj/project.pbxproj
           sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*/PROVISIONING_PROFILE_SPECIFIER = "";/g' ios/Runner.xcodeproj/project.pbxproj
-          echo "✅ Code signing disabled"
+          echo "Code signing disabled"
 
       - name: Build with xcodebuild
         script: |
@@ -146,68 +115,77 @@ workflows:
             COMPILER_INDEX_STORE_ENABLE=NO \
             build
           cd ..
+          
+          echo "Build completed successfully"
 
-      # ⭐ CRITICAL: VERIFY IN BUILT APP
-      - name: 🎯 VERIFY Microphone Permission in BUILT APP
+      - name: 🎯🎯🎯 CRITICAL - Verify Built App
         script: |
-          set -e
+          set -ex  # -x for verbose output
           
-          echo "🎯 ============================================"
-          echo "🎯 FINAL VERIFICATION - BUILT APP"
-          echo "🎯 ============================================"
-          echo ""
+          echo "=========================================="
+          echo "VERIFYING BUILT APP INFO.PLIST"
+          echo "=========================================="
           
-          APP_PATH=$(find $CM_BUILD_DIR/derived -name "Runner.app" | head -1)
+          # Find the built app
+          APP_PATH=$(find $CM_BUILD_DIR/derived -name "Runner.app" -type d | head -1)
+          echo "App path: $APP_PATH"
+          
+          if [ -z "$APP_PATH" ]; then
+            echo "ERROR: Could not find Runner.app!"
+            exit 1
+          fi
+          
           APP_PLIST="$APP_PATH/Info.plist"
-          
-          echo "Built app at: $APP_PATH"
-          echo ""
+          echo "Plist path: $APP_PLIST"
           
           if [ ! -f "$APP_PLIST" ]; then
-            echo "❌ Info.plist not found in built app!"
+            echo "ERROR: Info.plist not found at $APP_PLIST"
+            ls -la "$APP_PATH" || true
             exit 1
           fi
           
-          # Check for microphone permission in built app
-          MIC_DESC=$(/usr/libexec/PlistBuddy -c "Print :NSMicrophoneUsageDescription" "$APP_PLIST" 2>/dev/null || echo "NOT FOUND")
-          
-          echo "📱 Microphone Permission in Built App:"
-          echo "   $MIC_DESC"
           echo ""
+          echo "Checking for microphone permission in BUILT app..."
           
-          if [ "$MIC_DESC" = "NOT FOUND" ]; then
-            echo "❌❌❌ CRITICAL ERROR ❌❌❌"
-            echo "Microphone permission is NOT in the built app!"
-            echo "This IPA will NOT show microphone in iOS Settings!"
+          # Try to get the microphone description
+          set +e  # Don't exit on error for this check
+          MIC_RESULT=$(/usr/libexec/PlistBuddy -c "Print :NSMicrophoneUsageDescription" "$APP_PLIST" 2>&1)
+          MIC_EXIT=$?
+          set -e
+          
+          echo "PlistBuddy exit code: $MIC_EXIT"
+          echo "PlistBuddy output: $MIC_RESULT"
+          
+          if [ $MIC_EXIT -eq 0 ]; then
             echo ""
-            echo "Showing what IS in the built Info.plist:"
-            /usr/libexec/PlistBuddy -c "Print" "$APP_PLIST" | grep -i "description" || echo "No description keys found"
+            echo "✅✅✅ SUCCESS ✅✅✅"
+            echo "Microphone permission IS in built app:"
+            echo "  '$MIC_RESULT'"
             echo ""
-            exit 1
           else
-            echo "✅✅✅ SUCCESS! ✅✅✅"
-            echo "Microphone permission IS in the built app!"
-            echo "This IPA WILL show microphone in iOS Settings!"
+            echo ""
+            echo "❌❌❌ FAILURE ❌❌❌"
+            echo "Microphone permission NOT in built app!"
+            echo ""
+            echo "Showing all keys in built Info.plist:"
+            /usr/libexec/PlistBuddy -c "Print" "$APP_PLIST" 2>&1 | head -100
+            echo ""
+            echo "This IPA will NOT show microphone in iOS Settings!"
+            exit 1
           fi
           
-          echo ""
-          echo "🎯 ============================================"
+          echo "=========================================="
 
       - name: Create IPA
         script: |
           set -e
           APP_PATH=$(find $CM_BUILD_DIR/derived -name "Runner.app" | head -1)
-          echo "✅ Found app at: $APP_PATH"
+          echo "Found app at: $APP_PATH"
           mkdir -p build/ios/iphoneos/Payload
           cp -r "$APP_PATH" build/ios/iphoneos/Payload/
           cd build/ios/iphoneos
           zip -qq -r -9 FlutterIpaExport.ipa Payload
-          echo "✅ IPA created: $(du -sh FlutterIpaExport.ipa | cut -f1)"
-          
-          echo ""
-          echo "🎤 ============================================"
-          echo "🎤 BUILD COMPLETE WITH MICROPHONE PERMISSION!"
-          echo "🎤 ============================================"
+          echo "IPA created: $(du -sh FlutterIpaExport.ipa | cut -f1)"
 
     artifacts:
       - build/ios/iphoneos/FlutterIpaExport.ipa
