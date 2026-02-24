@@ -389,8 +389,8 @@ class _RecordingPageState extends State<RecordingPage>
                   // AppBar
                   Padding(
                     padding: EdgeInsets.symmetric(
-                      horizontal: 16.w,
-                      vertical: 16.h,
+                      horizontal: 20.w,
+                      vertical: 30.h,
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -400,7 +400,7 @@ class _RecordingPageState extends State<RecordingPage>
                             if (_isRecording && !_isLoading) {
                               await _recorder.stopRecorder();
                             }
-                            Navigator.pop(context);
+                            if (mounted) Navigator.pop(context);
                           },
                           icon: Icon(
                             Icons.close_rounded,
@@ -430,7 +430,6 @@ class _RecordingPageState extends State<RecordingPage>
                     ),
                   ),
 
-          
                   // Timer
                   if (_isRecording && !_isLoading)
                     TweenAnimationBuilder<double>(
