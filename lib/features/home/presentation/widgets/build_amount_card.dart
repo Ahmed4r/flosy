@@ -139,31 +139,9 @@ Widget buildAmountCard(
 
                         // 2. بعد العودة مباشرة، اطلب من الـ Cubit تحديث البيانات
                         // fix home screen not updated after recording
-                        if (context.mounted) {
-                          // Update stored total balance
-                          final prefs = await SharedPreferences.getInstance();
-                          double current =
-                              prefs.getDouble('total_balance') ?? 0.0;
-
-                          if (tx != null) {
-                            final bool isExpense =
-                                tx.type == TransactionType.expense;
-                            final double amount = tx.amount;
-                            final double delta = isExpense
-                                ? -amount
-                                : amount; // expense reduces balance, income increases
-                            final newBalance = current + delta;
-                            await prefs.setDouble('total_balance', newBalance);
-                          }
-                          // mark local change as newest
-                          await prefs.setInt(
-                            'last_sync',
-                            DateTime.now().millisecondsSinceEpoch,
-                          );
-
-                          // reload local-only state to reflect change immediately
-                          context.read<HomeCubit>().loadTransactions();
-                          context.read<HomeCubit>().loadBalance();
+                        if (tx != null && context.mounted) {
+                          // update local state and prefs in one place
+                          context.read<HomeCubit>().addTransaction(tx);
                         }
                       },
                       child: FaIcon(

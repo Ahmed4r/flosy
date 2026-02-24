@@ -384,33 +384,24 @@ class _MainSettingViewState extends State<_MainSettingView> {
             iconColor: Colors.blue,
             iconBgColor: Colors.blue.withOpacity(0.15),
             title: 'settings.language'.tr(),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  context.locale.languageCode == 'ar'
-                      ? 'settings.arabic'.tr()
-                      : 'settings.english'.tr(),
-                  style: AppText.body14(context).copyWith(
-                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                  ),
+            trailing: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                style: AppText.body16(context).copyWith(
+                  color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                 ),
-                SizedBox(width: 8.w),
-                Icon(
-                  Icons.chevron_right,
-                  color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
-                  size: 20.sp,
-                ),
-              ],
+                value: context.locale.languageCode,
+                // إعدادات القائمة الخاصة بك
+                items: [
+                  DropdownMenuItem(value: 'en', child: Text('English')),
+                  DropdownMenuItem(value: 'ar', child: Text('العربية')),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    context.setLocale(Locale(value));
+                  }
+                },
+              ),
             ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const LanguageSettingsScreen(),
-                ),
-              );
-            },
           ),
           Divider(
             height: 1,

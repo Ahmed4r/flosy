@@ -304,4 +304,45 @@ class HomeCubit extends Cubit<HomeState> {
     showAllTransactions = !showAllTransactions;
     emit(HomeLoaded(transactions, totalBalance));
   }
+
+  Future<void> addTransaction(TransactionModel tx) async {
+    try {
+      // 1) Save to local DB and set local id
+      final int localId = await dbService.addTransaction(tx);
+      tx.id = localId;
+
+      // 2) Insert locally at top and update balance + prefs
+      transactions.insert(0, tx);
+
+      final prefs = await SharedPreferences.getInstance();
+      final current = prefs.getDouble('total_balance') ?? 0.0;
+      final double delta = tx.type == TransactionType.expense
+          ? -tx.amount
+          : tx.amount;
+      final newBalance = current + delta;
+      await prefs.setDouble('total_balance', newBalance);
+      await prefs.setInt('last_sync', DateTime.now().millisecondsSinceEpoch);
+
+      totalBalance = newBalance;
+
+      emit(HomeLoaded(transactions, totalBalance));
+
+      // 3) Try to persist to Firestore when online & user logged in
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null && await _hasInternet()) {
+        final userDocRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid);
+        // store transaction fields (use same map format as local DB)
+        await userDocRef.collection('transactions').add(tx.toMap());
+        // update user's lastSync and totalBalance on cloud
+        await userDocRef.set({
+          'lastSync': Timestamp.fromDate(DateTime.now()),
+          'totalBalance': newBalance,
+        }, SetOptions(merge: true));
+      }
+    } catch (e) {
+      emit(HomeError('Failed to add transaction: $e'));
+    }
+  }
 }
