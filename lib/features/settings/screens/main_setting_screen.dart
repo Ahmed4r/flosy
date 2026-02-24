@@ -5,11 +5,9 @@ import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/auth/screens/login_screen.dart';
-import 'package:flosy/features/home/presentation/cubit/home_cubit.dart';
 import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flosy/features/settings/screens/currency_settings_screen.dart';
 import 'package:flosy/features/settings/screens/edit_profile_screen.dart';
-import 'package:flosy/features/settings/screens/language_settings_screen.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,7 +21,6 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:printing/printing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../cubit/settings_state.dart';
 
 class MainSettingScreen extends StatelessWidget {
