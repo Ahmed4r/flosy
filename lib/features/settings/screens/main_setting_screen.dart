@@ -5,6 +5,8 @@ import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/auth/screens/login_screen.dart';
+import 'package:flosy/features/home/data/model/transaction_model.dart';
+import 'package:flosy/features/home/presentation/cubit/home_cubit.dart';
 import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flosy/features/settings/screens/currency_settings_screen.dart';
 import 'package:flosy/features/settings/screens/edit_profile_screen.dart';

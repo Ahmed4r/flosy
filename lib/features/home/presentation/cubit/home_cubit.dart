@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:bloc/bloc.dart';
@@ -7,6 +8,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flosy/features/home/data/model/transaction_model.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
+import 'package:flosy/features/settings/cubit/settings_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,7 +16,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 part 'home_state.dart';
 
 class HomeCubit extends Cubit<HomeState> {
-  HomeCubit() : super(HomeInitial());
+  SharedPreferences? _prefs;
+  String userName = '';
+
+  HomeCubit() : super(HomeInitial()) {
+    loadAll();
+  }
+
   List<TransactionModel> transactions = [];
   double totalBalance = 0.0;
   bool isLoading = true;
@@ -35,16 +43,21 @@ class HomeCubit extends Cubit<HomeState> {
   bool _hasSyncedThisSession = false;
 
   Future<void> loadAll() async {
-    if (state is! HomeLoaded) {
-      emit(HomeLoading());
-    }
+    if (state is! HomeLoaded) emit(HomeLoading());
     try {
       final online = await _hasInternet();
-      // Only sync from Firebase once per session
-      if (online && !_hasSyncedThisSession) {
+
+      final prefs = await SharedPreferences.getInstance();
+      final bool isSyncing = prefs.getBool('is_syncing') ?? false;
+      final user = FirebaseAuth.instance.currentUser;
+
+      // When sync is enabled we should pull from Firestore first (cloud -> local),
+      // then load local DB into state. This prevents overwriting cloud data.
+      if (user != null && online && isSyncing) {
         await _syncFromFirestore();
         _hasSyncedThisSession = true;
       }
+
       await _loadFromLocal();
     } catch (e) {
       emit(HomeError('Failed to load data: $e'));
@@ -56,6 +69,116 @@ class HomeCubit extends Cubit<HomeState> {
   Future<void> refresh() async {
     _hasSyncedThisSession = false; // force re-sync on manual pull
     await loadAll();
+  }
+
+  // local
+  // ─── LOCAL-FIRST ADD (NO BLOCKING) ────────────────────────────────────────
+
+  Future<void> addTransactionLocal(TransactionModel tx) async {
+    try {
+      final int localId = await dbService.addTransaction(tx);
+      tx.id = localId;
+
+      transactions.insert(0, tx);
+
+      final prefs = await SharedPreferences.getInstance();
+      final current = prefs.getDouble('total_balance') ?? 0.0;
+      final double delta = tx.type == TransactionType.expense
+          ? -tx.amount
+          : tx.amount;
+      final newBalance = current + delta;
+
+      await prefs.setDouble('total_balance', newBalance);
+      await prefs.setInt('last_sync', DateTime.now().millisecondsSinceEpoch);
+
+      totalBalance = newBalance;
+      emit(HomeLoaded(transactions, totalBalance));
+
+      log('✅ Transaction added locally (ID: $localId)');
+    } catch (e) {
+      log('❌ Failed to add transaction locally: $e');
+      emit(HomeError('Failed to add transaction: $e'));
+    }
+  }
+
+  // ─── LOCAL-FIRST UPDATE (NO BLOCKING) ─────────────────────────────────────
+
+  Future<void> updateTransactionLocal(TransactionModel tx) async {
+    try {
+      if (tx.id == null) return;
+
+      final oldTx = transactions.firstWhere((t) => t.id == tx.id);
+
+      final oldDelta = oldTx.type == TransactionType.expense
+          ? oldTx.amount
+          : -oldTx.amount;
+      final newDelta = tx.type == TransactionType.expense
+          ? -tx.amount
+          : tx.amount;
+      final netChange = newDelta + oldDelta;
+
+      await dbService.updateTransaction(tx);
+
+      final index = transactions.indexWhere((t) => t.id == tx.id);
+      if (index != -1) transactions[index] = tx;
+
+      final prefs = await SharedPreferences.getInstance();
+      final current = prefs.getDouble('total_balance') ?? 0.0;
+      final newBalance = current + netChange;
+
+      await prefs.setDouble('total_balance', newBalance);
+      await prefs.setInt('last_sync', DateTime.now().millisecondsSinceEpoch);
+
+      totalBalance = newBalance;
+      emit(HomeLoaded(transactions, totalBalance));
+
+      log('✅ Transaction updated locally (ID: ${tx.id})');
+    } catch (e) {
+      log('❌ Failed to update transaction locally: $e');
+      emit(HomeError('Failed to update transaction: $e'));
+    }
+  }
+
+  // ─── BACKGROUND SYNC (FIRE-AND-FORGET) ───────────────────────────────────
+
+  void syncSingleTransactionToCloud(TransactionModel tx) {
+    Future.microtask(() async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final bool isSyncing = prefs.getBool('is_syncing') ?? false;
+        if (!isSyncing) {
+          log('ℹ️ Skipping background tx upload because sync is OFF');
+          return;
+        }
+
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) return;
+        if (!await _hasInternet()) return;
+
+        final userDocRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid);
+        final txDocRef = userDocRef
+            .collection('transactions')
+            .doc(tx.id.toString());
+        await txDocRef
+            .set(tx.toMap(), SetOptions(merge: true))
+            .timeout(const Duration(seconds: 10));
+
+        await userDocRef
+            .set({
+              'lastSync': Timestamp.fromDate(DateTime.now()),
+              'totalBalance': totalBalance,
+            }, SetOptions(merge: true))
+            .timeout(const Duration(seconds: 10));
+
+        await prefs.setInt('last_sync', DateTime.now().millisecondsSinceEpoch);
+
+        log('✅ Background tx sync completed (ID: ${tx.id})');
+      } catch (e) {
+        log('⚠️ Background sync failed (will retry later): $e');
+      }
+    });
   }
 
   // ─── SYNC FROM FIRESTORE → LOCAL DB ─────────────────────────────────────────
@@ -307,11 +430,8 @@ class HomeCubit extends Cubit<HomeState> {
 
   Future<void> addTransaction(TransactionModel tx) async {
     try {
-      // 1) Save to local DB and set local id
       final int localId = await dbService.addTransaction(tx);
       tx.id = localId;
-
-      // 2) Insert locally at top and update balance + prefs
       transactions.insert(0, tx);
 
       final prefs = await SharedPreferences.getInstance();
@@ -321,28 +441,40 @@ class HomeCubit extends Cubit<HomeState> {
           : tx.amount;
       final newBalance = current + delta;
       await prefs.setDouble('total_balance', newBalance);
+
+      // mark local change time so cloud won't overwrite if cloud sync tries to pull
       await prefs.setInt('last_sync', DateTime.now().millisecondsSinceEpoch);
 
       totalBalance = newBalance;
-
       emit(HomeLoaded(transactions, totalBalance));
 
-      // 3) Try to persist to Firestore when online & user logged in
+      // Only attempt immediate cloud upload if sync is enabled
+      final bool isSyncing = prefs.getBool('is_syncing') ?? false;
       final user = FirebaseAuth.instance.currentUser;
-      if (user != null && await _hasInternet()) {
-        final userDocRef = FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid);
-        // store transaction fields (use same map format as local DB)
-        await userDocRef.collection('transactions').add(tx.toMap());
-        // update user's lastSync and totalBalance on cloud
-        await userDocRef.set({
-          'lastSync': Timestamp.fromDate(DateTime.now()),
-          'totalBalance': newBalance,
-        }, SetOptions(merge: true));
+      if (isSyncing && user != null && await _hasInternet()) {
+        // upload this single transaction in background
+        syncSingleTransactionToCloud(tx);
       }
     } catch (e) {
       emit(HomeError('Failed to add transaction: $e'));
+    }
+  }
+
+  Future<void> loadSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _prefs = prefs;
+
+      final savedUserName = prefs.getString('user_name') ?? '';
+      userName = savedUserName;
+
+      // You can load settings here, but do not emit SettingsLoaded.
+      // Instead, update any HomeCubit fields as needed, and emit a HomeState if necessary.
+      // For example, you might want to emit HomeLoaded or a custom HomeSettingsLoaded if you define one.
+      // Here, we just reload the home state:
+      emit(HomeLoaded(transactions, totalBalance));
+    } catch (e) {
+      emit(HomeError('Failed to load settings: $e'));
     }
   }
 }

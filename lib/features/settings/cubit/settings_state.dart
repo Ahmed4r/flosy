@@ -19,8 +19,9 @@ class SettingsLoaded extends SettingsState {
   final String selectedCurrency;
   final File? profileImage;
   final bool isSyncing;
-  final bool internetAvailable; // شيلنا late
+  final bool internetAvailable;
   final bool isCloudDataDeleted;
+  final String userName; // This should NEVER be null
 
   SettingsLoaded({
     required this.themeMode,
@@ -31,20 +32,47 @@ class SettingsLoaded extends SettingsState {
     required this.isSyncing,
     required this.internetAvailable,
     required this.isCloudDataDeleted,
+    this.userName = '', // Default to empty string, NEVER null
   });
 
-  // هذا هو الجزء الذي يخبر الـ Bloc بأن الحالة تغيرت فعلاً
+  // CRITICAL: Include userName in props so changes are detected
   @override
   List<Object?> get props => [
-    themeMode,
-    isDarkMode,
-    faceIdEnabled,
-    selectedCurrency,
-    profileImage,
-    isSyncing, // السويتش يعتمد على هذا
-    internetAvailable,
-    isCloudDataDeleted,
-  ];
+        themeMode,
+        isDarkMode,
+        faceIdEnabled,
+        selectedCurrency,
+        profileImage,
+        isSyncing,
+        internetAvailable,
+        isCloudDataDeleted,
+        userName, // ← MUST be included!
+      ];
+
+  // CopyWith method for easy state updates
+  SettingsLoaded copyWith({
+    ThemeMode? themeMode,
+    bool? isDarkMode,
+    bool? faceIdEnabled,
+    String? selectedCurrency,
+    File? profileImage,
+    bool? isSyncing,
+    bool? internetAvailable,
+    bool? isCloudDataDeleted,
+    String? userName,
+  }) {
+    return SettingsLoaded(
+      themeMode: themeMode ?? this.themeMode,
+      isDarkMode: isDarkMode ?? this.isDarkMode,
+      faceIdEnabled: faceIdEnabled ?? this.faceIdEnabled,
+      selectedCurrency: selectedCurrency ?? this.selectedCurrency,
+      profileImage: profileImage ?? this.profileImage,
+      isSyncing: isSyncing ?? this.isSyncing,
+      internetAvailable: internetAvailable ?? this.internetAvailable,
+      isCloudDataDeleted: isCloudDataDeleted ?? this.isCloudDataDeleted,
+      userName: userName ?? this.userName,
+    );
+  }
 }
 
 class SettingsError extends SettingsState {

@@ -14,7 +14,9 @@ import 'package:local_auth/local_auth.dart';
 import '../../home/presentation/cubit/home_cubit.dart';
 
 class SettingsCubit extends Cubit<SettingsState> {
-  SettingsCubit() : super(SettingsInitial());
+  SettingsCubit() : super(SettingsInitial()) {
+    _init();
+  }
 
   final LocalAuthentication _localAuth = LocalAuthentication();
   ThemeMode _currentThemeMode = ThemeMode.system;
@@ -38,6 +40,30 @@ class SettingsCubit extends Cubit<SettingsState> {
   bool get isCloudDataDeleted => _isCloudDataDeleted;
 
   NetworkCheck networkCheck = NetworkCheck();
+
+  Future<void> _init() async {
+    _prefs = await SharedPreferences.getInstance();
+
+    // load stored theme + sync flag
+    _isSyncing = _prefs?.getBool('is_syncing') ?? false;
+    _isDarkMode = _prefs?.getBool('is_dark_mode') ?? false;
+    final themeIndex = _prefs?.getInt('theme_mode');
+    if (themeIndex != null) _currentThemeMode = ThemeMode.values[themeIndex];
+
+    emit(
+      SettingsLoaded(
+        themeMode: _currentThemeMode,
+        isDarkMode: _isDarkMode,
+        faceIdEnabled: _faceIdEnabled,
+        selectedCurrency: _selectedCurrency,
+        profileImage: _image,
+        isSyncing: _isSyncing,
+        internetAvailable: internetAvailable,
+        isCloudDataDeleted: _isCloudDataDeleted,
+        userName: userName,
+      ),
+    );
+  }
 
   // Try to get the user name from prefs -> FirebaseAuth -> Firestore, and save to prefs.
   Future<String> getUserName() async {
@@ -103,38 +129,21 @@ class SettingsCubit extends Cubit<SettingsState> {
   // Save user name to SharedPreferences, Firebase Auth displayName, and Firestore
   Future<void> saveUserName(String name) async {
     try {
-      _prefs = await SharedPreferences.getInstance();
-      await _prefs.setString('user_name', name);
-      userName = name;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_name', name);
 
+      // Update Firebase display name
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         await user.updateDisplayName(name);
-        final store = FirebaseFirestore.instance;
-        await store.collection('users').doc(user.uid).set({
-          'userName': name,
-          'lastSync': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
       }
 
+      // Update state
       if (state is SettingsLoaded) {
-        final s = state as SettingsLoaded;
-        emit(
-          SettingsLoaded(
-            themeMode: s.themeMode,
-            isDarkMode: s.isDarkMode,
-            faceIdEnabled: s.faceIdEnabled,
-            selectedCurrency: s.selectedCurrency,
-            profileImage: s.profileImage,
-            isSyncing: s.isSyncing,
-            internetAvailable: s.internetAvailable,
-            isCloudDataDeleted: s.isCloudDataDeleted,
-          ),
-        );
+        emit((state as SettingsLoaded).copyWith(userName: name));
       }
     } catch (e) {
-      log("Failed to save user name: $e");
-      emit(SettingsError('Failed to save user name: ${e.toString()}'));
+      emit(SettingsError('Failed to save username: $e'));
     }
   }
 
@@ -150,6 +159,8 @@ class SettingsCubit extends Cubit<SettingsState> {
         final homeCubit = context.read<HomeCubit>();
         if (isSyncing && homeCubit.transactions.isNotEmpty) {
           await syncTransactionsToCloud(context);
+          // Ensure HomeCubit reloads (pulls cloud if needed) so UI shows canonical data
+          await context.read<HomeCubit>().loadAll();
           log('✅ Data synced because sync was turned ON');
         }
         // إذا كانت OFF، نحن فقط نغير الإعداد ولا نلمس الفايربيز
@@ -176,9 +187,10 @@ class SettingsCubit extends Cubit<SettingsState> {
         faceIdEnabled: _faceIdEnabled,
         selectedCurrency: _selectedCurrency,
         profileImage: _image,
-        isSyncing: _isSyncing, // القيمة اللي اتغيرت لـ false
+        isSyncing: _isSyncing,
         internetAvailable: internetAvailable,
-        isCloudDataDeleted: true,
+        isCloudDataDeleted: _isCloudDataDeleted,
+        userName: userName,
       ),
     );
   }
@@ -354,20 +366,11 @@ class SettingsCubit extends Cubit<SettingsState> {
 
   Future<void> loadSettings() async {
     try {
-      _prefs = await SharedPreferences.getInstance();
+      final prefs = await SharedPreferences.getInstance();
 
-      // Load theme mode
-      final themeModeIndex = _prefs.getInt('theme_mode') ?? 0;
-      _currentThemeMode = ThemeMode.values[themeModeIndex];
-      _isDarkMode = _prefs.getBool('is_dark_mode') ?? false;
-
-      // Load other settings
-      _faceIdEnabled = _prefs.getBool('face_id_enabled') ?? false;
-      _selectedCurrency = _prefs.getString('selected_currency') ?? 'USD';
-      _image = _prefs.getString('profile_image') != null
-          ? File(_prefs.getString('profile_image')!)
-          : null;
-      _isSyncing = _prefs.getBool('is_syncing') ?? false;
+      // Load userName from SharedPreferences or Firebase
+      final savedUserName = prefs.getString('user_name') ?? '';
+      userName = savedUserName;
 
       emit(
         SettingsLoaded(
@@ -379,10 +382,22 @@ class SettingsCubit extends Cubit<SettingsState> {
           isSyncing: _isSyncing,
           internetAvailable: internetAvailable,
           isCloudDataDeleted: _isCloudDataDeleted,
+          userName: userName,
         ),
       );
     } catch (e) {
-      emit(SettingsError(e.toString()));
+      emit(SettingsError('Failed to load settings: $e'));
+    }
+  }
+
+  // When updating username:
+  Future<void> updateUserName(String newName) async {
+    final currentState = state;
+    if (currentState is SettingsLoaded) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_name', newName);
+
+      emit(currentState.copyWith(userName: newName));
     }
   }
 

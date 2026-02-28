@@ -549,7 +549,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       builder: (context, state) {
         return GestureDetector(
           onTap: () async {
+            // Validate amount
             if (amountController.text.isEmpty) {
+              if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('transaction.please_enter_amount'.tr()),
@@ -558,8 +560,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               );
               return;
             }
+
             // Validate category selection
             if (selectedCategory.isEmpty) {
+              if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Please select a category'),
@@ -569,13 +573,16 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               return;
             }
 
+            // Capture navigator FIRST
+            final navigator = Navigator.of(context);
+
             try {
               final amount = double.parse(
                 amountController.text.replaceAll(',', ''),
               );
-              log(amount.toString());
+              log('Amount: $amount');
 
-              // Safe category lookup with fallback
+              // Safe category lookup
               final selectedCategoryData = categories.firstWhere(
                 (cat) => cat['id'] == selectedCategory,
                 orElse: () => {
@@ -586,6 +593,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               );
 
               final categoryIcon = selectedCategoryData['icon'] as IconData;
+
+              // Create transaction
               final transaction = TransactionModel(
                 title: noteController.text.isEmpty
                     ? selectedCategory
@@ -601,54 +610,42 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 iconFontPackage: categoryIcon.fontPackage,
               );
 
-              // Save locally first
+              if (!mounted) return;
+              final homeCubit = context.read<HomeCubit>();
+
               if (widget.transaction != null &&
                   widget.transaction!.id != null) {
+                // EDITING
                 transaction.id = widget.transaction!.id;
-                await dbService.updateTransaction(transaction);
+
+                // Use the new non-blocking update method
+                await homeCubit.updateTransactionLocal(transaction);
               } else {
-                await dbService.addTransaction(transaction);
+                // NEW TRANSACTION
+                // Use the new non-blocking add method
+                await homeCubit.addTransactionLocal(transaction);
               }
 
-              // Update stored total balance
-              final prefs = await SharedPreferences.getInstance();
-              double current = prefs.getDouble('total_balance') ?? 0.0;
-              final delta = isExpense ? -amount : amount;
-              await prefs.setDouble('total_balance', current + delta);
-              await prefs.setInt(
-                'last_sync',
-                DateTime.now().millisecondsSinceEpoch,
-              );
+              log('✅ Transaction saved locally');
 
-              // reload local-only
-              await context.read<HomeCubit>().loadTransactions();
-              await context.read<HomeCubit>().loadBalance();
-
-              // then optionally call SettingsCubit.syncTransactionsToCloud(context) if online
-
-              // Sync to cloud in its own try/catch
-              // so a sync failure NEVER blocks navigation (fixes iOS black screen)
+              // NAVIGATE IMMEDIATELY
               if (mounted) {
-                try {
-                  final settingsCubit = BlocProvider.of<SettingsCubit>(context);
-                  if (settingsCubit.isSyncing) {
-                    await settingsCubit.syncTransactionsToCloud(context);
-                    log('✅ Transactions synced to cloud');
-                  }
-                } catch (syncError) {
-                  log(
-                    '⚠️ Sync failed but transaction saved locally: $syncError',
-                  );
-                  // Do NOT rethrow — transaction is saved, just continue
+                navigator.pop(true);
+                log('✅ Navigated back');
+              }
+
+              // Background sync (fire and forget)
+              if (mounted) {
+                final settingsCubit = context.read<SettingsCubit>();
+                if (settingsCubit.isSyncing) {
+                  // Don't await this!
+                  homeCubit.syncSingleTransactionToCloud(transaction);
                 }
               }
-
-              // Always navigate back regardless of sync result
-              if (mounted) {
-                Navigator.of(context).pop(true);
-              }
-            } catch (e) {
+            } catch (e, stackTrace) {
               log('❌ Save transaction error: $e');
+              log('Stack trace: $stackTrace');
+
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

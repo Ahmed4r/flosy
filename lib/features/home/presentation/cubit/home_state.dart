@@ -13,6 +13,12 @@ final class HomeLoaded extends HomeState {
   HomeLoaded(this.transactions, this.totalBalance);
 }
 
+final class HomeUploading extends HomeState {
+  final List<TransactionModel> transactions;
+  final double totalBalance;
+  HomeUploading(this.transactions, this.totalBalance);
+}
+
 final class HomeError extends HomeState {
   final String message;
   HomeError(this.message);
