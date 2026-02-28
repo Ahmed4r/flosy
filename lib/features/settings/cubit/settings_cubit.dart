@@ -1,4 +1,4 @@
-import 'dart:developer';
+﻿import 'dart:developer';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -28,7 +28,7 @@ class SettingsCubit extends Cubit<SettingsState> {
   late SharedPreferences _prefs;
   bool _isSyncing = false;
   bool internetAvailable = false;
-  final bool _isCloudDataDeleted = false;
+  bool _isCloudDataDeleted = false;
   String userName = '';
 
   ThemeMode get currentThemeMode => _currentThemeMode;
@@ -45,10 +45,13 @@ class SettingsCubit extends Cubit<SettingsState> {
     _prefs = await SharedPreferences.getInstance();
 
     // load stored theme + sync flag
-    _isSyncing = _prefs?.getBool('is_syncing') ?? false;
-    _isDarkMode = _prefs?.getBool('is_dark_mode') ?? false;
-    final themeIndex = _prefs?.getInt('theme_mode');
+    _isSyncing = _prefs.getBool('is_syncing') ?? false;
+    _isDarkMode = _prefs.getBool('is_dark_mode') ?? false;
+    final themeIndex = _prefs.getInt('theme_mode');
     if (themeIndex != null) _currentThemeMode = ThemeMode.values[themeIndex];
+
+    // load user name if saved
+    userName = _prefs.getString('user_name') ?? '';
 
     emit(
       SettingsLoaded(
@@ -88,8 +91,7 @@ class SettingsCubit extends Cubit<SettingsState> {
         final store = FirebaseFirestore.instance;
         final doc = await store.collection('users').doc(authUser.uid).get();
         if (doc.exists) {
-          final nameFromFirestore =
-              doc.data()?['userName'] as String? ?? 'User';
+          final nameFromFirestore = doc.data()?['userName'] as String? ?? 'User';
           userName = nameFromFirestore;
           await _prefs.setString('user_name', userName);
           return userName;
@@ -120,6 +122,7 @@ class SettingsCubit extends Cubit<SettingsState> {
             isSyncing: s.isSyncing,
             internetAvailable: s.internetAvailable,
             isCloudDataDeleted: s.isCloudDataDeleted,
+            userName: userName,
           ),
         );
       }
@@ -131,16 +134,27 @@ class SettingsCubit extends Cubit<SettingsState> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('user_name', name);
+      userName = name;
 
       // Update Firebase display name
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         await user.updateDisplayName(name);
+        try {
+          final store = FirebaseFirestore.instance;
+          await store.collection('users').doc(user.uid).set({
+            'userName': name,
+          }, SetOptions(merge: true));
+        } catch (e) {
+          log('Failed to update Firestore userName: $e');
+        }
       }
 
       // Update state
       if (state is SettingsLoaded) {
         emit((state as SettingsLoaded).copyWith(userName: name));
+      } else {
+        _emitLoadedState();
       }
     } catch (e) {
       emit(SettingsError('Failed to save username: $e'));
@@ -246,6 +260,7 @@ class SettingsCubit extends Cubit<SettingsState> {
           isSyncing: false, // قيمة صريحة
           internetAvailable: internetAvailable,
           isCloudDataDeleted: true,
+          userName: userName,
         ),
       );
 
@@ -272,6 +287,7 @@ class SettingsCubit extends Cubit<SettingsState> {
           isSyncing: _isSyncing,
           internetAvailable: internetAvailable,
           isCloudDataDeleted: _isCloudDataDeleted,
+          userName: userName,
         ),
       );
     } catch (e) {
@@ -285,21 +301,11 @@ class SettingsCubit extends Cubit<SettingsState> {
       emit(SettingsLoading());
 
       // // مسح السحاب
-      // await deleteCloudData();
+      await deleteCloudData();
 
       // مسح المحلي
       await dbService.deleteAllTransactions();
-      await _prefs.remove('total_balance');
-      _image = null;
-      await _prefs.remove('profile_image');
-
-      // تصفير المزامنة محلياً وحفظها
-      _isSyncing = false;
-      await _prefs.setBool('is_syncing', false);
-
-      // تصفير اسم المستخدم
-      final user = FirebaseAuth.instance.currentUser;
-      await user?.updateDisplayName('');
+      await _prefs.clear();
 
       log('✅ All data cleared & sync killed');
 
@@ -328,8 +334,7 @@ class SettingsCubit extends Cubit<SettingsState> {
     final double totalBalance = homeCubit.totalBalance;
     final double totalIncome = homeCubit.totalIncome;
     final double totalExpense = homeCubit.totalExpenses;
-    final String userName =
-        user.displayName ?? "User"; // من Firebase Auth أو Prefs
+    final String currentUserName = user.displayName ?? userName ?? "User"; // من Firebase Auth أو Prefs
 
     final firestore = FirebaseFirestore.instance;
     final batch = firestore.batch();
@@ -337,10 +342,10 @@ class SettingsCubit extends Cubit<SettingsState> {
     // 2. تحديث بيانات المستخدم العامة (الملخص)
     final userDocRef = firestore.collection('users').doc(user.uid);
     batch.set(userDocRef, {
-      'userName': userName ?? 'Guest',
-      'totalBalance': totalBalance ?? 0.0,
-      'totalIncome': totalIncome ?? 0.0,
-      'totalExpense': totalExpense ?? 0.0,
+      'userName': currentUserName,
+      'totalBalance': totalBalance,
+      'totalIncome': totalIncome,
+      'totalExpense': totalExpense,
       'lastSync': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
@@ -396,6 +401,21 @@ class SettingsCubit extends Cubit<SettingsState> {
     if (currentState is SettingsLoaded) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('user_name', newName);
+      userName = newName;
+
+      // Update Firestore and FirebaseAuth displayName as well
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        try {
+          await user.updateDisplayName(newName);
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .set({'userName': newName}, SetOptions(merge: true));
+        } catch (e) {
+          log('Failed to persist username to cloud: $e');
+        }
+      }
 
       emit(currentState.copyWith(userName: newName));
     }
@@ -432,6 +452,7 @@ class SettingsCubit extends Cubit<SettingsState> {
           isSyncing: _isSyncing,
           internetAvailable: internetAvailable,
           isCloudDataDeleted: _isCloudDataDeleted,
+          userName: userName,
         ),
       );
     }
@@ -455,6 +476,7 @@ class SettingsCubit extends Cubit<SettingsState> {
           isSyncing: _isSyncing,
           internetAvailable: internetAvailable,
           isCloudDataDeleted: _isCloudDataDeleted,
+          userName: userName,
         ),
       );
     } catch (e) {
@@ -524,6 +546,7 @@ class SettingsCubit extends Cubit<SettingsState> {
               isSyncing: _isSyncing,
               internetAvailable: internetAvailable,
               isCloudDataDeleted: _isCloudDataDeleted,
+              userName: userName,
             ),
           );
           return;
@@ -544,6 +567,7 @@ class SettingsCubit extends Cubit<SettingsState> {
           isSyncing: _isSyncing,
           internetAvailable: internetAvailable,
           isCloudDataDeleted: _isCloudDataDeleted,
+          userName: userName,
         ),
       );
     } catch (e) {
@@ -565,6 +589,7 @@ class SettingsCubit extends Cubit<SettingsState> {
           isSyncing: _isSyncing,
           internetAvailable: internetAvailable,
           isCloudDataDeleted: _isCloudDataDeleted,
+          userName: userName,
         ),
       );
     } catch (e) {
@@ -572,3 +597,4 @@ class SettingsCubit extends Cubit<SettingsState> {
     }
   }
 }
+
