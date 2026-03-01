@@ -172,8 +172,9 @@ Example output: {"title": "اكل", "amount": 50, "type": 1, "category": "food"}
       log("✅ تم الحفظ بنجاح بتصنيف: $categoryId");
       return transaction;
     } catch (e) {
-      log("⚠️ عطل فني: $e");
-      return null;
+      log("⚠️ عطل فني في extractDataFromAudio: $e");
+      // رمي الاستثناء ليتلقّاه المستدعي ويعرضه في الواجهة
+      throw Exception('AIExtractionService error: $e');
     }
   }
 }

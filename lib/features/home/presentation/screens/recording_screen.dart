@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'dart:io';
 import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/home/presentation/services/groq_service.dart';
@@ -192,16 +193,36 @@ class _RecordingPageState extends State<RecordingPage>
         await _recorder.stopRecorder();
         await Future.delayed(const Duration(milliseconds: 500));
 
-        if (!await File(_actualPath!).exists()) {
-          throw Exception('الملف مش موجود');
+        final recordedFile = File(_actualPath!);
+        if (!await recordedFile.exists()) {
+          throw Exception('الملف مش موجود بعد الإيقاف');
         }
 
+        final len = await recordedFile.length();
+        log('Recorded file size: $len');
+        if (len < 400) {
+          setState(() {
+            _isLoading = false;
+            _isRecording = true;
+            _pulseController.repeat(reverse: true);
+            _rippleController.repeat();
+          });
+          _showErrorSnackBar('الصوت قصير جدًا أو غير واضح — جرب مرة تانية');
+          return;
+        }
+
+        // إذا الدالة في الخدمة رمت استثناء، سيتم التقاطه في الـ catch هنا
         final transaction = await _groqService.extractDataFromAudio(
           _actualPath!,
         );
 
         if (mounted) {
           if (transaction != null) {
+            // عرض SnackBar نجاح ثم الرجوع بالنتيجة بعد تأخير بسيط
+            _showSuccessSnackBar(
+              'تمت الإضافة: ${transaction.title} — ${transaction.amount.toStringAsFixed(0)}',
+            );
+            await Future.delayed(const Duration(milliseconds: 700));
             Navigator.pop(context, transaction);
           } else {
             setState(() => _isLoading = false);
@@ -214,7 +235,8 @@ class _RecordingPageState extends State<RecordingPage>
       } catch (e) {
         if (mounted) {
           setState(() => _isLoading = false);
-          _showErrorSnackBar('حصلت مشكلة: $e');
+          final errText = e.toString();
+          _showErrorSnackBar('حصلت مشكلة: $errText');
         }
       }
     } else {
@@ -297,6 +319,28 @@ class _RecordingPageState extends State<RecordingPage>
           ),
         ) ??
         false;
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(
+              Icons.check_circle_outline,
+              color: Colors.white,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: const Color(0xFF43A047), // أخضر
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: EdgeInsets.all(16.w),
+      ),
+    );
   }
 
   @override
