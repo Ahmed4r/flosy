@@ -146,7 +146,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     isArabic = context.locale.languageCode == 'ar';
@@ -477,7 +476,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildInputField({
+  Widget buildInputField({
     required TextEditingController controller,
     required String label,
     required String hint,
@@ -552,7 +551,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildPrimaryButton({
+  Widget buildPrimaryButton({
     required String text,
     required VoidCallback onPressed,
     bool isLoading = false,
@@ -589,7 +588,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildDivider() {
+  Widget buildDivider() {
     return Row(
       children: [
         Expanded(child: Divider(color: Colors.grey[300], thickness: 1)),
@@ -607,7 +606,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildSocialButton({
+  Widget buildSocialButton({
     required IconData icon,
     required String text,
     required VoidCallback onPressed,

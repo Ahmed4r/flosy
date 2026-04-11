@@ -33,7 +33,7 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         alignLabelWithHint: true,
-
+        labelStyle: const TextStyle(color: Colors.black, fontSize: 16),
         fillColor: AppColors.textFieldFill,
         hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),
         border: OutlineInputBorder(
@@ -81,6 +81,7 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         alignLabelWithHint: true,
+        labelStyle: const TextStyle(color: Colors.white, fontSize: 16),
 
         fillColor: AppColors.textFieldFillDark,
         hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),

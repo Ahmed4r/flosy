@@ -3,7 +3,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:meta/meta.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 part 'auth_cubit_state.dart';
 
 class AuthCubit extends Cubit<AuthCubitState> {

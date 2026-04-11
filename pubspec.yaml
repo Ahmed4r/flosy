@@ -39,6 +39,7 @@ dependencies:
   flutter_sound: ^9.30.0
   equatable: ^2.0.8
   flutter_dotenv: ^6.0.0
+  google_sign_in: ^6.2.1
 
 
 dev_dependencies:
