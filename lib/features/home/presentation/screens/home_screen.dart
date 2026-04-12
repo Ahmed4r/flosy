@@ -544,16 +544,31 @@ class HomeScreenState extends State<HomeScreen> {
                         if (state is SettingsLoaded) {
                           currency = state.selectedCurrency;
                         }
-                        return Text(
-                          context.read<HomeCubit>().isArabicLocale(context)
-                              ? '${transaction.amount.toStringAsFixed(1)}${currency}${isExpense ? '-' : '+'}'
-                              : '${isExpense ? '-' : '+'}\$${transaction.amount.toStringAsFixed(2)}',
-                          style: AppText.body16(context).copyWith(
-                            color: isExpense
-                                ? Colors.redAccent
-                                : AppColors.greenColor,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              context.read<HomeCubit>().isArabicLocale(context)
+                                  ? '${transaction.amount.toStringAsFixed(1)}${currency}${isExpense ? '-' : '+'}'
+                                  : '${isExpense ? '-' : '+'}\$${transaction.amount.toStringAsFixed(2)}',
+                              style: AppText.body16(context).copyWith(
+                                color: isExpense
+                                    ? Colors.redAccent
+                                    : AppColors.greenColor,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            SizedBox(height: 10.h),
+                            Text(
+                              DateFormat('hh:mm a').format(transaction.date),
+                              style: AppText.body12(context).copyWith(
+                                color: isDarkMode
+                                    ? Colors.grey[500]
+                                    : Colors.grey[500],
+                              ),
+                            ),
+                          ],
                         );
                       },
                     ),

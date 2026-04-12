@@ -74,10 +74,18 @@ class AIExtractionService {
       var whisperResponse = await http.Response.fromStream(
         await whisperRequest.send(),
       );
-      if (whisperResponse.statusCode != 200) return null;
+      // 1️⃣ التغيير الأول: ارمي Exception لو الـ Whisper فشل
+      if (whisperResponse.statusCode != 200) {
+        throw Exception('فشل تحويل الصوت لنص (Whisper Error)');
+      }
 
       var transcription = jsonDecode(whisperResponse.body)['text'];
       log("📝 النص المسموع: $transcription");
+
+      // اذا كان المسموع فارغاً ارمي خطأ مباشر لتوفير الريكويست
+      if (transcription.toString().trim().isEmpty) {
+        throw Exception('لم أسمع شيئاً (صوت غير واضح أو فارغ)');
+      }
 
       // 2. التحليل بواسطة Llama
       // قمنا بتجميع الـ IDs المسموحة لإرسالها في البرومبت
@@ -128,19 +136,23 @@ Example output: {"title": "اكل", "amount": 50, "type": 1, "category": "food"}
         }),
       );
 
-      if (llamaResponse.statusCode != 200) return null;
+      // 2️⃣ التغيير الثاني
+      if (llamaResponse.statusCode != 200) {
+        throw Exception('فشل الاتصال بالذكاء الاصطناعي (Llama Error)');
+      }
 
-      // فك الـ JSON المستخرج من Llama
       final Map<String, dynamic> content = jsonDecode(
         jsonDecode(llamaResponse.body)['choices'][0]['message']['content'],
       );
 
-      // إذا الموديل مش فاهم يرجع null بدل ما يحفظ بيانات غلط
       if (content.containsKey('error')) {
         log(
           "⚠️ Llama couldn't extract: ${content['error']}, Raw: ${content.values}",
         );
-        return null;
+        // 3️⃣ التغيير الثالث: ارمي المشكلة الحرفية مع النص اللي فهمه!
+        throw Exception(
+          'الذكاء الاصطناعي: ${content['error']}\n النص: $transcription',
+        );
       }
 
       log("📦 الـ JSON المستخرج: $content");
@@ -169,8 +181,11 @@ Example output: {"title": "اكل", "amount": 50, "type": 1, "category": "food"}
         iconFontPackage: displayIcon.fontPackage,
       );
 
-      await dbService.addTransaction(transaction);
-      log("✅ تم الحفظ بنجاح بتصنيف: $categoryId");
+      // 🔴 احذف السطرين دول تماماً ⬇️
+      // await dbService.addTransaction(transaction);
+      // log("✅ تم الحفظ بنجاح بتصنيف: $categoryId");
+
+      log("✅ تم تحليل الصوت بنجاح وإعادته للواجهة");
       return transaction;
     } catch (e) {
       log("⚠️ عطل فني في extractDataFromAudio: $e");

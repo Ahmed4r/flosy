@@ -22,47 +22,45 @@ Widget buildHeader(BuildContext context, String Function() getGreetingMessage) {
         // Get user info from Firebase and SettingsCubit
         final user = FirebaseAuth.instance.currentUser;
         String userName = 'Guest'; // Default fallback (non-translated)
+        File? profileImage;
+        String? googlePhotoUrl;
 
-        // Priority: SettingsCubit state > Firebase display name > Email name > Guest
-        if (state is SettingsLoaded) {
-          // SAFE: Check if userName exists and is not empty
-          if (state.userName.isNotEmpty) {
-            userName = state.userName;
-          } else if (user?.displayName != null &&
-              user!.displayName!.isNotEmpty) {
+        // Extract Google Name or Email-generated name directly from Firebase
+        if (user != null) {
+          if (user.displayName != null && user.displayName!.trim().isNotEmpty) {
             userName = user.displayName!;
-          } else if (user?.email != null) {
-            // Extract name from email (before @)
-            final emailName = user!.email!.split('@').first;
-            // Capitalize first letter and replace dots/underscores
+            googlePhotoUrl =
+                user.photoURL; // Grab Google Profile Photo if available
+          } else if (user.email != null) {
+            // Fallback: Extract name from email (before @)
+            final emailName = user.email!.split('@').first;
             userName = emailName.isNotEmpty
                 ? emailName
                       .replaceAll('.', ' ')
                       .replaceAll('_', ' ')
                       .split(' ')
                       .map(
-                        (word) => word.isNotEmpty
-                            ? word[0].toUpperCase() + word.substring(1)
+                        (w) => w.isNotEmpty
+                            ? w[0].toUpperCase() + w.substring(1)
                             : '',
                       )
                       .join(' ')
                 : 'Guest';
           }
-        } else {
-          // State is not loaded yet, use Firebase data
-          if (user?.displayName != null && user!.displayName!.isNotEmpty) {
-            userName = user.displayName!;
-          } else if (user?.email != null) {
-            final emailName = user!.email!.split('@').first;
-            userName = emailName.isNotEmpty
-                ? emailName[0].toUpperCase() + emailName.substring(1)
-                : 'Guest';
-          }
         }
 
-        File? profileImage;
+        // Apply SettingsCubit overrides ONLY if they were explicitly set by the user
         if (state is SettingsLoaded) {
-          profileImage = state.profileImage;
+          if (state.userName.trim().isNotEmpty &&
+              state.userName != 'User' &&
+              state.userName != 'Guest') {
+            userName = state
+                .userName; // Override with app settings name if they changed it
+          }
+          if (state.profileImage != null) {
+            profileImage = state
+                .profileImage; // Override with uploaded image if they have one
+          }
         }
 
         return Row(
@@ -85,10 +83,13 @@ Widget buildHeader(BuildContext context, String Function() getGreetingMessage) {
                 backgroundColor: isDarkMode
                     ? Colors.grey[800]
                     : Colors.grey[200],
+                // 1. Show Local Photo, 2. Show Google Photo, 3. Show Default Icon
                 backgroundImage: profileImage != null
                     ? FileImage(profileImage)
-                    : null,
-                child: profileImage == null
+                    : (googlePhotoUrl != null
+                          ? NetworkImage(googlePhotoUrl) as ImageProvider
+                          : null),
+                child: (profileImage == null && googlePhotoUrl == null)
                     ? Icon(Icons.person, size: 22.sp, color: Colors.grey[500])
                     : null,
               ),

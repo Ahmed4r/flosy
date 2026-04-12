@@ -8,6 +8,7 @@ import 'package:flutter_sound/flutter_sound.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:audio_session/audio_session.dart';
 
 class RecordingPage extends StatefulWidget {
   final String? sessionId;
@@ -127,13 +128,10 @@ class _RecordingPageState extends State<RecordingPage>
 
     // Handle permission denial
     if (!status.isGranted) {
-      // On iOS: after first denial, status is 'denied' (not permanentlyDenied)
-      // On Android: after multiple denials or "don't ask again", it's permanentlyDenied
       if (status.isPermanentlyDenied || status.isDenied) {
         _showErrorSnackBar(
           'تحتاج إذن الميكروفون للتسجيل — رجاءً فعّله من الإعدادات',
         );
-        // Give user a moment to read the message before opening settings
         await Future.delayed(const Duration(milliseconds: 500));
         openAppSettings();
       } else {
@@ -146,6 +144,28 @@ class _RecordingPageState extends State<RecordingPage>
     }
 
     try {
+      // 🟢 CRITICAL FIX FOR iOS: Configure AVAudioSession BEFORE opening the recorder
+      final session = await AudioSession.instance;
+      await session.configure(
+        AudioSessionConfiguration(
+          avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
+          avAudioSessionCategoryOptions:
+              AVAudioSessionCategoryOptions.allowBluetooth |
+              AVAudioSessionCategoryOptions.defaultToSpeaker,
+          avAudioSessionMode: AVAudioSessionMode.spokenAudio,
+          avAudioSessionRouteSharingPolicy:
+              AVAudioSessionRouteSharingPolicy.defaultPolicy,
+          avAudioSessionSetActiveOptions: AVAudioSessionSetActiveOptions.none,
+          androidAudioAttributes: const AndroidAudioAttributes(
+            contentType: AndroidAudioContentType.speech,
+            flags: AndroidAudioFlags.none,
+            usage: AndroidAudioUsage.voiceCommunication,
+          ),
+          androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
+          androidWillPauseWhenDucked: true,
+        ),
+      );
+
       await _recorder.openRecorder();
       await _recorder.setSubscriptionDuration(const Duration(milliseconds: 50));
     } catch (e) {
@@ -158,12 +178,16 @@ class _RecordingPageState extends State<RecordingPage>
     }
 
     final tempDir = await getTemporaryDirectory();
-    _actualPath = '${tempDir.path}/temp_voice.wav';
+
+    // 💡 تفريق ذكي: m4a للآيفون و wav للأندرويد
+    final isIOS = Platform.isIOS;
+    _actualPath = '${tempDir.path}/temp_voice.${isIOS ? 'm4a' : 'wav'}';
 
     try {
       await _recorder.startRecorder(
         toFile: _actualPath,
-        codec: Codec.pcm16WAV,
+        // اختيار الكودك المناسب لكل نظام
+        codec: isIOS ? Codec.aacMP4 : Codec.pcm16WAV,
         sampleRate: 44100,
         numChannels: 1,
       );
@@ -183,7 +207,7 @@ class _RecordingPageState extends State<RecordingPage>
     }
   }
 
-  Future<void> _stopAndSave(isDarkMode) async {
+  Future<void> _stopAndSave(bool isDarkMode) async {
     final shouldSave = await _confirmStopRecording(isDarkMode);
 
     if (shouldSave && _actualPath != null) {
@@ -207,24 +231,17 @@ class _RecordingPageState extends State<RecordingPage>
         final len = await recordedFile.length();
         log('Recorded file size: $len');
         if (len < 400) {
-          setState(() {
-            _isLoading = false;
-            _isRecording = true;
-            _pulseController.repeat(reverse: true);
-            _rippleController.repeat();
-          });
-          _showErrorSnackBar('الصوت قصير جدًا أو غير واضح — جرب مرة تانية');
-          return;
+          throw Exception('الصوت قصير جداً أو فيه مشكلة في المايك');
         }
 
-        // إذا الدالة في الخدمة رمت استثناء، سيتم التقاطه في الـ catch هنا
+        // إرسال الصوت للذكاء الاصطناعي
         final transaction = await _groqService.extractDataFromAudio(
           _actualPath!,
         );
 
         if (mounted) {
           if (transaction != null) {
-            // عرض SnackBar نجاح ثم الرجوع بالنتيجة بعد تأخير بسيط
+            // ✅ حالة النجاح: إظهار رسالة النجاح والرجوع بالبيانات
             _showSuccessSnackBar(
               'تمت الإضافة: ${transaction.title} — ${transaction.amount.toStringAsFixed(0)}',
             );
@@ -232,27 +249,44 @@ class _RecordingPageState extends State<RecordingPage>
             if (!mounted) return;
             Navigator.pop(context, transaction);
           } else {
-            setState(() => _isLoading = false);
-            _isRecording = true;
-            _pulseController.repeat(reverse: true);
-            _rippleController.repeat();
-            _showErrorSnackBar('مفهمتش.. جرب تاني');
+            throw Exception('مفهمتش كلامك.. جرب تقولها بطريقة تانية');
           }
         }
       } catch (e) {
         if (mounted) {
-          setState(() => _isLoading = false);
-          final errText = e.toString();
-          _showErrorSnackBar('حصلت مشكلة: $errText');
+          // ❌ حالة الخطأ: إيقاف التحميل، تصفير العداد، وإعادة تشغيل المايك فعلياً
+          setState(() {
+            _isLoading = false;
+            _secondsElapsed = 0; // تصفير العداد
+          });
+
+          // جلب سبب الخطأ
+          final errText = e
+              .toString()
+              .replaceAll('Exception: ', '')
+              .replaceAll('AIExtractionService error: ', '');
+
+          // إظهار سبب الخطأ للمستخدم
+          _showErrorSnackBar(errText);
+
+          // إيقاف التسجيل في حالة كان يعمل، ثم إغلاق الشاشة
+          if (_isRecording) {
+            await _recorder.stopRecorder();
+          }
+          Navigator.pop(context);
         }
       }
     } else {
+      // حالة الإلغاء من الـ Dialog
       await _recorder.stopRecorder();
       if (mounted) Navigator.pop(context);
     }
   }
 
   void _showErrorSnackBar(String message) {
+    // إخفاء أي سناك بار قديم الأول
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -266,6 +300,7 @@ class _RecordingPageState extends State<RecordingPage>
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: EdgeInsets.all(16.w),
+        duration: const Duration(seconds: 4), // ⏳ خليها 4 ثواني فقط
       ),
     );
   }

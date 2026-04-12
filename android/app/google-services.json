@@ -14,7 +14,15 @@
       },
       "oauth_client": [
         {
-          "client_id": "760463806679-4j99t7skliblv3dbvc8r395h3nvb4qbn.apps.googleusercontent.com",
+          "client_id": "760463806679-tf5q7fdvqbce0ou409fjlke4j0b5r20j.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.flosy",
+            "certificate_hash": "8711a9c35c0199b01f076543daa49c63d2b3d043"
+          }
+        },
+        {
+          "client_id": "760463806679-do8bsgjcevj46vs9spforlbhqa02on8h.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -29,6 +37,13 @@
             {
               "client_id": "760463806679-4j99t7skliblv3dbvc8r395h3nvb4qbn.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "760463806679-pirmfh0fgal55ej05ooi254i3br78tp3.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.flosy"
+              }
             }
           ]
         }

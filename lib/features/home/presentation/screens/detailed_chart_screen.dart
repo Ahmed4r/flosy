@@ -40,6 +40,10 @@ class _DetailedChartScreenState extends State<DetailedChartScreen> {
   Future<void> _loadTransactions() async {
     setState(() => _isLoading = true);
     final data = await dbService.getTransactions();
+
+    // Add this check to prevent memory leaks and crashes if the screen is closed early
+    if (!mounted) return;
+
     setState(() {
       _transactions = data;
       _isLoading = false;
