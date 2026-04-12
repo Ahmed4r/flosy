@@ -180,14 +180,14 @@ class _RecordingPageState extends State<RecordingPage>
     final tempDir = await getTemporaryDirectory();
 
     // 💡 تفريق ذكي: m4a للآيفون و wav للأندرويد
-    final isIOS = Platform.isIOS;
-    _actualPath = '${tempDir.path}/temp_voice.${isIOS ? 'm4a' : 'wav'}';
+    
+    _actualPath = '${tempDir.path}/temp_voice.${'wav'}';
 
     try {
       await _recorder.startRecorder(
         toFile: _actualPath,
         // اختيار الكودك المناسب لكل نظام
-        codec: isIOS ? Codec.aacMP4 : Codec.pcm16WAV,
+        codec: Codec.pcm16WAV,
         sampleRate: 44100,
         numChannels: 1,
       );
@@ -230,7 +230,7 @@ class _RecordingPageState extends State<RecordingPage>
 
         final len = await recordedFile.length();
         log('Recorded file size: $len');
-        if (len < 400) {
+        if (len <= 44) {
           throw Exception('الصوت قصير جداً أو فيه مشكلة في المايك');
         }
 
