@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../settings/cubit/settings_state.dart';
 import '../cubit/home_cubit.dart';
@@ -20,7 +19,6 @@ Widget buildAmountCard(
   VoidCallback onEditBalance,
   double spentRatio,
   bool isDarkMode,
-  bool isArabic,
 ) {
   return Container(
     width: double.infinity,
@@ -35,7 +33,10 @@ Widget buildAmountCard(
                 const Color(0xFF0D1F1A),
                 const Color(0xFF162A22),
               ]
-            : [Colors.white, Colors.white.withOpacity(0.9)],
+            : [
+                const Color.fromARGB(255, 177, 228, 166),
+                const Color.fromARGB(255, 226, 244, 202).withOpacity(0.9),
+              ],
       ),
       boxShadow: [
         BoxShadow(
@@ -147,7 +148,7 @@ Widget buildAmountCard(
                       child: FaIcon(
                         FontAwesomeIcons.microphone,
                         size: 18.sp,
-                        color: AppColors.greenColor,
+                        color: isDarkMode ? AppColors.greenColor : Colors.green,
                       ),
                     ),
                     SizedBox(width: 14.w),
@@ -164,9 +165,7 @@ Widget buildAmountCard(
                         ),
                         child: Icon(
                           Icons.edit_outlined,
-                          color: isDarkMode
-                              ? Colors.white.withOpacity(0.8)
-                              : Colors.black.withOpacity(0.8),
+                          color: Colors.white.withOpacity(0.8),
                           size: 16.sp,
                         ),
                       ),
@@ -207,9 +206,7 @@ Widget buildAmountCard(
                     ClipRRect(
                       borderRadius: BorderRadius.circular(6.r),
                       child: LinearProgressIndicator(
-                        value: isArabic
-                            ? 1.0 - spentRatio.clamp(0.0, 1.0)
-                            : spentRatio.clamp(0.0, 1.0),
+                        value: spentRatio.clamp(0.0, 1.0),
                         minHeight: 6.h,
                         backgroundColor: AppColors.whiteColor,
                         valueColor: AlwaysStoppedAnimation<Color>(

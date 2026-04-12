@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart'; // تأكد من وجود هذا الـ import لـ MediaType
 import '../../data/model/transaction_model.dart';
 import 'db.dart';
 
@@ -64,7 +63,7 @@ class AIExtractionService {
         await http.MultipartFile.fromPath(
           'file',
           filePath,
-          contentType: MediaType(
+          contentType: http.MediaType(
             'audio',
             filePath.endsWith('.wav') ? 'wav' : 'm4a',
           ),
@@ -138,7 +137,9 @@ Example output: {"title": "اكل", "amount": 50, "type": 1, "category": "food"}
 
       // إذا الموديل مش فاهم يرجع null بدل ما يحفظ بيانات غلط
       if (content.containsKey('error')) {
-        log("⚠️ Llama couldn't extract: ${content['error']}");
+        log(
+          "⚠️ Llama couldn't extract: ${content['error']}, Raw: ${content.values}",
+        );
         return null;
       }
 

@@ -8,7 +8,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flosy/features/home/data/model/transaction_model.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
-import 'package:flosy/features/settings/cubit/settings_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -375,10 +374,15 @@ class HomeCubit extends Cubit<HomeState> {
 
   double get netChange => totalIncome - totalExpenses;
 
+  double get spentRatio {
+    final availableFunds =
+        totalExpenses + totalBalance.clamp(0.0, double.infinity);
+    if (availableFunds <= 0) return 0;
+    return (totalExpenses / availableFunds).clamp(0.0, 1.0);
+  }
+
   double get percentChange {
-    final startingBalance = totalBalance + totalExpenses - totalIncome;
-    if (startingBalance <= 0) return 0;
-    return ((totalExpenses / startingBalance) * 100).clamp(0, 999);
+    return spentRatio * 100;
   }
 
   double get monthlyExpenses {

@@ -50,7 +50,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           leading: IconButton(
             icon: Icon(
               isArabic ? Icons.arrow_forward_ios : Icons.arrow_back_ios,
-              color: Colors.black87,
+              color: isDarkMode ? Colors.white : Colors.black87,
             ),
             onPressed: () => Navigator.pop(context),
           ),
@@ -225,7 +225,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           );
                         }
-                        if (state is  AuthError) {
+                        if (state is AuthError) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(state.message),
@@ -268,9 +268,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       icon: FontAwesomeIcons.google,
                       text: 'continue_with_google'.tr(),
                       onPressed: () {
-                        BlocListener<AuthCubit  , AuthCubitState>(
+                        BlocListener<AuthCubit, AuthCubitState>(
                           listener: (context, state) {
-                            if (state is  AuthError) {
+                            if (state is AuthError) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(state.message),

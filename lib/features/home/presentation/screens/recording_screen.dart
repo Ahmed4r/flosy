@@ -117,12 +117,12 @@ class _RecordingPageState extends State<RecordingPage>
 
   Future<void> _initAndStart() async {
     final statusBefore = await Permission.microphone.status;
-    print('Mic permission before request: $statusBefore');
+    log('Mic permission before request: $statusBefore');
 
     var status = statusBefore;
     if (!status.isGranted) {
       status = await Permission.microphone.request();
-      print('Mic permission after request: $status');
+      log('Mic permission after request: $status');
     }
 
     // Handle permission denial
@@ -139,6 +139,8 @@ class _RecordingPageState extends State<RecordingPage>
       } else {
         _showErrorSnackBar('تحتاج إذن الميكروفون للتسجيل');
       }
+      if (!mounted) return;
+
       Navigator.pop(context);
       return;
     }
@@ -147,8 +149,10 @@ class _RecordingPageState extends State<RecordingPage>
       await _recorder.openRecorder();
       await _recorder.setSubscriptionDuration(const Duration(milliseconds: 50));
     } catch (e) {
-      print('Recorder init error: $e');
+      log('Recorder init error: $e');
       _showErrorSnackBar('فشل تهيئة الميكروفون: $e');
+      if (!mounted) return;
+
       Navigator.pop(context);
       return;
     }
@@ -164,9 +168,11 @@ class _RecordingPageState extends State<RecordingPage>
         numChannels: 1,
       );
     } catch (e) {
-      print('startRecorder error: $e');
+      log('startRecorder error: $e');
       _showErrorSnackBar('فشل بدء التسجيل: $e');
       await _recorder.closeRecorder();
+      if (!mounted) return;
+
       Navigator.pop(context);
       return;
     }
@@ -223,6 +229,7 @@ class _RecordingPageState extends State<RecordingPage>
               'تمت الإضافة: ${transaction.title} — ${transaction.amount.toStringAsFixed(0)}',
             );
             await Future.delayed(const Duration(milliseconds: 700));
+            if (!mounted) return;
             Navigator.pop(context, transaction);
           } else {
             setState(() => _isLoading = false);

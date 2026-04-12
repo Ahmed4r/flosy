@@ -5,13 +5,13 @@ import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/auth/screens/cubit/auth_cubit_cubit.dart';
 import 'package:flosy/features/auth/screens/forget_screen.dart';
 import 'package:flosy/features/auth/screens/register_screen.dart';
+import 'package:flosy/features/auth/service/auth_service.dart';
 import 'package:flosy/features/auth/service/secure_storages_service.dart';
 import 'package:flosy/features/navigation/main_nav_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:local_auth/local_auth.dart';
 import 'dart:developer' as developer;
 
@@ -23,6 +23,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final AuthService _authService = AuthService();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -143,6 +144,38 @@ class _LoginScreenState extends State<LoginScreen> {
       await secureStorage.saveCredentials(email, password);
     } catch (e) {
       debugPrint('Error saving credentials: $e');
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    try {
+      final userCredential = await _authService.signInWithGoogle();
+
+      if (!mounted) return;
+
+      if (userCredential.user != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Login successful!'),
+            backgroundColor: AppColors.greenColor,
+          ),
+        );
+
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const MainNavScreen()),
+        );
+      }
+    } catch (error) {
+      developer.log('Google sign-in failed: $error');
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Google sign-in failed: $error'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -404,14 +437,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     // Google Sign In
                     GestureDetector(
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Google Sign-In not implemented yet'),
-                            backgroundColor: Colors.orange,
-                          ),
-                        );
-                      },
+                      onTap: _handleGoogleSignIn,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [

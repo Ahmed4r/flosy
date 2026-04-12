@@ -51,7 +51,7 @@ Widget _buildTrackCard({
   return Container(
     padding: EdgeInsets.all(18.w),
     decoration: BoxDecoration(
-      color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+      color: isDarkMode ? Color(0xFF1A1A1A) : Colors.white,
       borderRadius: BorderRadius.circular(20.r),
       boxShadow: [
         BoxShadow(

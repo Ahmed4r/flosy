@@ -1,5 +1,4 @@
 import 'dart:developer';
-
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
@@ -7,7 +6,6 @@ import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/home/data/model/transaction_model.dart';
 import 'package:flosy/features/home/presentation/cubit/home_cubit.dart';
 import 'package:flosy/features/home/presentation/screens/add_transaction_screen.dart';
-import 'package:flosy/features/home/presentation/screens/recording_screen.dart';
 import 'package:flosy/features/home/presentation/widgets/build_amount_card.dart';
 import 'package:flosy/features/home/presentation/widgets/build_header.dart';
 import 'package:flosy/features/home/presentation/widgets/build_tracks.dart';
@@ -16,9 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../../settings/cubit/settings_state.dart';
 
 enum TransactionColors {
@@ -57,7 +53,6 @@ class HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     bool isDarkMode = AppTheme.isDarkMode(context);
-    bool isArabic = context.read<HomeCubit>().isArabicLocale(context);
 
     return BlocBuilder<HomeCubit, HomeState>(
       builder: (context, state) {
@@ -90,9 +85,8 @@ class HomeScreenState extends State<HomeScreen> {
                       _buildPercentageChip,
                       context.read<HomeCubit>().totalBalance,
                       _showEditBalanceDialog,
-                      context.read<HomeCubit>().percentChange / 100,
+                      context.read<HomeCubit>().spentRatio,
                       isDarkMode,
-                      isArabic,
                     ),
                     SizedBox(height: 20.h),
                     buildTracks(
@@ -118,7 +112,10 @@ class HomeScreenState extends State<HomeScreen> {
   Widget _buildPercentageChip() {
     final pct = context.read<HomeCubit>().percentChange;
     final isPositive = context.read<HomeCubit>().netChange >= 0;
-    final color = isPositive ? AppColors.greenColor : Colors.redAccent;
+    bool isDarkMode = AppTheme.isDarkMode(context);
+    final color = isPositive
+        ? (isDarkMode ? AppColors.greenColor : Colors.green)
+        : Colors.redAccent;
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
@@ -287,6 +284,15 @@ class HomeScreenState extends State<HomeScreen> {
                   decoration: BoxDecoration(
                     color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
                     borderRadius: BorderRadius.circular(10.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(
+                          isDarkMode ? 0.3 : 0.05,
+                        ),
+                        blurRadius: 6.r,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Text(
                     context.read<HomeCubit>().showAllTransactions

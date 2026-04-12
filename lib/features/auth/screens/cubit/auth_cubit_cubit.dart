@@ -30,6 +30,7 @@ class AuthCubit extends Cubit<AuthCubitState> {
       emit(AuthError('An unexpected error occurred: ${e.toString()}'));
     }
   }
+  
 
   Future<void> register(String email, String password) async {
     emit(AuthLoading());
