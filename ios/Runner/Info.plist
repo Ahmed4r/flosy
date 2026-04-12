@@ -66,5 +66,18 @@
     <!-- Speech Recognition -->
     <key>NSSpeechRecognitionUsageDescription</key>
     <string>Flosy uses speech recognition to convert your voice recordings into transaction data.</string>
+    <!-- Google Sign-In section -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>com.googleusercontent.apps.760463806679-pirmfh0fgal55ej05ooi254i3br78tp3</string>
+            </array>
+        </dict>
+    </array>
+    <!-- End of the Google Sign-In section -->
 </dict>
 </plist>
