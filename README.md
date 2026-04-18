@@ -113,9 +113,9 @@ This script writes:
 - `assets/models/norm_params.json`
 
 App ScrrenShots :
-![Home Dashboard](assets/screenshots/home_dashboard.png)
-![Add Transaction](assets/screenshots/add_transaction.png)
-![Budget Screen](assets/screenshots/budget_screen.png)
-![AI Insights](assets/screenshots/ai_insights.png)
-![Settings](assets/screenshots/settings.png)
-![Voice Transaction](assets/screenshots/voice_transaction.png)
+![Home Dashboard](assets/screenshots/home.jpg)
+![Add Transaction](assets/screenshots/add_tx.jpg)
+![Budget Screen](assets/screenshots/budget.jpg)
+![AI Insights](assets/screenshots/ai.jpg)
+![Settings](assets/screenshots/setting.jpg)
+![Voice Transaction](assets/screenshots/record.jpg)
