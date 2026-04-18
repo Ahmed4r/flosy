@@ -112,10 +112,12 @@ This script writes:
 - `assets/models/expense_predictor.tflite`
 - `assets/models/norm_params.json`
 
-App ScrrenShots :
-![Home Dashboard](assets/screenshots/home.jpg)
-![Add Transaction](assets/screenshots/add_tx.jpg)
-![Budget Screen](assets/screenshots/budget.jpg)
-![AI Insights](assets/screenshots/ai.jpg)
-![Settings](assets/screenshots/setting.jpg)
-![Voice Transaction](assets/screenshots/record.jpg)
+## App Screenshots
+
+| Home Dashboard                                                             | Add Transaction                                                               | Budget Screen                                                               |
+| -------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| <img src="assets/screenshots/home.jpg" alt="Home Dashboard" width="170" /> | <img src="assets/screenshots/add_tx.jpg" alt="Add Transaction" width="170" /> | <img src="assets/screenshots/budget.jpg" alt="Budget Screen" width="170" /> |
+
+| AI Insights                                                           | Settings                                                                | Voice Transaction                                                               |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| <img src="assets/screenshots/ai.jpg" alt="AI Insights" width="170" /> | <img src="assets/screenshots/setting.jpg" alt="Settings" width="170" /> | <img src="assets/screenshots/record.jpg" alt="Voice Transaction" width="170" /> |
