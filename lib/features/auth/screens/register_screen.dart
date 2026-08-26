@@ -270,6 +270,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       onPressed: () {
                         BlocListener<AuthCubit, AuthCubitState>(
                           listener: (context, state) {
+                            if (state is AuthSuccess) {
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                  builder: (_) => const MainNavScreen(),
+                                ),
+                              );
+                            }
+
                             if (state is AuthError) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
@@ -281,20 +289,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           },
                           child: BlocBuilder<AuthCubit, AuthCubitState>(
                             builder: (context, state) {
-                              if (state is AuthLoading) {
-                                return Center(
-                                  child: CircularProgressIndicator(
-                                    color: AppColors.colorButton,
-                                  ),
-                                );
-                              }
                               return _buildSocialButton(
+                                isDarkMode: isDarkMode,
                                 icon: FontAwesomeIcons.google,
                                 text: 'continue_with_google'.tr(),
-                                isDarkMode: isDarkMode,
-                                onPressed: () {
-                                  // Implement Google Sign-In
-                                },
+                                onPressed: state is AuthLoading
+                                    ? () {}
+                                    : () {
+                                        context
+                                            .read<AuthCubit>()
+                                            .signInWithGoogle();
+                                      },
                               );
                             },
                           ),

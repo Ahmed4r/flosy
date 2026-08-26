@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../data/model/transaction_model.dart';
 import '../../../budget/data/model/budget_model.dart';
+import 'db_factory_stub.dart' if (dart.library.html) 'db_factory_web.dart';
 
 class DatabaseService {
   Database? _database;
@@ -14,9 +16,10 @@ class DatabaseService {
   }
 
   Future<void> init() async {
-    final dir = await getApplicationDocumentsDirectory();
-    _database = await openDatabase(
-      '${dir.path}/flosy.db',
+    final dir = kIsWeb ? null : await getApplicationDocumentsDirectory();
+    final dbPath = kIsWeb ? 'flosy.db' : '${dir!.path}/flosy.db';
+    _database = await openDatabaseWebCompatible(
+      dbPath,
       version: 6, // Increment version
       onCreate: (Database db, int version) async {
         await db.execute('''

@@ -13,24 +13,17 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'features/settings/cubit/settings_state.dart';
 
-Future<void> _initializeFirebaseSafely() async {
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  } on UnsupportedError catch (e) {
-    debugPrint('Firebase initialization skipped: $e');
-  } catch (e) {
-    debugPrint('Firebase initialization failed: $e');
-  }
-}
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: "api.env");
+
+  await dotenv.load(fileName: 'api.env');
   await EasyLocalization.ensureInitialized();
-  await _initializeFirebaseSafely();
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   await dbService.init();
+
   final AppTheme appTheme = AppTheme();
 
   runApp(

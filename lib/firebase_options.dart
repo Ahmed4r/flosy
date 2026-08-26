@@ -17,10 +17,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -56,14 +53,22 @@ class DefaultFirebaseOptions {
     projectId: 'flosyapp112',
     storageBucket: 'flosyapp112.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCXFPqWXast8q9hrDiy5hjW8g5bqpPVQlo',
     appId: '1:760463806679:ios:8faedeecedb55cd7dda092',
     messagingSenderId: '760463806679',
     projectId: 'flosyapp112',
     storageBucket: 'flosyapp112.firebasestorage.app',
+    androidClientId: '760463806679-tf5q7fdvqbce0ou409fjlke4j0b5r20j.apps.googleusercontent.com',
     iosClientId: '760463806679-pirmfh0fgal55ej05ooi254i3br78tp3.apps.googleusercontent.com',
     iosBundleId: 'com.example.flosy',
+  );
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyAzV7MnT1zCAfgQU6K3PGEU81iwSWutKNw',
+    appId: '1:760463806679:web:fd022883d3fa4545dda092',
+    messagingSenderId: '760463806679',
+    projectId: 'flosyapp112',
+    authDomain: 'flosyapp112.firebaseapp.com',
+    storageBucket: 'flosyapp112.firebasestorage.app',
   );
 }
