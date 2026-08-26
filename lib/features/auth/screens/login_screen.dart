@@ -633,7 +633,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget buildSocialButton({
-    required IconData icon,
+    required FaIconData icon,
     required String text,
     required VoidCallback onPressed,
     bool isDarkMode = false,

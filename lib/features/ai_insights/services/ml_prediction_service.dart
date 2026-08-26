@@ -1,31 +1,40 @@
 ﻿import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:tflite_flutter/tflite_flutter.dart';
+import 'ml_interpreter_stub.dart'
+    if (dart.library.io) 'ml_interpreter_io.dart'
+    as ml_interpreter;
 
 class MLPredictionService {
   static final MLPredictionService _instance = MLPredictionService._internal();
   factory MLPredictionService() => _instance;
   MLPredictionService._internal();
 
-  Interpreter? _interpreter;
+  dynamic _interpreter;
   List<double>? _mean;
   List<double>? _std;
   bool _isInitialized = false;
 
   bool get isInitialized => _isInitialized;
+  bool get _isMlSupportedPlatform => !kIsWeb;
 
   /// Initialize the TFLite model and normalization parameters
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
+      if (!_isMlSupportedPlatform) {
+        _isInitialized = true;
+        developer.log('ML prediction skipped on web platform');
+        return;
+      }
       WidgetsFlutterBinding.ensureInitialized(); // ADD THIS LINE
 
       // Load the TFLite model
-      _interpreter = await Interpreter.fromAsset(
+      _interpreter = await ml_interpreter.createInterpreterFromAsset(
         'assets/models/expense_predictor.tflite',
       );
       developer.log(' TFLite model loaded successfully');
@@ -63,6 +72,11 @@ class MLPredictionService {
     required int monthNumber,
     required int dayOfMonth,
   }) async {
+    if (!_isMlSupportedPlatform) {
+      // Web fallback: skip TFLite inference and use recent trend average.
+      return avgThreeMonths;
+    }
+
     if (!_isInitialized) {
       throw Exception('ML model not initialized. Call initialize() first.');
     }
@@ -92,10 +106,10 @@ class MLPredictionService {
       final input = [normalizedFeatures];
 
       // Prepare output tensor
-      final output = List.filled(1, 0.0).reshape([1, 1]);
+      final output = List.generate(1, (_) => List.filled(1, 0.0));
 
       // Run inference
-      _interpreter!.run(input, output);
+      _interpreter.run(input, output);
 
       // Get prediction
       final prediction = output[0][0];
@@ -178,7 +192,7 @@ class MLPredictionService {
 
   /// Dispose resources
   void dispose() {
-    _interpreter?.close();
+    ml_interpreter.closeInterpreter(_interpreter);
     _interpreter = null;
     _isInitialized = false;
     print(' ML model disposed');

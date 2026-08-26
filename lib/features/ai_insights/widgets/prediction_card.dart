@@ -11,7 +11,7 @@ class PredictionCard extends StatelessWidget {
 
   const PredictionCard({super.key, required this.prediction});
 
-  IconData _getCategoryIcon(String category) {
+  FaIconData _getCategoryIcon(String category) {
     switch (category) {
       case 'food':
         return FontAwesomeIcons.burger;

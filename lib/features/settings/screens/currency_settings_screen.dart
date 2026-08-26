@@ -162,7 +162,7 @@ class CurrencySettingsScreen extends StatelessWidget {
                         ),
                         child: Center(
                           child: FaIcon(
-                            currency['icon'] as IconData,
+                            currency['icon'] as FaIconData,
                             color: isSelected
                                 ? Colors.white
                                 : (isDarkMode

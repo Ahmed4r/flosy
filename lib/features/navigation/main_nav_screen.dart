@@ -260,7 +260,7 @@ class _MainNavScreenState extends State<MainNavScreen>
               scale: isActive ? 1.1 : 1.0,
               duration: const Duration(milliseconds: 200),
               child: FaIcon(
-                isActive ? item.activeIcon : item.icon,
+                (isActive ? item.activeIcon : item.icon) as FaIconData?,
                 size: 20.sp,
                 color: isActive
                     ? AppColors.greenColor
@@ -292,8 +292,8 @@ class _MainNavScreenState extends State<MainNavScreen>
 }
 
 class _NavItem {
-  final IconData icon;
-  final IconData activeIcon;
+  final FaIconData icon;
+  final FaIconData activeIcon;
   final String label;
 
   const _NavItem({

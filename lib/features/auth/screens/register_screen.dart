@@ -461,7 +461,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Widget _buildSocialButton({
-    required IconData icon,
+    required FaIconData icon,
     required String text,
     required VoidCallback onPressed,
     bool isDarkMode = false,

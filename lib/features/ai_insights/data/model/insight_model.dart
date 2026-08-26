@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 enum InsightType { warning, tip, achievement, info }
 
@@ -6,7 +7,7 @@ class InsightModel {
   final String title;
   final String description;
   final InsightType type;
-  final IconData icon;
+  final FaIconData icon;
   final DateTime createdAt;
 
   InsightModel({

@@ -1276,7 +1276,7 @@ class _MainSettingViewState extends State<_MainSettingView> {
   Widget _buildSettingsTile(
     BuildContext context,
     bool isDarkMode, {
-    required IconData icon,
+    required FaIconData icon,
     required Color iconColor,
     required Color iconBgColor,
     required String title,

@@ -6,7 +6,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 class MetricsCard extends StatelessWidget {
   final String title;
   final String value;
-  final IconData icon;
+  final FaIconData icon;
   final Color color;
   final bool isDarkMode;
 
