@@ -2,6 +2,8 @@ import 'dart:developer';
 
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flosy/features/home/presentation/cubit/home_cubit.dart';
+import 'package:flosy/features/home/presentation/widgets/category_icon.dart';
+import 'package:flosy/features/home/presentation/widgets/category_metadata.dart';
 import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flosy/core/utils/app_colors.dart';
@@ -11,11 +13,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flosy/features/home/data/model/transaction_model.dart';
-import 'package:flosy/features/home/presentation/services/db.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../../settings/cubit/settings_state.dart';
-
 class AddTransactionScreen extends StatefulWidget {
   final TransactionModel? transaction;
 
@@ -29,60 +27,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   late TextEditingController amountController;
   late TextEditingController noteController;
 
+  // Selected category is a plain id string end-to-end — never an icon.
   String selectedCategory = '';
   bool isExpense = true;
   DateTime selectedDate = DateTime.now();
 
-  final List<Map<String, dynamic>> categories = [
-    {
-      'id': 'food',
-      'icon': FontAwesomeIcons.burger,
-      'labelKey': 'categories.food',
-      'color': const Color(0xFF88B0D3),
-    },
-    {
-      'id': 'rent',
-      'icon': FontAwesomeIcons.house,
-      'labelKey': 'categories.rent',
-      'color': const Color(0xFF88B0D3),
-    },
-    {
-      'id': 'transport',
-      'icon': FontAwesomeIcons.car,
-      'labelKey': 'categories.transport',
-      'color': const Color(0xFF88B0D3),
-    },
-    {
-      'id': 'shopping',
-      'icon': FontAwesomeIcons.shoppingBag,
-      'labelKey': 'categories.shopping',
-      'color': const Color(0xFF88B0D3),
-    },
-    {
-      'id': 'fun',
-      'icon': FontAwesomeIcons.film,
-      'labelKey': 'categories.fun',
-      'color': const Color(0xFF88B0D3),
-    },
-    {
-      'id': 'health',
-      'icon': FontAwesomeIcons.heartPulse,
-      'labelKey': 'categories.health',
-      'color': const Color(0xFF88B0D3),
-    },
-    {
-      'id': 'salary',
-      'icon': Icons.attach_money,
-      'labelKey': 'categories.salary',
-      'color': const Color(0xFF88B0D3),
-    },
-    {
-      'id': 'more',
-      'icon': Icons.more_horiz,
-      'labelKey': 'categories.more',
-      'color': const Color(0xFF88B0D3),
-    },
-  ];
+  // Single centralized source of category metadata (id, label, icon, color).
+  // Replaces the old `List<Map<String, dynamic>> categories`.
+  List<CategoryMetadata> get categories => CategoryRegistry.all;
 
   @override
   void initState() {
@@ -161,7 +113,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               noteController.clear();
               setState(() {
                 isExpense = true;
-                selectedCategory = ''; // not 'Food'
+                selectedCategory = '';
                 selectedDate = DateTime.now();
               });
             },
@@ -342,12 +294,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           ),
           itemCount: categories.length,
           itemBuilder: (context, index) {
-            final category = categories[index];
-            final isSelected =
-                selectedCategory == category['id']; // <-- compare by id
+            final meta = categories[index];
+            final categoryId = meta.category.id;
+            final isSelected = selectedCategory == categoryId;
 
             return GestureDetector(
-              onTap: () => setState(() => selectedCategory = category['id']),
+              onTap: () => setState(() => selectedCategory = categoryId),
               child: Container(
                 decoration: BoxDecoration(
                   color: isSelected
@@ -367,14 +319,17 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      category['icon'],
-                      color: isSelected ? Colors.white : category['color'],
+                    // CategoryIcon resolves Material vs FontAwesome
+                    // internally — this widget never touches IconData
+                    // or FaIconData directly, so it can never mismatch.
+                    CategoryIcon(
+                      categoryId: categoryId,
                       size: 28.sp,
+                      colorOverride: isSelected ? Colors.white : null,
                     ),
                     SizedBox(height: 8.h),
                     Text(
-                      (category['labelKey'] as String).tr(),
+                      meta.labelKey.tr(),
                       style: AppText.body12(context).copyWith(
                         color: isSelected
                             ? Colors.white
@@ -542,8 +497,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
   }
 
-  // SettingsCubit settingsCubit = SettingsCubit();
-
   Widget buildSaveButton(BuildContext context, bool isDarkMode) {
     return BlocBuilder<SettingsCubit, SettingsState>(
       builder: (context, state) {
@@ -582,19 +535,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               );
               log('Amount: $amount');
 
-              // Safe category lookup
-              final selectedCategoryData = categories.firstWhere(
-                (cat) => cat['id'] == selectedCategory,
-                orElse: () => {
-                  'id': selectedCategory,
-                  'icon': Icons.category,
-                  'color': AppColors.greenColor,
-                },
-              );
-
-              final categoryIcon = selectedCategoryData['icon'] as IconData;
-
-              // Create transaction
+              // No icon lookup, no `as IconData` / `as FaIconData` cast.
+              // The model only ever receives the category id string —
+              // icon resolution happens purely in the presentation layer,
+              // on read, via CategoryRegistry/CategoryIcon.
               final transaction = TransactionModel(
                 title: noteController.text.isEmpty
                     ? selectedCategory
@@ -605,9 +549,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 type: isExpense
                     ? TransactionType.expense
                     : TransactionType.income,
-                iconCodePoint: categoryIcon.codePoint,
-                iconFontFamily: categoryIcon.fontFamily ?? 'MaterialIcons',
-                iconFontPackage: categoryIcon.fontPackage,
               );
 
               if (!mounted) return;
@@ -617,18 +558,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   widget.transaction!.id != null) {
                 // EDITING
                 transaction.id = widget.transaction!.id;
-
-                // Use the new non-blocking update method
                 await homeCubit.updateTransactionLocal(transaction);
               } else {
                 // NEW TRANSACTION
-                // Use the new non-blocking add method
                 await homeCubit.addTransactionLocal(transaction);
               }
 
               log('✅ Transaction saved locally');
 
-              // NAVIGATE IMMEDIATELY
               if (mounted) {
                 navigator.pop(true);
                 log('✅ Navigated back');
@@ -638,7 +575,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               if (mounted) {
                 final settingsCubit = context.read<SettingsCubit>();
                 if (settingsCubit.isSyncing) {
-                  // Don't await this!
                   homeCubit.syncSingleTransactionToCloud(transaction);
                 }
               }

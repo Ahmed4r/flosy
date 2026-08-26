@@ -9,6 +9,8 @@ import 'package:flosy/features/home/presentation/screens/add_transaction_screen.
 import 'package:flosy/features/home/presentation/widgets/build_amount_card.dart';
 import 'package:flosy/features/home/presentation/widgets/build_header.dart';
 import 'package:flosy/features/home/presentation/widgets/build_tracks.dart';
+import 'package:flosy/features/home/presentation/widgets/category_icon.dart';
+import 'package:flosy/features/home/presentation/widgets/category_metadata.dart';
 import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -16,20 +18,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../settings/cubit/settings_state.dart';
-
-enum TransactionColors {
-  food(Colors.orange),
-  rent(Colors.blue),
-  transport(Colors.green),
-  shopping(Colors.purple),
-  fun(Colors.red),
-  health(Colors.teal),
-  salary(Colors.indigo),
-  more(Colors.grey);
-
-  final Color color;
-  const TransactionColors(this.color);
-}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -406,13 +394,7 @@ class HomeScreenState extends State<HomeScreen> {
 
   Widget _buildTransactionTile(TransactionModel transaction, bool isDarkMode) {
     final isExpense = transaction.type == TransactionType.expense;
-    final catColor = TransactionColors.values
-        .firstWhere(
-          (c) => c.name == transaction.category,
-          orElse: () => TransactionColors.more,
-        )
-        .color;
-
+    final catColor = CategoryRegistry.resolveById(transaction.category).color;
     return Padding(
       padding: EdgeInsets.only(bottom: 8.h),
       child: BlocBuilder<HomeCubit, HomeState>(
@@ -499,10 +481,12 @@ class HomeScreenState extends State<HomeScreen> {
                         color: catColor.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(14.r),
                       ),
-                      child: Icon(
-                        transaction.icon,
-                        color: catColor,
-                        size: 20.sp,
+                      child: Center(
+                        child: CategoryIcon(
+                          categoryId: transaction.category,
+                          colorOverride: catColor,
+                          size: 20.sp,
+                        ),
                       ),
                     ),
                     SizedBox(width: 14.w),
@@ -551,7 +535,7 @@ class HomeScreenState extends State<HomeScreen> {
                             Text(
                               context.read<HomeCubit>().isArabicLocale(context)
                                   ? '${transaction.amount.toStringAsFixed(1)}${currency}${isExpense ? '-' : '+'}'
-                                  : '${isExpense ? '-' : '+'}\$${transaction.amount.toStringAsFixed(2)}',
+                                  : '${isExpense ? '-' : '+'} ${transaction.amount.toStringAsFixed(2)} \$ ',
                               style: AppText.body16(context).copyWith(
                                 color: isExpense
                                     ? Colors.redAccent
@@ -612,7 +596,6 @@ class HomeScreenState extends State<HomeScreen> {
               context,
             ).copyWith(color: isDarkMode ? Colors.white : Colors.black),
             decoration: InputDecoration(
-              hintText: '0.0',
               hintStyle: TextStyle(color: Colors.grey[500]),
               filled: true,
               fillColor: isDarkMode ? Colors.grey[850] : Colors.grey[100],

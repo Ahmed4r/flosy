@@ -176,9 +176,7 @@ Example output: {"title": "اكل", "amount": 50, "type": 1, "category": "food"}
         type: TransactionType.values[content['type'] ?? 1],
         date: DateTime.now(),
         category: categoryId, // سيطابق الآن TransactionColors.name في الـ Tile
-        iconCodePoint: displayIcon.codePoint,
-        iconFontFamily: displayIcon.fontFamily ?? "MaterialIcons",
-        iconFontPackage: displayIcon.fontPackage,
+      
       );
 
       // 🔴 احذف السطرين دول تماماً ⬇️

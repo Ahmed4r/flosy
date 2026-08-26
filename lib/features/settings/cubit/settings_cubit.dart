@@ -22,7 +22,7 @@ class SettingsCubit extends Cubit<SettingsState> {
   ThemeMode _currentThemeMode = ThemeMode.system;
   bool _isDarkMode = false;
   bool _faceIdEnabled = false;
-  String _selectedCurrency = 'USD';
+  String _selectedCurrency = 'EUR';
   File? _image;
   File? get profileImage => _image;
   late SharedPreferences _prefs;
@@ -91,7 +91,8 @@ class SettingsCubit extends Cubit<SettingsState> {
         final store = FirebaseFirestore.instance;
         final doc = await store.collection('users').doc(authUser.uid).get();
         if (doc.exists) {
-          final nameFromFirestore = doc.data()?['userName'] as String? ?? 'User';
+          final nameFromFirestore =
+              doc.data()?['userName'] as String? ?? 'User';
           userName = nameFromFirestore;
           await _prefs.setString('user_name', userName);
           return userName;
@@ -334,7 +335,8 @@ class SettingsCubit extends Cubit<SettingsState> {
     final double totalBalance = homeCubit.totalBalance;
     final double totalIncome = homeCubit.totalIncome;
     final double totalExpense = homeCubit.totalExpenses;
-    final String currentUserName = user.displayName ?? userName ?? "User"; // من Firebase Auth أو Prefs
+    final String currentUserName =
+        user.displayName ?? userName ?? "User"; // من Firebase Auth أو Prefs
 
     final firestore = FirebaseFirestore.instance;
     final batch = firestore.batch();
@@ -597,4 +599,3 @@ class SettingsCubit extends Cubit<SettingsState> {
     }
   }
 }
-

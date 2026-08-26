@@ -3,6 +3,7 @@ import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
 import 'package:flosy/features/settings/cubit/settings_cubit.dart';
+import 'package:flosy/features/settings/domain/currency_metadata.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -17,56 +18,9 @@ class CurrencySettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDarkMode = AppTheme.isDarkMode(context);
 
-    final currencies = [
-      {
-        'code': 'USD',
-        'name': 'US Dollar',
-        'symbol': '\$',
-        'icon': FontAwesomeIcons.dollarSign,
-      },
-      {
-        'code': 'EUR',
-        'name': 'Euro',
-        'symbol': '€',
-        'icon': FontAwesomeIcons.euroSign,
-      },
-      {
-        'code': 'GBP',
-        'name': 'British Pound',
-        'symbol': '£',
-        'icon': FontAwesomeIcons.sterlingSign,
-      },
-      {
-        'code': 'EGP',
-        'name': 'Egyptian Pound',
-        'symbol': 'E£',
-        'icon': FontAwesomeIcons.moneyBill,
-      },
-      {
-        'code': 'SAR',
-        'name': 'Saudi Riyal',
-        'symbol': 'SR',
-        'icon': FontAwesomeIcons.moneyBill1,
-      },
-      {
-        'code': 'AED',
-        'name': 'UAE Dirham',
-        'symbol': 'AED',
-        'icon': FontAwesomeIcons.coins,
-      },
-      {
-        'code': 'JPY',
-        'name': 'Japanese Yen',
-        'symbol': '¥',
-        'icon': FontAwesomeIcons.yenSign,
-      },
-      {
-        'code': 'CNY',
-        'name': 'Chinese Yuan',
-        'symbol': '¥',
-        'icon': FontAwesomeIcons.yenSign,
-      },
-    ];
+    // Single centralized source of currency metadata (code, name, symbol,
+    // icon). Replaces the old `List<Map<String, dynamic>> currencies`.
+    final currencies = CurrencyRegistry.all;
 
     return Scaffold(
       backgroundColor: isDarkMode ? AppColors.blackColor : AppColors.whiteColor,
@@ -93,7 +47,7 @@ class CurrencySettingsScreen extends StatelessWidget {
       ),
       body: BlocBuilder<SettingsCubit, SettingsState>(
         builder: (context, state) {
-          String selectedCurrency = 'USD';
+          String selectedCurrency = 'EUR'; // Default to EUR if not loaded yet
           if (state is SettingsLoaded) {
             selectedCurrency = state.selectedCurrency;
           }
@@ -104,16 +58,12 @@ class CurrencySettingsScreen extends StatelessWidget {
             separatorBuilder: (context, index) => SizedBox(height: 12.h),
             itemBuilder: (context, index) {
               final currency = currencies[index];
-              final isSelected = selectedCurrency == currency['code'];
+              final isSelected = selectedCurrency == currency.code;
 
               return GestureDetector(
                 onTap: () {
-                  // Change currency using the cubit
-                  context.read<SettingsCubit>().changeCurrency(
-                    currency['code'] as String,
-                  );
+                  context.read<SettingsCubit>().changeCurrency(currency.code);
 
-                  // Show success message
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('settings.currency_changed'.tr()),
@@ -161,8 +111,10 @@ class CurrencySettingsScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12.r),
                         ),
                         child: Center(
+                          // No `as FaIconData` cast — currency.icon is
+                          // already a typed FaIconData from the registry.
                           child: FaIcon(
-                            currency['icon'] as FaIconData,
+                            currency.icon,
                             color: isSelected
                                 ? Colors.white
                                 : (isDarkMode
@@ -178,7 +130,7 @@ class CurrencySettingsScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${currency['code']} - ${currency['name']}',
+                              '${currency.code} - ${currency.displayName}',
                               style: AppText.body16(context).copyWith(
                                 fontWeight: isSelected
                                     ? FontWeight.bold
@@ -188,7 +140,7 @@ class CurrencySettingsScreen extends StatelessWidget {
                             ),
                             SizedBox(height: 4.h),
                             Text(
-                              '${'settings.symbol'.tr()} ${currency['symbol']}',
+                              '${'settings.symbol'.tr()} ${currency.symbol}',
                               style: AppText.body14(context).copyWith(
                                 color: isDarkMode
                                     ? Colors.grey[400]

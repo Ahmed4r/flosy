@@ -1,4 +1,12 @@
-import 'package:flutter/widgets.dart';
+// lib/features/home/data/model/transaction_model.dart
+//
+// Domain/data model. Deliberately has NO Flutter import and NO icon
+// fields — icon resolution lives entirely in the presentation layer
+// (see: transaction_category.dart, category_metadata.dart, category_icon.dart).
+//
+// category is a plain String id (e.g. "food"). Use
+// TransactionCategory.fromId(category) / CategoryRegistry.resolveById(category)
+// wherever you need to render it.
 
 class TransactionModel {
   int? id;
@@ -8,11 +16,6 @@ class TransactionModel {
   final DateTime date;
   final String category;
 
-  /// Store icon as data, not IconData itself
-  final int iconCodePoint;
-  final String iconFontFamily;
-  final String? iconFontPackage; // <-- new
-
   TransactionModel({
     this.id,
     required this.title,
@@ -20,17 +23,7 @@ class TransactionModel {
     required this.type,
     required this.date,
     required this.category,
-    required this.iconCodePoint,
-    required this.iconFontFamily,
-    this.iconFontPackage, // <-- new
   });
-
-  /// Convenience getter for UI
-  IconData get icon => IconData(
-    iconCodePoint,
-    fontFamily: iconFontFamily,
-    fontPackage: iconFontPackage, // <-- important for FontAwesome
-  );
 
   Map<String, dynamic> toMap() {
     return {
@@ -40,12 +33,16 @@ class TransactionModel {
       'type': type.index,
       'date': date.millisecondsSinceEpoch,
       'category': category,
-      'iconCodePoint': iconCodePoint,
-      'iconFontFamily': iconFontFamily,
-      'iconFontPackage': iconFontPackage, // <-- new
     };
   }
 
+  /// Backward compatible with old SQLite rows / Firestore docs that may
+  /// still contain iconCodePoint / iconFontFamily / iconFontPackage —
+  /// those keys are simply never read here, so their presence is harmless.
+  ///
+  /// Also tolerant of a missing/unknown category string: it's kept as-is
+  /// (falls back to 'more' only if truly absent), and CategoryRegistry
+  /// handles rendering a generic icon for anything it doesn't recognize.
   factory TransactionModel.fromMap(Map<String, dynamic> map) {
     return TransactionModel(
       id: map['id'] as int?,
@@ -53,11 +50,7 @@ class TransactionModel {
       amount: (map['amount'] as num).toDouble(),
       type: TransactionType.values[map['type'] as int],
       date: DateTime.fromMillisecondsSinceEpoch(map['date'] as int),
-      category: map['category'] as String,
-      iconCodePoint: map['iconCodePoint'] as int,
-      iconFontFamily: map['iconFontFamily'] as String,
-      iconFontPackage: map['iconFontPackage'] as String?, // <-- new
-     
+      category: (map['category'] as String?) ?? 'more',
     );
   }
 }

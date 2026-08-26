@@ -503,7 +503,7 @@ class _DetailedChartScreenState extends State<DetailedChartScreen> {
                             Text(
                               widget.isArabic
                                   ? '${'of_total'.tr()} ${percentage.toStringAsFixed(1)}%'
-                                  : '${percentage.toStringAsFixed(1)}% ${'of_total'.tr()}',
+                                  : '${percentage.toStringAsFixed(1)}%',
                               style: AppText.body12grey(context).copyWith(
                                 color: isDarkMode
                                     ? Colors.grey[400]

@@ -1,5 +1,5 @@
+import 'package:flosy/features/home/presentation/widgets/transaction_category.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../data/model/transaction_model.dart';
@@ -20,7 +20,13 @@ class DatabaseService {
     final dbPath = kIsWeb ? 'flosy.db' : '${dir!.path}/flosy.db';
     _database = await openDatabaseWebCompatible(
       dbPath,
-      version: 6, // Increment version
+      // v7: TransactionModel stopped writing iconCodePoint/iconFontFamily/
+      // iconFontPackage (icon is now resolved from `category` in the
+      // presentation layer). Those Transactions columns were always
+      // nullable, so old rows are untouched and new rows simply leave
+      // them NULL — no destructive migration needed, nothing is
+      // dropped or recreated (requirement: never blindly wipe user data).
+      version: 7,
       onCreate: (Database db, int version) async {
         await db.execute('''
           CREATE TABLE Transactions (
@@ -76,7 +82,6 @@ class DatabaseService {
           ''');
         }
         if (oldVersion < 5) {
-          // Add missing columns to Budgets table
           final result = await db.rawQuery('PRAGMA table_info(Budgets)');
           final columnNames = result
               .map((col) => col['name'] as String)
@@ -114,16 +119,13 @@ class DatabaseService {
           }
         }
         if (oldVersion < 6) {
-          // Check if column exists and rename it or add it
           final result = await db.rawQuery('PRAGMA table_info(Budgets)');
           final columnNames = result
               .map((col) => col['name'] as String)
               .toList();
 
-          // Check if we have the old column name
           if (columnNames.contains('limit_amount') &&
               !columnNames.contains('limitAmount')) {
-            // Rename the column by recreating the table
             await db.execute('ALTER TABLE Budgets RENAME TO Budgets_old');
 
             await db.execute('''
@@ -144,7 +146,6 @@ class DatabaseService {
               )
             ''');
 
-            // Copy data from old table
             await db.execute('''
               INSERT INTO Budgets (id, category, limitAmount, period, startDate, endDate)
               SELECT id, category, limit_amount, period, startDate, endDate FROM Budgets_old
@@ -152,11 +153,9 @@ class DatabaseService {
 
             await db.execute('DROP TABLE Budgets_old');
           } else if (!columnNames.contains('limitAmount')) {
-            // Just add the column if it doesn't exist
             await db.execute('ALTER TABLE Budgets ADD COLUMN limitAmount REAL');
           }
 
-          // Add other missing columns
           if (!columnNames.contains('iconCodePoint')) {
             await db.execute(
               'ALTER TABLE Budgets ADD COLUMN iconCodePoint INTEGER',
@@ -188,6 +187,11 @@ class DatabaseService {
             );
           }
         }
+        // v7 is intentionally a no-op migration for Transactions:
+        // iconCodePoint/iconFontFamily/iconFontPackage are left in place
+        // (still nullable, still harmless) rather than dropped, since
+        // SQLite column drops are version-fragile and unnecessary here —
+        // the app just stops writing/reading them from this version on.
       },
     );
   }
@@ -208,43 +212,32 @@ class DatabaseService {
     );
   }
 
+  /// Handles AI-parsed voice/text transactions. Category may arrive as an
+  /// English id ("food"), an Arabic word ("اكل", "سوبر ماركت"), or something
+  /// unrecognized — it is normalized to a canonical TransactionCategory id
+  /// before saving so it renders and groups (getSpentByCategory, budgets)
+  /// consistently with manually-added transactions. No IconData is ever
+  /// created or stored here anymore; icons are resolved purely from the
+  /// category id in the presentation layer.
   Future<void> processAndSaveAiResponse(Map<String, dynamic> aiJson) async {
     try {
-      TransactionType txType = TransactionType.values[aiJson['type'] ?? 1];
-      IconData categoryIcon = _getIconForCategory(aiJson['category']);
+      final txType = TransactionType.values[aiJson['type'] ?? 1];
+      final categoryId = TransactionCategory.normalizeForStorage(
+        aiJson['category'] as String?,
+      );
 
       final newTransaction = TransactionModel(
         title: aiJson['title'] ?? 'معاملة صوتية',
-        amount: (aiJson['amount'] as num)
-            .toDouble(), // التأكد من تحويلها لـ double
+        amount: (aiJson['amount'] as num).toDouble(),
         type: txType,
-        date: DateTime.now(), // تاريخ اللحظة الحالية
-        category: aiJson['category'] ?? 'عام',
-        iconCodePoint: categoryIcon.codePoint,
-        iconFontFamily: categoryIcon.fontFamily ?? 'MaterialIcons',
-        iconFontPackage: categoryIcon.fontPackage,
+        date: DateTime.now(),
+        category: categoryId,
       );
-      int id = await dbService.addTransaction(newTransaction);
+      final id = await addTransaction(newTransaction);
 
-      print('✅ تم التخزين بنجاح! رقم المعاملة: $id');
+      debugPrint('✅ تم التخزين بنجاح! رقم المعاملة: $id');
     } catch (e) {
-      print('❌ خطأ أثناء معالجة أو تخزين البيانات: $e');
-    }
-  }
-
-  IconData _getIconForCategory(String? category) {
-    switch (category?.toLowerCase()) {
-      case 'سوبر ماركت':
-      case 'shopping':
-        return Icons.shopping_cart;
-      case 'اكل':
-      case 'food':
-        return Icons.restaurant;
-      case 'مواصلات':
-      case 'transport':
-        return Icons.directions_car;
-      default:
-        return Icons.attach_money; // أيقونة افتراضية
+      debugPrint('❌ خطأ أثناء معالجة أو تخزين البيانات: $e');
     }
   }
 
@@ -299,6 +292,8 @@ class DatabaseService {
   }
 
   // ─── BUDGETS ─────────────────────────────────────────
+  // Out of scope for this refactor (BudgetModel wasn't provided and still
+  // owns its own icon columns) — left untouched.
 
   Future<int> addBudget(BudgetModel budget) async {
     final db = await database;
