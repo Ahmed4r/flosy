@@ -8,7 +8,7 @@ import 'package:flutter_sound/flutter_sound.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:audio_session/audio_session.dart';
+// import 'package:audio_session/audio_session.dart';
 
 class RecordingPage extends StatefulWidget {
   final String? sessionId;
@@ -145,26 +145,26 @@ class _RecordingPageState extends State<RecordingPage>
 
     try {
       // 🟢 CRITICAL FIX FOR iOS: Configure AVAudioSession BEFORE opening the recorder
-      final session = await AudioSession.instance;
-      await session.configure(
-        AudioSessionConfiguration(
-          avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
-          avAudioSessionCategoryOptions:
-              AVAudioSessionCategoryOptions.allowBluetooth |
-              AVAudioSessionCategoryOptions.defaultToSpeaker,
-          avAudioSessionMode: AVAudioSessionMode.spokenAudio,
-          avAudioSessionRouteSharingPolicy:
-              AVAudioSessionRouteSharingPolicy.defaultPolicy,
-          avAudioSessionSetActiveOptions: AVAudioSessionSetActiveOptions.none,
-          androidAudioAttributes: const AndroidAudioAttributes(
-            contentType: AndroidAudioContentType.speech,
-            flags: AndroidAudioFlags.none,
-            usage: AndroidAudioUsage.voiceCommunication,
-          ),
-          androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
-          androidWillPauseWhenDucked: true,
-        ),
-      );
+      // final session = await AudioSession.instance;
+      // await session.configure(
+      //   AudioSessionConfiguration(
+      //     avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
+      //     avAudioSessionCategoryOptions:
+      //         AVAudioSessionCategoryOptions.allowBluetooth |
+      //         AVAudioSessionCategoryOptions.defaultToSpeaker,
+      //     avAudioSessionMode: AVAudioSessionMode.spokenAudio,
+      //     avAudioSessionRouteSharingPolicy:
+      //         AVAudioSessionRouteSharingPolicy.defaultPolicy,
+      //     avAudioSessionSetActiveOptions: AVAudioSessionSetActiveOptions.none,
+      //     androidAudioAttributes: const AndroidAudioAttributes(
+      //       contentType: AndroidAudioContentType.speech,
+      //       flags: AndroidAudioFlags.none,
+      //       usage: AndroidAudioUsage.voiceCommunication,
+      //     ),
+      //     androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
+      //     androidWillPauseWhenDucked: true,
+      //   ),
+      // );
 
       await _recorder.openRecorder();
       await _recorder.setSubscriptionDuration(const Duration(milliseconds: 50));
