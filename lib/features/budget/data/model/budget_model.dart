@@ -1,4 +1,6 @@
+import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class BudgetModel {
   int? id;
@@ -31,11 +33,17 @@ class BudgetModel {
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
-  IconData get icon => IconData(
-    iconCodePoint,
-    fontFamily: iconFontFamily,
-    fontPackage: iconFontPackage,
-  );
+  IconData get icon {
+    if (iconCodePoint == 0) {
+      return Icons.help_outline;
+    }
+
+    return IconData(
+      iconCodePoint,
+      fontFamily: iconFontFamily.isNotEmpty ? iconFontFamily : 'MaterialIcons',
+      fontPackage: iconFontPackage,
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -60,16 +68,24 @@ class BudgetModel {
       id: map['id'] as int?,
       category: map['category'] as String,
       limitAmount: (map['limitAmount'] as num).toDouble(),
-      period: map['period'] as String,
-      startDate: DateTime.fromMillisecondsSinceEpoch(map['startDate'] as int),
-      endDate: DateTime.fromMillisecondsSinceEpoch(map['endDate'] as int),
-      iconCodePoint: map['iconCodePoint'] as int,
-      iconFontFamily: map['iconFontFamily'] as String,
+      period: map['period'] as String? ?? 'monthly',
+      startDate: map['startDate'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(map['startDate'] as int)
+          : DateTime.now(),
+      endDate: map['endDate'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(map['endDate'] as int)
+          : DateTime.now(),
+      // iconCodePoint / iconFontFamily may be NULL in old DB rows —
+      // fall back to safe defaults so fromMap never crashes.
+      iconCodePoint: (map['iconCodePoint'] as int?) ?? 0,
+      iconFontFamily: (map['iconFontFamily'] as String?) ?? 'MaterialIcons',
       iconFontPackage: map['iconFontPackage'] as String?,
-      notifyAtThreshold: (map['notifyAtThreshold'] as int) == 1,
+      notifyAtThreshold: ((map['notifyAtThreshold'] as int?) ?? 1) == 1,
       notifyPercent: (map['notifyPercent'] as num?)?.toDouble() ?? 80,
-      isRecurring: (map['isRecurring'] as int) == 1,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] as int),
+      isRecurring: ((map['isRecurring'] as int?) ?? 1) == 1,
+      createdAt: map['createdAt'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(map['createdAt'] as int)
+          : DateTime.now(),
     );
   }
 

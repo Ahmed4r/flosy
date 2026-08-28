@@ -23,7 +23,7 @@ class HomeCubit extends Cubit<HomeState> {
   }
 
   List<TransactionModel> transactions = [];
-  double totalBalance = 0.0;
+  double totalBalance = 0;
   bool isLoading = true;
   bool showAllTransactions = false;
 
@@ -81,7 +81,7 @@ class HomeCubit extends Cubit<HomeState> {
       transactions.insert(0, tx);
 
       final prefs = await SharedPreferences.getInstance();
-      final current = prefs.getDouble('total_balance') ?? 0.0;
+      final current = prefs.getDouble('total_balance') ?? 0;
       final double delta = tx.type == TransactionType.expense
           ? -tx.amount
           : tx.amount;
@@ -122,7 +122,7 @@ class HomeCubit extends Cubit<HomeState> {
       if (index != -1) transactions[index] = tx;
 
       final prefs = await SharedPreferences.getInstance();
-      final current = prefs.getDouble('total_balance') ?? 0.0;
+      final current = prefs.getDouble('total_balance') ?? 0;
       final newBalance = current + netChange;
 
       await prefs.setDouble('total_balance', newBalance);
@@ -206,7 +206,7 @@ class HomeCubit extends Cubit<HomeState> {
         final localLast = prefs.getInt('last_sync') ?? 0;
 
         if (cloudLastTimestamp > localLast) {
-          final cloudBalance = (data['totalBalance'] ?? 0.0).toDouble();
+          final cloudBalance = (data['totalBalance'] ?? 0).toDouble();
           await prefs.setDouble('total_balance', cloudBalance);
           totalBalance = cloudBalance;
           log('✅ Balance synced from Firestore: $cloudBalance (cloud newer)');
@@ -244,7 +244,7 @@ class HomeCubit extends Cubit<HomeState> {
   Future<void> _loadFromLocal() async {
     final loadedTransactions = await dbService.getTransactions();
     final prefs = await SharedPreferences.getInstance();
-    totalBalance = prefs.getDouble('total_balance') ?? 0.0;
+    totalBalance = prefs.getDouble('total_balance') ?? 0;
     transactions = loadedTransactions;
     emit(HomeLoaded(transactions, totalBalance));
   }
@@ -317,7 +317,7 @@ class HomeCubit extends Cubit<HomeState> {
   Future<void> loadBalance() async {
     final prefs = await SharedPreferences.getInstance();
     try {
-      totalBalance = prefs.getDouble('total_balance') ?? 0.0;
+      totalBalance = prefs.getDouble('total_balance') ?? 0;
       emit(HomeLoaded(transactions, totalBalance));
     } catch (e) {
       emit(HomeError('Failed to load balance: $e'));
@@ -366,19 +366,19 @@ class HomeCubit extends Cubit<HomeState> {
 
   double get totalIncome => transactions
       .where((t) => t.type == TransactionType.income)
-      .fold(0.0, (sum, t) => sum + t.amount);
+      .fold(0, (sum, t) => sum + t.amount);
 
   double get totalExpenses => transactions
       .where((t) => t.type == TransactionType.expense)
-      .fold(0.0, (sum, t) => sum + t.amount);
+      .fold(0, (sum, t) => sum + t.amount);
 
   double get netChange => totalIncome - totalExpenses;
 
   double get spentRatio {
     final availableFunds =
-        totalExpenses + totalBalance.clamp(0.0, double.infinity);
+        totalExpenses + totalBalance.clamp(0, double.infinity);
     if (availableFunds <= 0) return 0;
-    return (totalExpenses / availableFunds).clamp(0.0, 1.0);
+    return (totalExpenses / availableFunds).clamp(0, 1.0);
   }
 
   double get percentChange {
@@ -394,7 +394,7 @@ class HomeCubit extends Cubit<HomeState> {
               t.date.year == now.year &&
               t.date.month == now.month,
         )
-        .fold(0.0, (sum, t) => sum + t.amount);
+        .fold(0, (sum, t) => sum + t.amount);
   }
 
   Map<String, double> get expensesByCategoryAndPercentages {
@@ -439,7 +439,7 @@ class HomeCubit extends Cubit<HomeState> {
       transactions.insert(0, tx);
 
       final prefs = await SharedPreferences.getInstance();
-      final current = prefs.getDouble('total_balance') ?? 0.0;
+      final current = prefs.getDouble('total_balance') ?? 0;
       final double delta = tx.type == TransactionType.expense
           ? -tx.amount
           : tx.amount;

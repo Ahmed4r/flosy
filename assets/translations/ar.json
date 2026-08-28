@@ -2,7 +2,7 @@
   "flosy": "فلوسي",
   "password": "كلمة المرور",
   "enter_your_password": "أدخل كلمة المرور الخاصة بك",
-  "forgot_password": "هل نسيت كلمة المرور؟",
+  "forget_password": "هل نسيت كلمة المرور؟",
   "continue_with_google": "المتابعة مع جوجل",
   "login": "تسجيل الدخول",
   "dont_have_an_account": "ليس لديك حساب؟ ",
@@ -21,8 +21,8 @@
   "create_account_subtitle": "أنشئ حسابك الجديد",
   "agree_to": "أوافق على ",
   "terms_and_conditions": "الشروط والأحكام",
-  "forgot_password_title": "نسيت كلمة المرور؟",
-  "forgot_password_subtitle": "لا تقلق! أدخل بريدك الإلكتروني وسنرسل لك ايميل لإعادة تعيين كلمة المرور.",
+  "forget_password_title": "نسيت كلمة المرور؟",
+  "forget_password_subtitle": "لا تقلق! أدخل بريدك الإلكتروني وسنرسل لك ايميل لإعادة تعيين كلمة المرور.",
   "send_code": "إرسال الرمز",
   "password_required": "كلمة المرور مطلوبة",
   "password_min_length": "يجب أن تكون كلمة المرور 8 أحرف على الأقل",
@@ -252,7 +252,8 @@
     "tap_new_budget_to_create": "اضغط على \"ميزانية جديدة\" لإنشاء\nأول حد إنفاق لك",
     "amount_required": "الرجاء إدخال المبلغ",
     "category_required": "الرجاء اختيار الفئة",
-    "notify_on_80": "إشعار عند الوصول إلى 80%"
+    "notify_on_80": "إشعار عند الوصول إلى 80%",
+    "created_successfully": "تم اضافه ميزانيه بنجاح"
   },
   "nav": {
     "home": "الرئيسية",

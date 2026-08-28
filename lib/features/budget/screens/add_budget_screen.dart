@@ -10,6 +10,20 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Typed category configuration — avoids FaIconData→IconData cast failures
+/// on the DDC/JS web runtime.
+/// icon is dynamic because FaIconData is not a Dart subtype of IconData.
+class _CategoryConfig {
+  final String labelKey;
+  final dynamic icon;
+  final Color color;
+  const _CategoryConfig({
+    required this.labelKey,
+    required this.icon,
+    required this.color,
+  });
+}
+
 class AddBudgetScreen extends StatefulWidget {
   final BudgetModel? budget;
   final String? currencySymbol;
@@ -31,37 +45,37 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
   String? _currencySymbol;
 
   // Category configuration with proper translations
-  static final Map<String, Map<String, dynamic>> categories = {
-    'food': {
-      'labelKey': 'transaction.categories.food',
-      'icon': FontAwesomeIcons.burger,
-      'color': Colors.orange,
-    },
-    'shopping': {
-      'labelKey': 'transaction.categories.shopping',
-      'icon': FontAwesomeIcons.bagShopping,
-      'color': Colors.purple,
-    },
-    'transport': {
-      'labelKey': 'transaction.categories.transport',
-      'icon': FontAwesomeIcons.car,
-      'color': Colors.green,
-    },
-    'fun': {
-      'labelKey': 'transaction.categories.fun',
-      'icon': FontAwesomeIcons.film,
-      'color': Colors.red,
-    },
-    'rent': {
-      'labelKey': 'transaction.categories.rent',
-      'icon': FontAwesomeIcons.house,
-      'color': Colors.blue,
-    },
-    'health': {
-      'labelKey': 'transaction.categories.health',
-      'icon': FontAwesomeIcons.heartPulse,
-      'color': Colors.teal,
-    },
+  static final Map<String, _CategoryConfig> categories = {
+    'food': _CategoryConfig(
+      labelKey: 'transaction.categories.food',
+      icon: FontAwesomeIcons.burger,
+      color: Colors.orange,
+    ),
+    'shopping': _CategoryConfig(
+      labelKey: 'transaction.categories.shopping',
+      icon: FontAwesomeIcons.bagShopping,
+      color: Colors.purple,
+    ),
+    'transport': _CategoryConfig(
+      labelKey: 'transaction.categories.transport',
+      icon: FontAwesomeIcons.car,
+      color: Colors.green,
+    ),
+    'fun': _CategoryConfig(
+      labelKey: 'transaction.categories.fun',
+      icon: FontAwesomeIcons.film,
+      color: Colors.red,
+    ),
+    'rent': _CategoryConfig(
+      labelKey: 'transaction.categories.rent',
+      icon: FontAwesomeIcons.house,
+      color: Colors.blue,
+    ),
+    'health': _CategoryConfig(
+      labelKey: 'transaction.categories.health',
+      icon: FontAwesomeIcons.heartPulse,
+      color: Colors.teal,
+    ),
   };
 
   @override
@@ -129,7 +143,13 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
         throw Exception('Invalid category: $_selectedCategory');
       }
 
-      final iconData = categoryData['icon'] as IconData;
+      // Access icon fields via dynamic — FaIconData is not a Dart subtype of IconData.
+      final dynamic iconData = categoryData.icon;
+
+      final int codePoint = iconData.codePoint;
+      final String fontFamily =
+          iconData.fontFamily ?? 'FontAwesomeSolid';
+      final String? fontPackage = iconData.fontPackage;
 
       final budget = BudgetModel(
         id: widget.budget?.id,
@@ -142,11 +162,10 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
         notifyAtThreshold: _notifyAt80,
         notifyPercent: 80,
         createdAt: widget.budget?.createdAt ?? now,
-        iconCodePoint: iconData.codePoint,
-        iconFontFamily: iconData.fontFamily ?? 'MaterialIcons',
-        iconFontPackage: iconData.fontPackage,
+        iconCodePoint: codePoint,
+        iconFontFamily: fontFamily,
+        iconFontPackage: fontPackage,
       );
-
       developer.log(
         'Budget object created: category=${budget.category}, amount=${budget.limitAmount}, recurring=${budget.isRecurring}',
         name: 'AddBudget',
@@ -192,7 +211,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
       developer.log(
         'Error saving budget',
         name: 'AddBudget',
-        error: e,
+        error: e.toString(),
         stackTrace: stackTrace,
       );
 
@@ -448,31 +467,33 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
                           height: 60.h, // Reduced from 64.h
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? (cat['color'] as Color)
-                                : (cat['color'] as Color).withOpacity(0.15),
+                                ? cat.color
+                                : cat.color.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(
                               18.r,
                             ), // Reduced from 20.r
                             border: isSelected
                                 ? Border.all(
-                                    color: cat['color'] as Color,
+                                    color: cat.color,
                                     width: 2.5, // Reduced from 3
                                   )
                                 : null,
                           ),
-                          child: Icon(
-                            cat['icon'] as IconData,
-                            color: isSelected
-                                ? Colors.white
-                                : cat['color'] as Color,
-                            size: 24.sp, // Reduced from 28.sp
+                          child: Center(
+                            child: FaIcon(
+                              cat.icon,
+                              color: isSelected
+                                  ? Colors.white
+                                  : cat.color,
+                              size: 24.sp,
+                            ),
                           ),
                         ),
                         SizedBox(height: 6.h), // Reduced from 8.h
                         Flexible(
                           // Added Flexible
                           child: Text(
-                            (cat['labelKey'] as String).tr(),
+                            cat.labelKey.tr(),
                             style: TextStyle(
                               fontSize: 11.sp, // Reduced from 12.sp
                               fontWeight: FontWeight.w600,

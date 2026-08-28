@@ -429,11 +429,12 @@ class _BudgetScreenState extends State<BudgetScreen> {
     final isOver = spent > limit;
 
     final meta = categoryMeta[budget.category];
-    final displayIcon = meta != null ? meta['icon'] as IconData : budget.icon;
-    final displayColor = meta != null
+    final bool hasMeta = meta != null;
+    final dynamic displayIcon = hasMeta ? meta['icon'] : budget.icon;
+    final displayColor = hasMeta
         ? meta['color'] as Color
         : AppColors.greenColor;
-    final displayLabel = meta != null
+    final displayLabel = hasMeta
         ? (meta['labelKey'] as String).tr()
         : budget.category;
 
@@ -524,7 +525,21 @@ class _BudgetScreenState extends State<BudgetScreen> {
                       color: displayColor.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(14.r),
                     ),
-                    child: Icon(displayIcon, color: displayColor, size: 22.sp),
+                    child: hasMeta
+                        ? Center(
+                            child: FaIcon(
+                              displayIcon,
+                              color: displayColor,
+                              size: 22.sp,
+                            ),
+                          )
+                        : Center(
+                            child: Icon(
+                              displayIcon as IconData,
+                              color: displayColor,
+                              size: 22.sp,
+                            ),
+                          ),
                   ),
                   SizedBox(width: 14.w),
                   Expanded(

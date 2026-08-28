@@ -571,7 +571,7 @@ class HomeScreenState extends State<HomeScreen> {
   Future<void> _showEditBalanceDialog() async {
     bool isDarkMode = AppTheme.isDarkMode(context);
     final controller = TextEditingController(
-      text: context.read<HomeCubit>().totalBalance.toStringAsFixed(1),
+      text: context.read<HomeCubit>().totalBalance.toStringAsFixed(0)
     );
 
     final result = await showDialog<double>(

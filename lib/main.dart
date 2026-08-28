@@ -36,7 +36,6 @@ Future<void> main() async {
     ),
   );
 }
-
 class Flosy extends StatelessWidget {
   final AppTheme appTheme;
   const Flosy({super.key, required this.appTheme});

@@ -331,7 +331,7 @@ class DatabaseService {
     final result = await db.rawQuery(
       'SELECT SUM(CASE WHEN type = 0 THEN amount ELSE -amount END) as totalBalance FROM Transactions',
     );
-    return (result.first['totalBalance'] as num?)?.toDouble() ?? 0.0;
+    return (result.first['totalBalance'] as num?)?.toDouble() ?? 0;
   }
 }
 

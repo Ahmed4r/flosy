@@ -2,7 +2,7 @@
   "flosy": "Flosy",
   "password": "Password",
   "enter_your_password": "Enter your Password",
-  "forgot_password": "Forgot Password?",
+  "forget_password": "Forget Password?",
   "continue_with_google": "Continue with Google",
   "login": "Login",
   "dont_have_an_account": "Don't have an account? ",
@@ -21,8 +21,8 @@
   "create_account_subtitle": "Create your new account",
   "agree_to": "I agree to the ",
   "terms_and_conditions": "Terms & Conditions",
-  "forgot_password_title": "Forgot Password?",
-  "forgot_password_subtitle": "Don't worry! Enter your email address and we'll send you a link to reset your password.",
+  "forget_password_title": "Forget Password?",
+  "forget_password_subtitle": "Don't worry! Enter your email address and we'll send you a link to reset your password.",
   "send_code": "Send Code",
   "error": "Error",
   "ok": "OK",
@@ -251,7 +251,8 @@
     "save_budget": "Save Budget",
     "enter_amount": "Enter amount",
     "amount_required": "Please enter an amount",
-    "category_required": "Please select a category"
+    "category_required": "Please select a category",
+    "created_successfully":"budget created successfully"
   },
   "nav": {
     "home": "Home",

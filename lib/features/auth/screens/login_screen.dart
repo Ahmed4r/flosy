@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:local_auth/local_auth.dart';
 import 'dart:developer' as developer;
 
@@ -224,15 +225,9 @@ class _LoginScreenState extends State<LoginScreen> {
               key: _formKey,
               child: SingleChildScrollView(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(height: 40.h),
-                    // Logo
-                    Image.asset(
-                      'assets/icons/logo.png',
-                      height: 120.h,
-                      width: 180.w,
-                    ),
 
                     // Header
                     Text(
@@ -256,6 +251,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       textAlign: isArabic ? TextAlign.right : TextAlign.left,
                     ),
                     SizedBox(height: 40.h),
+                    Text(
+                      'email'.tr(),
+                      style: GoogleFonts.cairo(fontSize: 16.sp),
+                    ),
+                    SizedBox(height: 15.h),
 
                     // Email Field
                     TextFormField(
@@ -263,14 +263,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       keyboardType: TextInputType.emailAddress,
                       textAlign: isArabic ? TextAlign.right : TextAlign.left,
                       decoration: InputDecoration(
-                        labelText: 'email'.tr(),
+                        contentPadding: EdgeInsets.all(20.r),
                         hintText: 'enter_your_email'.tr(),
-                        prefixIcon: const Icon(Icons.email_outlined),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12.r),
+
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15.r),
                         ),
+
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12.r),
+                          borderRadius: BorderRadius.circular(15.r),
                           borderSide: BorderSide(color: AppColors.greenColor),
                         ),
                       ),
@@ -287,6 +288,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                     ),
                     SizedBox(height: 20.h),
+                    Text(
+                      'password'.tr(),
+                      style: GoogleFonts.cairo(fontSize: 16.sp),
+                    ),
+                    SizedBox(height: 15.h),
 
                     // Password Field
                     TextFormField(
@@ -294,9 +300,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       obscureText: true,
                       textAlign: isArabic ? TextAlign.right : TextAlign.left,
                       decoration: InputDecoration(
-                        labelText: 'password'.tr(),
+                        contentPadding: EdgeInsets.all(20.r),
                         hintText: 'enter_your_password'.tr(),
-                        prefixIcon: const Icon(Icons.lock_outline),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.r),
                         ),
@@ -333,7 +338,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           );
                         },
                         child: Text(
-                          'forgot_password'.tr(),
+                          'forget_password'.tr(),
                           style: AppText.body14(
                             context,
                           ).copyWith(color: AppColors.greenColor),
@@ -343,27 +348,29 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(height: 24.h),
 
                     // Login Button
-                    ElevatedButton(
-                      onPressed: () {
-                        if (_formKey.currentState!.validate()) {
-                          context.read<AuthCubit>().login(
-                            emailController.text.trim(),
-                            passwordController.text.trim(),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.greenColor,
-                        padding: EdgeInsets.symmetric(vertical: 16.h),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r),
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (_formKey.currentState!.validate()) {
+                            context.read<AuthCubit>().login(
+                              emailController.text.trim(),
+                              passwordController.text.trim(),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.greenColor,
+                          padding: EdgeInsets.symmetric(vertical: 16.h),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        'login'.tr(),
-                        style: AppText.body16(context).copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                        child: Text(
+                          'login'.tr(),
+                          style: AppText.body16(context).copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
@@ -462,35 +469,38 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(height: 24.h),
 
                     // Sign Up Link
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'dont_have_an_account'.tr(),
-                          style: AppText.body14(context).copyWith(
-                            color: isDarkMode(context)
-                                ? Colors.white
-                                : Colors.black87,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const RegisterScreen(),
-                              ),
-                            );
-                          },
-                          child: Text(
-                            'create_account'.tr(),
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            'dont_have_an_account'.tr(),
                             style: AppText.body14(context).copyWith(
-                              color: AppColors.greenColor,
-                              fontWeight: FontWeight.bold,
+                              color: isDarkMode(context)
+                                  ? Colors.white
+                                  : Colors.black87,
                             ),
                           ),
-                        ),
-                      ],
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const RegisterScreen(),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              'create_account'.tr(),
+                              style: AppText.body14(context).copyWith(
+                                color: AppColors.greenColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
