@@ -115,6 +115,8 @@
     "please_enter_amount": "Please enter an amount",
     "transaction_saved": "Transaction saved!",
     "invalid_amount": "Please enter a valid amount",
+    "tile_color": "Tile Color",
+    "default_color": "Reset to Default",
     "categories": {
       "food": "Food",
       "rent": "Rent",
@@ -142,6 +144,8 @@
     "language_changed": "Language changed successfully",
     "dark_mode": "Dark Mode",
     "theme": "Theme",
+    "theme_color": "App Accent Color",
+    "theme_color_desc": "Customize the primary accent color across the app",
     "notifications": "Notifications",
     "about": "About",
     "face_id": "Face ID",

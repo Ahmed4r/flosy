@@ -394,7 +394,9 @@ class HomeScreenState extends State<HomeScreen> {
 
   Widget _buildTransactionTile(TransactionModel transaction, bool isDarkMode) {
     final isExpense = transaction.type == TransactionType.expense;
-    final catColor = CategoryRegistry.resolveById(transaction.category).color;
+    final tileColor = transaction.colorValue != null
+        ? Color(transaction.colorValue!)
+        : CategoryRegistry.resolveById(transaction.category).color;
     return Padding(
       padding: EdgeInsets.only(bottom: 8.h),
       child: BlocBuilder<HomeCubit, HomeState>(
@@ -463,9 +465,14 @@ class HomeScreenState extends State<HomeScreen> {
                 decoration: BoxDecoration(
                   color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
                   borderRadius: BorderRadius.circular(16.r),
+                  border: transaction.colorValue != null
+                      ? Border.all(color: tileColor.withOpacity(0.35), width: 1.2)
+                      : null,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDarkMode ? 0.15 : 0.04),
+                      color: transaction.colorValue != null
+                          ? tileColor.withOpacity(isDarkMode ? 0.2 : 0.08)
+                          : Colors.black.withOpacity(isDarkMode ? 0.15 : 0.04),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -478,13 +485,13 @@ class HomeScreenState extends State<HomeScreen> {
                       width: 46.w,
                       height: 46.h,
                       decoration: BoxDecoration(
-                        color: catColor.withOpacity(0.12),
+                        color: tileColor.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(14.r),
                       ),
                       child: Center(
                         child: CategoryIcon(
                           categoryId: transaction.category,
-                          colorOverride: catColor,
+                          colorOverride: tileColor,
                           size: 20.sp,
                         ),
                       ),

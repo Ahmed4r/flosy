@@ -1,9 +1,10 @@
-﻿import 'dart:developer';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flosy/core/network_check.dart';
+import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:flosy/features/settings/cubit/settings_state.dart';
 import 'package:flutter/material.dart';
@@ -30,6 +31,7 @@ class SettingsCubit extends Cubit<SettingsState> {
   bool internetAvailable = false;
   bool _isCloudDataDeleted = false;
   String userName = '';
+  int _accentColorValue = 0xff13ed5a;
 
   ThemeMode get currentThemeMode => _currentThemeMode;
   bool get isDarkMode => _isDarkMode;
@@ -50,6 +52,9 @@ class SettingsCubit extends Cubit<SettingsState> {
     final themeIndex = _prefs.getInt('theme_mode');
     if (themeIndex != null) _currentThemeMode = ThemeMode.values[themeIndex];
 
+    _accentColorValue = _prefs.getInt('accent_color') ?? 0xff13ed5a;
+    AppColors.setAccentColor(Color(_accentColorValue));
+
     // load user name if saved
     userName = _prefs.getString('user_name') ?? '';
 
@@ -64,6 +69,7 @@ class SettingsCubit extends Cubit<SettingsState> {
         internetAvailable: internetAvailable,
         isCloudDataDeleted: _isCloudDataDeleted,
         userName: userName,
+        accentColorValue: _accentColorValue,
       ),
     );
   }
@@ -594,6 +600,35 @@ class SettingsCubit extends Cubit<SettingsState> {
           userName: userName,
         ),
       );
+    } catch (e) {
+      emit(SettingsError(e.toString()));
+    }
+  }
+
+  Future<void> setAccentColor(int colorValue) async {
+    try {
+      _accentColorValue = colorValue;
+      AppColors.setAccentColor(Color(colorValue));
+      await _prefs.setInt('accent_color', colorValue);
+
+      if (state is SettingsLoaded) {
+        emit((state as SettingsLoaded).copyWith(accentColorValue: colorValue));
+      } else {
+        emit(
+          SettingsLoaded(
+            themeMode: _currentThemeMode,
+            isDarkMode: _isDarkMode,
+            faceIdEnabled: _faceIdEnabled,
+            selectedCurrency: _selectedCurrency,
+            profileImage: _image,
+            isSyncing: _isSyncing,
+            internetAvailable: internetAvailable,
+            isCloudDataDeleted: _isCloudDataDeleted,
+            userName: userName,
+            accentColorValue: _accentColorValue,
+          ),
+        );
+      }
     } catch (e) {
       emit(SettingsError(e.toString()));
     }

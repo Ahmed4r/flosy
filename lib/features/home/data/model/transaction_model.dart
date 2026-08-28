@@ -16,6 +16,7 @@ class TransactionModel {
   final DateTime date;
   final String category;
   final String? createdBy;
+  final int? colorValue;
 
   TransactionModel({
     this.id,
@@ -25,6 +26,7 @@ class TransactionModel {
     required this.date,
     required this.category,
     this.createdBy,
+    this.colorValue,
   });
 
   Map<String, dynamic> toMap() {
@@ -36,6 +38,7 @@ class TransactionModel {
       'date': date.millisecondsSinceEpoch,
       'category': category,
       if (createdBy != null) 'createdBy': createdBy,
+      if (colorValue != null) 'colorValue': colorValue,
     };
   }
 
@@ -55,6 +58,7 @@ class TransactionModel {
       date: DateTime.fromMillisecondsSinceEpoch(map['date'] as int),
       category: (map['category'] as String?) ?? 'more',
       createdBy: map['createdBy'] as String?,
+      colorValue: map['colorValue'] as int?,
     );
   }
 }

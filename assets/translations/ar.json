@@ -116,6 +116,8 @@
     "please_enter_amount": "يرجى إدخال المبلغ",
     "transaction_saved": "تم حفظ المعاملة!",
     "invalid_amount": "يرجى إدخال مبلغ صالح",
+    "tile_color": "لون البطاقة",
+    "default_color": "استعادة الافتراضي",
     "categories": {
       "food": "طعام",
       "rent": "إيجار",
@@ -143,6 +145,8 @@
     "language_changed": "تم تغيير اللغة بنجاح",
     "dark_mode": "الوضع الداكن",
     "theme": "المظهر",
+    "theme_color": "لون المظهر الأساسي",
+    "theme_color_desc": "تخصيص اللون الرئيسي في أرجاء التطبيق",
     "notifications": "الإشعارات",
     "about": "حول التطبيق",
     "face_id": "معرف الوجه",

@@ -1,64 +1,225 @@
 workflows:
   ios-ipa-build:
-    name: 🎉 iOS Build (FIXED v2)
+    name: 🎉 iOS Build (FIXED v3)
     max_build_duration: 120
     instance_type: mac_mini_m1
+
     environment:
       flutter: stable
       xcode: latest
       cocoapods: default
+
       vars:
         API_ENV: $API_ENV
+
     cache:
       cache_paths:
         - $FLUTTER_ROOT/.pub-cache
         - $HOME/.pub-cache
-        - ios/Pods
         - $HOME/.cocoapods
-        - ios/.symlinks
         - $HOME/.dart
 
     scripts:
+
+      # ============================================================
+      # 1. Flutter dependencies
+      # ============================================================
       - name: Flutter pub get
         script: |
           set -e
+
+          echo "🔍 Flutter version:"
+          flutter --version
+
+          echo "📦 Getting Flutter packages..."
           flutter pub get
 
+          echo "✅ Flutter packages installed"
+
+      # ============================================================
+      # 2. Verify audio_session dependency
+      # ============================================================
+      - name: Verify audio_session
+        script: |
+          set -e
+
+          echo "🔍 Checking audio_session..."
+
+          if grep -q "audio_session:" pubspec.yaml; then
+            echo "✅ audio_session found in pubspec.yaml"
+          else
+            echo "❌ audio_session is missing from pubspec.yaml"
+            exit 1
+          fi
+
+          echo ""
+          echo "📦 Flutter package:"
+          flutter pub deps | grep audio_session || true
+
+      # ============================================================
+      # 3. Create api.env
+      # ============================================================
       - name: Create api.env file
         script: |
           set -e
+
           echo "$API_ENV" > "$CM_BUILD_DIR/api.env"
+
           echo "✅ api.env created"
 
-      
+      # ============================================================
+      # 4. Clean iOS Pods completely
+      # ============================================================
+      - name: Clean iOS Pods
+        script: |
+          set -e
+
+          cd ios
+
+          echo "🧹 Removing old Pods..."
+
+          rm -rf Pods
+          rm -rf .symlinks
+          rm -rf Flutter/ephemeral
+
+          rm -f Podfile.lock
+
+          echo "✅ Old Pods removed"
+
+          cd ..
+
+      # ============================================================
+      # 5. Recreate Flutter iOS files
+      # ============================================================
+      - name: Prepare Flutter iOS
+        script: |
+          set -e
+
+          flutter clean
+          flutter pub get
+
+          echo "✅ Flutter iOS files regenerated"
+
+      # ============================================================
+      # 6. Install CocoaPods from scratch
+      # ============================================================
       - name: Install CocoaPods
         script: |
           set -e
+
           cd ios
-          pod install
+
+          echo "💎 CocoaPods version:"
+          pod --version
+
+          echo ""
+          echo "📦 Installing CocoaPods dependencies..."
+
+          pod install --repo-update
+
+          echo ""
+          echo "🔍 Checking installed Pods..."
+
+          if [ -d "Pods/audio_session" ]; then
+            echo "✅ audio_session Pod exists"
+          else
+            echo "❌ audio_session Pod NOT FOUND"
+            echo ""
+            echo "Installed Pods containing audio:"
+            find Pods -maxdepth 2 -iname "*audio*" -print || true
+            exit 1
+          fi
+
           cd ..
 
-      
+          echo "✅ CocoaPods installation completed"
 
+      # ============================================================
+      # 7. Force iOS deployment target to 16.0
+      # ============================================================
+      - name: Configure iOS deployment target
+        script: |
+          set -e
+
+          echo "🔧 Configuring iOS deployment target..."
+
+          # Runner project
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*;/IPHONEOS_DEPLOYMENT_TARGET = 16.0;/g' \
+            ios/Runner.xcodeproj/project.pbxproj
+
+          # Podfile
+          if grep -q "platform :ios" ios/Podfile; then
+            sed -i '' "s/platform :ios, '[0-9.]*'/platform :ios, '16.0'/g" ios/Podfile
+          fi
+
+          echo "✅ iOS deployment target configured to 16.0"
+
+      # ============================================================
+      # 8. Disable Code Signing
+      # ============================================================
       - name: Disable Code Signing
         script: |
           set -e
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/DEVELOPMENT_TEAM = .*/DEVELOPMENT_TEAM = "";/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/CODE_SIGN_IDENTITY = .*/CODE_SIGN_IDENTITY = "";/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*/PROVISIONING_PROFILE_SPECIFIER = "";/g' ios/Runner.xcodeproj/project.pbxproj
-          echo "Code signing disabled"
 
+          echo "🔐 Disabling code signing..."
+
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' \
+            ios/Runner.xcodeproj/project.pbxproj
+
+          sed -i '' 's/DEVELOPMENT_TEAM = .*/DEVELOPMENT_TEAM = "";/g' \
+            ios/Runner.xcodeproj/project.pbxproj
+
+          sed -i '' 's/CODE_SIGN_IDENTITY = .*/CODE_SIGN_IDENTITY = "";/g' \
+            ios/Runner.xcodeproj/project.pbxproj
+
+          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*/PROVISIONING_PROFILE_SPECIFIER = "";/g' \
+            ios/Runner.xcodeproj/project.pbxproj
+
+          echo "✅ Code signing disabled"
+
+      # ============================================================
+      # 9. Verify CocoaPods integration
+      # ============================================================
+      - name: Verify Pods integration
+        script: |
+          set -e
+
+          echo "🔍 Checking audio_session integration..."
+
+          if grep -R "audio_session" ios/Pods/Target\ Support\ Files 2>/dev/null | head -20; then
+            echo "✅ audio_session integration detected"
+          else
+            echo "⚠️ audio_session integration files not found"
+          fi
+
+          echo ""
+          echo "🔍 Checking workspace..."
+
+          if [ -d "ios/Runner.xcworkspace" ]; then
+            echo "✅ Runner.xcworkspace exists"
+          else
+            echo "❌ Runner.xcworkspace missing"
+            exit 1
+          fi
+
+      # ============================================================
+      # 10. Build with Xcode
+      # ============================================================
       - name: Build with xcodebuild
         script: |
           set -e
+
           cd ios
+
+          echo "🏗️ Starting Xcode build..."
+
           xcodebuild \
             -workspace Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
             -sdk iphoneos \
-            -derivedDataPath $CM_BUILD_DIR/derived \
+            -derivedDataPath "$CM_BUILD_DIR/derived" \
+            IPHONEOS_DEPLOYMENT_TARGET=16.0 \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
@@ -66,21 +227,52 @@ workflows:
             PROVISIONING_PROFILE_SPECIFIER="" \
             COMPILER_INDEX_STORE_ENABLE=NO \
             build
+
           cd ..
-          
-          echo "Build completed successfully"
 
+          echo "✅ Build completed successfully"
 
+      # ============================================================
+      # 11. Create IPA
+      # ============================================================
       - name: Create IPA
         script: |
           set -e
-          APP_PATH=$(find $CM_BUILD_DIR/derived -name "Runner.app" | head -1)
-          echo "Found app at: $APP_PATH"
+
+          echo "📦 Locating Runner.app..."
+
+          APP_PATH=$(find "$CM_BUILD_DIR/derived" \
+            -type d \
+            -name "Runner.app" \
+            -path "*/Release-iphoneos/*" \
+            | head -1)
+
+          if [ -z "$APP_PATH" ]; then
+            echo "❌ Runner.app not found"
+            echo ""
+            echo "Available .app files:"
+            find "$CM_BUILD_DIR/derived" -name "*.app" -print || true
+            exit 1
+          fi
+
+          echo "✅ Found app:"
+          echo "$APP_PATH"
+
+          rm -rf build/ios/iphoneos
           mkdir -p build/ios/iphoneos/Payload
-          cp -r "$APP_PATH" build/ios/iphoneos/Payload/
+
+          cp -R "$APP_PATH" build/ios/iphoneos/Payload/
+
           cd build/ios/iphoneos
+
           zip -qq -r -9 FlutterIpaExport.ipa Payload
-          echo "IPA created: $(du -sh FlutterIpaExport.ipa | cut -f1)"
+
+          echo ""
+          echo "========================================"
+          echo "🎉 IPA CREATED SUCCESSFULLY"
+          echo "========================================"
+
+          ls -lh FlutterIpaExport.ipa
 
     artifacts:
       - build/ios/iphoneos/FlutterIpaExport.ipa

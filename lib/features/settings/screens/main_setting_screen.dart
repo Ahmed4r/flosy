@@ -432,6 +432,111 @@ class _MainSettingViewState extends State<_MainSettingView> {
             ),
             onTap: null,
           ),
+          Divider(
+            height: 1,
+            color: isDarkMode ? Colors.white12 : Colors.grey[200],
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 40.w,
+                      height: 40.h,
+                      decoration: BoxDecoration(
+                        color: AppColors.greenColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      child: Center(
+                        child: FaIcon(
+                          FontAwesomeIcons.palette,
+                          color: AppColors.greenColor,
+                          size: 18.sp,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 14.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'settings.theme_color'.tr(),
+                            style: AppText.body16(context).copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                            ),
+                          ),
+                          SizedBox(height: 2.h),
+                          Text(
+                            'settings.theme_color_desc'.tr(),
+                            style: AppText.body12(context).copyWith(
+                              color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 12.h),
+                BlocBuilder<SettingsCubit, SettingsState>(
+                  builder: (context, state) {
+                    final currentAccent = state is SettingsLoaded
+                        ? state.accentColorValue
+                        : 0xff13ed5a;
+
+                    return SizedBox(
+                      height: 42.h,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: AppColors.themePresets.length,
+                        separatorBuilder: (_, __) => SizedBox(width: 10.w),
+                        itemBuilder: (context, index) {
+                          final preset = AppColors.themePresets[index];
+                          final isSelected = currentAccent == preset.color.value;
+
+                          return GestureDetector(
+                            onTap: () {
+                              context.read<SettingsCubit>().setAccentColor(preset.color.value);
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              width: 38.w,
+                              height: 38.h,
+                              decoration: BoxDecoration(
+                                color: preset.color,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isSelected
+                                      ? (isDarkMode ? Colors.white : Colors.black87)
+                                      : Colors.transparent,
+                                  width: 2.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: preset.color.withOpacity(isSelected ? 0.6 : 0.2),
+                                    blurRadius: isSelected ? 8 : 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: isSelected
+                                  ? const Icon(Icons.check, color: Colors.white, size: 18)
+                                  : null,
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

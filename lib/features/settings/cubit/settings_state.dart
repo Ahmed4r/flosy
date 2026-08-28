@@ -21,7 +21,8 @@ class SettingsLoaded extends SettingsState {
   final bool isSyncing;
   final bool internetAvailable;
   final bool isCloudDataDeleted;
-  final String userName; // This should NEVER be null
+  final String userName;
+  final int accentColorValue;
 
   SettingsLoaded({
     required this.themeMode,
@@ -32,10 +33,10 @@ class SettingsLoaded extends SettingsState {
     required this.isSyncing,
     required this.internetAvailable,
     required this.isCloudDataDeleted,
-    this.userName = '', // Default to empty string, NEVER null
+    this.userName = '',
+    this.accentColorValue = 0xff13ed5a,
   });
 
-  // CRITICAL: Include userName in props so changes are detected
   @override
   List<Object?> get props => [
         themeMode,
@@ -46,10 +47,10 @@ class SettingsLoaded extends SettingsState {
         isSyncing,
         internetAvailable,
         isCloudDataDeleted,
-        userName, // ← MUST be included!
+        userName,
+        accentColorValue,
       ];
 
-  // CopyWith method for easy state updates
   SettingsLoaded copyWith({
     ThemeMode? themeMode,
     bool? isDarkMode,
@@ -60,6 +61,7 @@ class SettingsLoaded extends SettingsState {
     bool? internetAvailable,
     bool? isCloudDataDeleted,
     String? userName,
+    int? accentColorValue,
   }) {
     return SettingsLoaded(
       themeMode: themeMode ?? this.themeMode,
@@ -71,6 +73,7 @@ class SettingsLoaded extends SettingsState {
       internetAvailable: internetAvailable ?? this.internetAvailable,
       isCloudDataDeleted: isCloudDataDeleted ?? this.isCloudDataDeleted,
       userName: userName ?? this.userName,
+      accentColorValue: accentColorValue ?? this.accentColorValue,
     );
   }
 }

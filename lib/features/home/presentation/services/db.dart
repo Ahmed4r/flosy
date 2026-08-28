@@ -27,7 +27,8 @@ class DatabaseService {
       // them NULL — no destructive migration needed, nothing is
       // dropped or recreated (requirement: never blindly wipe user data).
       // v8: Added createdBy column to Transactions for family tracking.
-      version: 8,
+      // v9: Added colorValue column to Transactions for custom tile color.
+      version: 9,
       onCreate: (Database db, int version) async {
         await db.execute('''
           CREATE TABLE Transactions (
@@ -40,7 +41,8 @@ class DatabaseService {
             iconCodePoint INTEGER,
             iconFontFamily TEXT,
             iconFontPackage TEXT,
-            createdBy TEXT
+            createdBy TEXT,
+            colorValue INTEGER
           )
         ''');
         await db.execute('''
@@ -204,6 +206,18 @@ class DatabaseService {
           if (!columnNames.contains('createdBy')) {
             await db.execute(
               'ALTER TABLE Transactions ADD COLUMN createdBy TEXT',
+            );
+          }
+        }
+        if (oldVersion < 9) {
+          final result = await db.rawQuery('PRAGMA table_info(Transactions)');
+          final columnNames = result
+              .map((col) => col['name'] as String)
+              .toList();
+
+          if (!columnNames.contains('colorValue')) {
+            await db.execute(
+              'ALTER TABLE Transactions ADD COLUMN colorValue INTEGER',
             );
           }
         }

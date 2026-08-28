@@ -32,6 +32,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   String selectedCategory = '';
   bool isExpense = true;
   DateTime selectedDate = DateTime.now();
+  Color? selectedTileColor;
 
   // Single centralized source of category metadata (id, label, icon, color).
   // Replaces the old `List<Map<String, dynamic>> categories`.
@@ -49,6 +50,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       isExpense = tx.type == TransactionType.expense;
       selectedCategory = tx.category;
       selectedDate = tx.date;
+      if (tx.colorValue != null) {
+        selectedTileColor = Color(tx.colorValue!);
+      }
       amountController.text = tx.amount.toStringAsFixed(2);
       noteController.text = tx.title;
     }
@@ -136,6 +140,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               buildAmountDisplay(),
               SizedBox(height: 15.h),
               buildCategorySection(),
+              SizedBox(height: 15.h),
+              buildColorSection(isDarkMode),
               SizedBox(height: 15.h),
               buildDateSection(isDarkMode),
               SizedBox(height: 15.h),
@@ -349,6 +355,79 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
+  Widget buildColorSection(bool isDarkMode) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'transaction.tile_color'.tr(),
+              style: AppText.body16(context).copyWith(
+                fontWeight: FontWeight.bold,
+                color: _getTextColor(context),
+              ),
+            ),
+            if (selectedTileColor != null)
+              GestureDetector(
+                onTap: () => setState(() => selectedTileColor = null),
+                child: Text(
+                  'transaction.default_color'.tr(),
+                  style: AppText.body12(context).copyWith(
+                    color: Colors.blueAccent,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        SizedBox(height: 10.h),
+        SizedBox(
+          height: 48.h,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: AppColors.tileColors.length,
+            separatorBuilder: (_, __) => SizedBox(width: 10.w),
+            itemBuilder: (context, index) {
+              final color = AppColors.tileColors[index];
+              final isSelected = selectedTileColor?.value == color.value;
+
+              return GestureDetector(
+                onTap: () => setState(() => selectedTileColor = color),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 44.w,
+                  height: 44.h,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected
+                          ? (isDarkMode ? Colors.white : Colors.black87)
+                          : Colors.transparent,
+                      width: 3,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withOpacity(isSelected ? 0.5 : 0.2),
+                        blurRadius: isSelected ? 8 : 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: isSelected
+                      ? const Icon(Icons.check, color: Colors.white, size: 22)
+                      : null,
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget buildDateSection(bool isDarkMode) {
     return GestureDetector(
       onTap: () async {
@@ -556,6 +635,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       ? TransactionType.expense
                       : TransactionType.income,
                   createdBy: userName,
+                  colorValue: selectedTileColor?.value,
                 );
 
               if (!mounted) return;
