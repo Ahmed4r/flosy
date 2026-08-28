@@ -10,6 +10,7 @@ import 'package:flosy/features/home/presentation/cubit/home_cubit.dart';
 import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flosy/features/settings/screens/currency_settings_screen.dart';
 import 'package:flosy/features/settings/screens/edit_profile_screen.dart';
+import 'package:flosy/features/settings/screens/family_sharing_screen.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -535,6 +536,32 @@ class _MainSettingViewState extends State<_MainSettingView> {
                 );
               },
             ),
+          ),
+          Divider(
+            height: 1,
+            color: isDarkMode ? Colors.white12 : Colors.grey[200],
+          ),
+          _buildSettingsTile(
+            context,
+            isDarkMode,
+            icon: FontAwesomeIcons.users,
+            iconColor: Colors.purple,
+            iconBgColor: Colors.purple.withOpacity(0.15),
+            title: 'settings.family_sharing'.tr(),
+            trailing: Icon(
+              Icons.arrow_forward_ios,
+              color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+              size: 16.sp,
+            ),
+            onTap: () async {
+              final result = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(builder: (context) => const FamilySharingScreen()),
+              );
+              if (result == true && context.mounted) {
+                await context.read<HomeCubit>().refresh();
+              }
+            },
           ),
         ],
       ),

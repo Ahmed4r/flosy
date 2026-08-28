@@ -506,15 +506,45 @@ class HomeScreenState extends State<HomeScreen> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           SizedBox(height: 2.h),
-                          Text(
-                            context.read<HomeCubit>().getCategoryLabel(
-                              transaction.category,
-                            ),
-                            style: AppText.body12(context).copyWith(
-                              color: isDarkMode
-                                  ? Colors.grey[500]
-                                  : Colors.grey[500],
-                            ),
+                          Row(
+                            children: [
+                              Text(
+                                context.read<HomeCubit>().getCategoryLabel(
+                                  transaction.category,
+                                ),
+                                style: AppText.body12(context).copyWith(
+                                  color: isDarkMode
+                                      ? Colors.grey[500]
+                                      : Colors.grey[500],
+                                ),
+                              ),
+                              if (transaction.createdBy != null &&
+                                  transaction.createdBy!.isNotEmpty) ...[
+                                SizedBox(width: 6.w),
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.h),
+                                  decoration: BoxDecoration(
+                                    color: isDarkMode ? Colors.white10 : Colors.black.withOpacity(0.05),
+                                    borderRadius: BorderRadius.circular(6.r),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.person_outline, size: 10.sp, color: AppColors.greenColor),
+                                      SizedBox(width: 2.w),
+                                      Text(
+                                        transaction.createdBy!,
+                                        style: TextStyle(
+                                          fontSize: 10.sp,
+                                          fontWeight: FontWeight.w500,
+                                          color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ],
                       ),

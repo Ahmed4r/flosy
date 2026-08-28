@@ -26,7 +26,8 @@ class DatabaseService {
       // nullable, so old rows are untouched and new rows simply leave
       // them NULL — no destructive migration needed, nothing is
       // dropped or recreated (requirement: never blindly wipe user data).
-      version: 7,
+      // v8: Added createdBy column to Transactions for family tracking.
+      version: 8,
       onCreate: (Database db, int version) async {
         await db.execute('''
           CREATE TABLE Transactions (
@@ -38,7 +39,8 @@ class DatabaseService {
             category TEXT,
             iconCodePoint INTEGER,
             iconFontFamily TEXT,
-            iconFontPackage TEXT
+            iconFontPackage TEXT,
+            createdBy TEXT
           )
         ''');
         await db.execute('''
@@ -192,6 +194,19 @@ class DatabaseService {
         // (still nullable, still harmless) rather than dropped, since
         // SQLite column drops are version-fragile and unnecessary here —
         // the app just stops writing/reading them from this version on.
+        
+        if (oldVersion < 8) {
+          final result = await db.rawQuery('PRAGMA table_info(Transactions)');
+          final columnNames = result
+              .map((col) => col['name'] as String)
+              .toList();
+
+          if (!columnNames.contains('createdBy')) {
+            await db.execute(
+              'ALTER TABLE Transactions ADD COLUMN createdBy TEXT',
+            );
+          }
+        }
       },
     );
   }

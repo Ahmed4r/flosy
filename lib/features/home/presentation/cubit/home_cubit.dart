@@ -154,17 +154,20 @@ class HomeCubit extends Cubit<HomeState> {
         if (user == null) return;
         if (!await _hasInternet()) return;
 
-        final userDocRef = FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid);
-        final txDocRef = userDocRef
+        final userDocSnapshot = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        final familyId = userDocSnapshot.data()?['familyId'] ?? user.uid;
+
+        final familyDocRef = FirebaseFirestore.instance
+            .collection('families')
+            .doc(familyId);
+        final txDocRef = familyDocRef
             .collection('transactions')
             .doc(tx.id.toString());
         await txDocRef
             .set(tx.toMap(), SetOptions(merge: true))
             .timeout(const Duration(seconds: 10));
 
-        await userDocRef
+        await familyDocRef
             .set({
               'lastSync': Timestamp.fromDate(DateTime.now()),
               'totalBalance': totalBalance,
@@ -193,12 +196,15 @@ class HomeCubit extends Cubit<HomeState> {
 
     try {
       final firestore = FirebaseFirestore.instance;
-      final userDocRef = firestore.collection('users').doc(user.uid);
+      
+      final userDocSnapshot = await firestore.collection('users').doc(user.uid).get();
+      final familyId = userDocSnapshot.data()?['familyId'] ?? user.uid;
+      final familyDocRef = firestore.collection('families').doc(familyId);
 
       // 1. Sync balance from Firestore
-      final userDoc = await userDocRef.get();
-      if (userDoc.exists) {
-        final data = userDoc.data()!;
+      final familyDoc = await familyDocRef.get();
+      if (familyDoc.exists) {
+        final data = familyDoc.data()!;
         final cloudLastTimestamp =
             (data['lastSync'] as Timestamp?)?.toDate().millisecondsSinceEpoch ??
             0;
@@ -216,7 +222,7 @@ class HomeCubit extends Cubit<HomeState> {
       }
 
       // 2. Sync transactions from Firestore
-      final snapshot = await userDocRef.collection('transactions').get();
+      final snapshot = await familyDocRef.collection('transactions').get();
       if (snapshot.docs.isEmpty) {
         log('ℹ️ No transactions found in Firestore');
         return;

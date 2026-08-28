@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:easy_localization/easy_localization.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flosy/features/home/presentation/cubit/home_cubit.dart';
 import 'package:flosy/features/home/presentation/widgets/category_icon.dart';
 import 'package:flosy/features/home/presentation/widgets/category_metadata.dart';
@@ -539,17 +540,23 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               // The model only ever receives the category id string —
               // icon resolution happens purely in the presentation layer,
               // on read, via CategoryRegistry/CategoryIcon.
-              final transaction = TransactionModel(
-                title: noteController.text.isEmpty
-                    ? selectedCategory
-                    : noteController.text,
-                amount: amount,
-                date: selectedDate,
-                category: selectedCategory,
-                type: isExpense
-                    ? TransactionType.expense
-                    : TransactionType.income,
-              );
+                final user = FirebaseAuth.instance.currentUser;
+                final userName = user?.displayName?.isNotEmpty == true
+                    ? user!.displayName
+                    : (user?.email?.isNotEmpty == true ? user!.email!.split('@').first : null);
+
+                final transaction = TransactionModel(
+                  title: noteController.text.isEmpty
+                      ? selectedCategory
+                      : noteController.text,
+                  amount: amount,
+                  date: selectedDate,
+                  category: selectedCategory,
+                  type: isExpense
+                      ? TransactionType.expense
+                      : TransactionType.income,
+                  createdBy: userName,
+                );
 
               if (!mounted) return;
               final homeCubit = context.read<HomeCubit>();

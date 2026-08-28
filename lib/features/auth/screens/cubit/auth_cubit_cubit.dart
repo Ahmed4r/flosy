@@ -1,4 +1,5 @@
 import 'package:bloc/bloc.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -46,6 +47,19 @@ class AuthCubit extends Cubit<AuthCubitState> {
       final user = credential.user;
 
       if (user != null) {
+        // Ensure user document exists with a default familyId for legacy users
+        try {
+          final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+          if (!doc.exists || !doc.data()!.containsKey('familyId')) {
+            await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+              'familyId': user.uid,
+              'createdAt': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
+          }
+        } catch (e) {
+          debugPrint('Error checking/creating user document: $e');
+        }
+
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('user_token', user.uid);
       }
@@ -83,6 +97,16 @@ class AuthCubit extends Cubit<AuthCubitState> {
       if (user != null) {
         if (name != null && name.trim().isNotEmpty) {
           await user.updateDisplayName(name.trim());
+        }
+
+        // Initialize user document with a default familyId (their own uid)
+        try {
+          await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+            'familyId': user.uid,
+            'createdAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        } catch (e) {
+          debugPrint('Error creating user document: $e');
         }
 
         final prefs = await SharedPreferences.getInstance();

@@ -15,6 +15,7 @@ class TransactionModel {
   final TransactionType type;
   final DateTime date;
   final String category;
+  final String? createdBy;
 
   TransactionModel({
     this.id,
@@ -23,6 +24,7 @@ class TransactionModel {
     required this.type,
     required this.date,
     required this.category,
+    this.createdBy,
   });
 
   Map<String, dynamic> toMap() {
@@ -33,6 +35,7 @@ class TransactionModel {
       'type': type.index,
       'date': date.millisecondsSinceEpoch,
       'category': category,
+      if (createdBy != null) 'createdBy': createdBy,
     };
   }
 
@@ -51,6 +54,7 @@ class TransactionModel {
       type: TransactionType.values[map['type'] as int],
       date: DateTime.fromMillisecondsSinceEpoch(map['date'] as int),
       category: (map['category'] as String?) ?? 'more',
+      createdBy: map['createdBy'] as String?,
     );
   }
 }
