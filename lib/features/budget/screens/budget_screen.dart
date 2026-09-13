@@ -168,15 +168,15 @@ class _BudgetScreenState extends State<BudgetScreen> {
           ],
         ),
       ),
-      floatingActionButton: _buildNewBudgetButton(currencySymbol),
     );
   }
 
   Widget _buildHeader() {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             'budget.title'.tr(),
@@ -186,6 +186,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
               color: _textPrimary,
             ),
           ),
+          _buildNewBudgetButton(currencySymbol),
         ],
       ),
     );
@@ -705,7 +706,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
   Widget _buildNewBudgetButton(String currencySymbol) {
     return Container(
-      margin: EdgeInsets.only(bottom: 80.h, right: 4.w),
+      // margin: EdgeInsets.only(bottom: 80.h, right: 4.w),
       child: FloatingActionButton.extended(
         heroTag: "new_budget",
         onPressed: () async {

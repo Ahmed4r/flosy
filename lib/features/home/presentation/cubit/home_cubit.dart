@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
 
-import 'package:bloc/bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -15,7 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 part 'home_state.dart';
 
 class HomeCubit extends Cubit<HomeState> {
-  SharedPreferences? _prefs;
+
   String userName = '';
 
   HomeCubit() : super(HomeInitial()) {
@@ -39,7 +38,6 @@ class HomeCubit extends Cubit<HomeState> {
   // If online → sync from Firestore first, then load from local DB.
   // If offline → load from local DB only (works without internet).
 
-  bool _hasSyncedThisSession = false;
 
   Future<void> loadAll() async {
     if (state is! HomeLoaded) emit(HomeLoading());
@@ -54,7 +52,6 @@ class HomeCubit extends Cubit<HomeState> {
       // then load local DB into state. This prevents overwriting cloud data.
       if (user != null && online && isSyncing) {
         await _syncFromFirestore();
-        _hasSyncedThisSession = true;
       }
 
       await _loadFromLocal();
@@ -66,7 +63,7 @@ class HomeCubit extends Cubit<HomeState> {
   // ─── REFRESH ─────────────────────────────────────────────────────────────────
 
   Future<void> refresh() async {
-    _hasSyncedThisSession = false; // force re-sync on manual pull
+// force re-sync on manual pull
     await loadAll();
   }
 
@@ -494,7 +491,6 @@ class HomeCubit extends Cubit<HomeState> {
   Future<void> loadSettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      _prefs = prefs;
 
       final savedUserName = prefs.getString('user_name') ?? '';
       userName = savedUserName;

@@ -76,9 +76,13 @@ class AIExtractionService {
       var whisperResponse = await http.Response.fromStream(
         await whisperRequest.send(),
       );
+      log("Whisper status: ${whisperResponse.statusCode}");
+      log("Whisper body: ${whisperResponse.body}");
       // 1️⃣ التغيير الأول: ارمي Exception لو الـ Whisper فشل
       if (whisperResponse.statusCode != 200) {
-        throw Exception('فشل تحويل الصوت لنص (Whisper Error)');
+        throw Exception(
+          'فشل تحويل الصوت لنص (Whisper Error ${whisperResponse.statusCode}): ${whisperResponse.body}',
+        );
       }
 
       var transcription = jsonDecode(whisperResponse.body)['text'];
@@ -164,24 +168,22 @@ Example output: {"title": "اكل", "amount": 50, "type": 1, "category": "food"}
       log("📦 الـ JSON المستخرج: $content");
 
       // 3. مطابقة البيانات (المنطق البرمجي للأيقونة واللون)
-      String categoryId =
+      var categoryId =
           content['category']?.toString().toLowerCase().trim() ?? 'more';
 
-      // البحث عن البيانات الكاملة للتصنيف لضمان مطابقة الأيقونة واللون
-      final categoryData = availableCategories.firstWhere(
+      final isValidCategory = availableCategories.any(
         (element) => element['id'] == categoryId,
-        orElse: () => availableCategories.last, // 'more'
       );
-
-      final IconData displayIcon = categoryData['icon'];
-
+      if (!isValidCategory) {
+        categoryId = 'more';
+      }
       // 4. بناء الـ Model
       final transaction = TransactionModel(
         title: content['title'] ?? transcription,
         amount: (content['amount'] as num).toDouble(),
         type: TransactionType.values[content['type'] ?? 1],
         date: DateTime.now(),
-        category: categoryId, // سيطابق الآن TransactionColors.name في الـ Tile
+        category: categoryId,
       );
 
       // 🔴 احذف السطرين دول تماماً ⬇️

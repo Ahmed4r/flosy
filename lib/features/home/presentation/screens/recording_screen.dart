@@ -8,6 +8,7 @@ import 'package:flutter_sound/flutter_sound.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
 // import 'package:audio_session/audio_session.dart';
 
 class RecordingPage extends StatefulWidget {
@@ -25,21 +26,18 @@ class _RecordingPageState extends State<RecordingPage>
 
   bool _isRecording = false;
   bool _isLoading = false;
-  bool _isDisposing = false; // منع استدعاء stopRecorder مرتين
+  bool _isDisposing = false;
   String? _actualPath;
 
-  // Animation controllers
   late AnimationController _pulseController;
   late AnimationController _rippleController;
   late AnimationController _loadingController;
   late Animation<double> _pulseAnimation;
   late Animation<double> _rippleAnimation;
 
-  // Recording timer
   int _secondsElapsed = 0;
   late AnimationController _timerController;
 
-  // Hints to show user
   final List<String> _hints = [
     'قول مثلاً: "صرفت 50 جنيه في الاكل"',
     'مثال: "اشتريت هدوم بـ 300"',
@@ -51,6 +49,11 @@ class _RecordingPageState extends State<RecordingPage>
   late AnimationController _hintController;
   late Animation<double> _hintOpacity;
 
+  // 🎨 الألوان الأساسية
+  static const Color primaryGreen = Color.fromARGB(255, 37, 167, 61);
+  static const Color darkGreenDeep = Color.fromARGB(255, 4, 76, 7);
+  static const Color errorRed = Color(0xFFE53935);
+
   @override
   void initState() {
     super.initState();
@@ -58,7 +61,6 @@ class _RecordingPageState extends State<RecordingPage>
   }
 
   void _setupAnimations() {
-    // Pulse animation for mic button
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -67,7 +69,6 @@ class _RecordingPageState extends State<RecordingPage>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    // Ripple animation
     _rippleController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
@@ -76,13 +77,11 @@ class _RecordingPageState extends State<RecordingPage>
       CurvedAnimation(parent: _rippleController, curve: Curves.easeOut),
     );
 
-    // Loading spinner
     _loadingController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     )..repeat();
 
-    // Timer controller (every second)
     _timerController =
         AnimationController(vsync: this, duration: const Duration(seconds: 1))
           ..addStatusListener((status) {
@@ -92,7 +91,6 @@ class _RecordingPageState extends State<RecordingPage>
             }
           });
 
-    // Hint rotation
     _hintController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -102,7 +100,6 @@ class _RecordingPageState extends State<RecordingPage>
     );
     _hintController.forward();
 
-    // Rotate hints every 3 seconds
     Future.doWhile(() async {
       await Future.delayed(const Duration(seconds: 3));
       if (!mounted) return false;
@@ -126,7 +123,6 @@ class _RecordingPageState extends State<RecordingPage>
       log('Mic permission after request: $status');
     }
 
-    // Handle permission denial
     if (!status.isGranted) {
       if (status.isPermanentlyDenied || status.isDenied) {
         _showErrorSnackBar(
@@ -138,33 +134,13 @@ class _RecordingPageState extends State<RecordingPage>
         _showErrorSnackBar('تحتاج إذن الميكروفون للتسجيل');
       }
       if (!mounted) return;
-
       Navigator.pop(context);
       return;
     }
 
     try {
-      // 🟢 CRITICAL FIX FOR iOS: Configure AVAudioSession BEFORE opening the recorder
       // final session = await AudioSession.instance;
-      // await session.configure(
-      //   AudioSessionConfiguration(
-      //     avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
-      //     avAudioSessionCategoryOptions:
-      //         AVAudioSessionCategoryOptions.allowBluetooth |
-      //         AVAudioSessionCategoryOptions.defaultToSpeaker,
-      //     avAudioSessionMode: AVAudioSessionMode.spokenAudio,
-      //     avAudioSessionRouteSharingPolicy:
-      //         AVAudioSessionRouteSharingPolicy.defaultPolicy,
-      //     avAudioSessionSetActiveOptions: AVAudioSessionSetActiveOptions.none,
-      //     androidAudioAttributes: const AndroidAudioAttributes(
-      //       contentType: AndroidAudioContentType.speech,
-      //       flags: AndroidAudioFlags.none,
-      //       usage: AndroidAudioUsage.voiceCommunication,
-      //     ),
-      //     androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
-      //     androidWillPauseWhenDucked: true,
-      //   ),
-      // );
+      // await session.configure(...);
 
       await _recorder.openRecorder();
       await _recorder.setSubscriptionDuration(const Duration(milliseconds: 50));
@@ -172,21 +148,16 @@ class _RecordingPageState extends State<RecordingPage>
       log('Recorder init error: $e');
       _showErrorSnackBar('فشل تهيئة الميكروفون: $e');
       if (!mounted) return;
-
       Navigator.pop(context);
       return;
     }
 
     final tempDir = await getTemporaryDirectory();
-
-    // 💡 تفريق ذكي: m4a للآيفون و wav للأندرويد
-    
-    _actualPath = '${tempDir.path}/temp_voice.${'wav'}';
+    _actualPath = '${tempDir.path}/temp_voice.wav';
 
     try {
       await _recorder.startRecorder(
         toFile: _actualPath,
-        // اختيار الكودك المناسب لكل نظام
         codec: Codec.pcm16WAV,
         sampleRate: 44100,
         numChannels: 1,
@@ -196,7 +167,6 @@ class _RecordingPageState extends State<RecordingPage>
       _showErrorSnackBar('فشل بدء التسجيل: $e');
       await _recorder.closeRecorder();
       if (!mounted) return;
-
       Navigator.pop(context);
       return;
     }
@@ -234,14 +204,12 @@ class _RecordingPageState extends State<RecordingPage>
           throw Exception('الصوت قصير جداً أو فيه مشكلة في المايك');
         }
 
-        // إرسال الصوت للذكاء الاصطناعي
         final transaction = await _groqService.extractDataFromAudio(
           _actualPath!,
         );
 
         if (mounted) {
           if (transaction != null) {
-            // ✅ حالة النجاح: إظهار رسالة النجاح والرجوع بالبيانات
             _showSuccessSnackBar(
               'تمت الإضافة: ${transaction.title} — ${transaction.amount.toStringAsFixed(0)}',
             );
@@ -254,22 +222,18 @@ class _RecordingPageState extends State<RecordingPage>
         }
       } catch (e) {
         if (mounted) {
-          // ❌ حالة الخطأ: إيقاف التحميل، تصفير العداد، وإعادة تشغيل المايك فعلياً
           setState(() {
             _isLoading = false;
-            _secondsElapsed = 0; // تصفير العداد
+            _secondsElapsed = 0;
           });
 
-          // جلب سبب الخطأ
           final errText = e
               .toString()
               .replaceAll('Exception: ', '')
               .replaceAll('AIExtractionService error: ', '');
 
-          // إظهار سبب الخطأ للمستخدم
           _showErrorSnackBar(errText);
 
-          // إيقاف التسجيل في حالة كان يعمل، ثم إغلاق الشاشة
           if (_isRecording) {
             await _recorder.stopRecorder();
           }
@@ -277,16 +241,13 @@ class _RecordingPageState extends State<RecordingPage>
         }
       }
     } else {
-      // حالة الإلغاء من الـ Dialog
       await _recorder.stopRecorder();
       if (mounted) Navigator.pop(context);
     }
   }
 
   void _showErrorSnackBar(String message) {
-    // إخفاء أي سناك بار قديم الأول
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -296,11 +257,11 @@ class _RecordingPageState extends State<RecordingPage>
             Expanded(child: Text(message)),
           ],
         ),
-        backgroundColor: const Color(0xFFE53935),
+        backgroundColor: errorRed,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: EdgeInsets.all(16.w),
-        duration: const Duration(seconds: 4), // ⏳ خليها 4 ثواني فقط
+        duration: const Duration(seconds: 4),
       ),
     );
   }
@@ -309,55 +270,113 @@ class _RecordingPageState extends State<RecordingPage>
     return await showDialog<bool>(
           context: context,
           barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            backgroundColor: isDarkMode
-                ? const Color.fromARGB(255, 31, 41, 31)
-                : Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            title: Text(
-              'إيقاف التسجيل؟',
-              style: AppText.head20(
-                context,
-              ).copyWith(color: isDarkMode ? Colors.white : Colors.black),
-              textAlign: TextAlign.right,
-            ),
-            content: Text(
-              'هتوقف التسجيل وترسل الصوت للـ AI عشان يحلله؟',
-              style: AppText.body14(context).copyWith(
-                color: isDarkMode
-                    ? Colors.white.withOpacity(0.7)
-                    : Colors.black.withOpacity(0.7),
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            child: Container(
+              padding: EdgeInsets.all(24.w),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isDarkMode
+                      ? const [
+                          Color(0xFF1A2E1A),
+                          Color(0xFF0D1F1A),
+                          Color(0xFF162A22),
+                        ]
+                      : const [
+                          Color.fromARGB(255, 226, 244, 202),
+                          Colors.white,
+                        ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(24.r),
               ),
-              textAlign: TextAlign.right,
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text(
-                  'إلغاء',
-                  style: AppText.body14(context).copyWith(
-                    color: isDarkMode
-                        ? Colors.white.withOpacity(0.6)
-                        : Colors.black.withOpacity(0.6),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(14.w),
+                    decoration: BoxDecoration(
+                      color: primaryGreen.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.stop_circle_rounded,
+                      color: primaryGreen,
+                      size: 32.sp,
+                    ),
                   ),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 37, 167, 61),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                  SizedBox(height: 16.h),
+                  Text(
+                    'إيقاف التسجيل؟',
+                    style: AppText.head20(context).copyWith(
+                      color: isDarkMode ? Colors.white : Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                ),
-                child: Text(
-                  'تأكيد',
-                  style: AppText.body14(context).copyWith(color: Colors.white),
-                ),
+                  SizedBox(height: 8.h),
+                  Text(
+                    'هتوقف التسجيل وترسل الصوت للـ AI عشان يحلله',
+                    style: AppText.body14(context).copyWith(
+                      color: isDarkMode
+                          ? Colors.white.withOpacity(0.65)
+                          : Colors.black.withOpacity(0.6),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 24.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.symmetric(vertical: 14.h),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14.r),
+                              side: BorderSide(
+                                color: isDarkMode
+                                    ? Colors.white.withOpacity(0.2)
+                                    : Colors.black.withOpacity(0.15),
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            'إلغاء',
+                            style: AppText.body14(context).copyWith(
+                              color: isDarkMode
+                                  ? Colors.white.withOpacity(0.8)
+                                  : Colors.black.withOpacity(0.7),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryGreen,
+                            padding: EdgeInsets.symmetric(vertical: 14.h),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14.r),
+                            ),
+                          ),
+                          child: Text(
+                            'تأكيد',
+                            style: AppText.body14(
+                              context,
+                            ).copyWith(color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ) ??
         false;
@@ -377,7 +396,7 @@ class _RecordingPageState extends State<RecordingPage>
             Expanded(child: Text(message)),
           ],
         ),
-        backgroundColor: const Color(0xFF43A047), // أخضر
+        backgroundColor: const Color(0xFF43A047),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: EdgeInsets.all(16.w),
@@ -409,7 +428,6 @@ class _RecordingPageState extends State<RecordingPage>
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    // Start recording as soon as the page opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_isRecording && !_isLoading && !_isDisposing) {
         _initAndStart();
@@ -424,272 +442,224 @@ class _RecordingPageState extends State<RecordingPage>
         return true;
       },
       child: Scaffold(
-        backgroundColor: isDarkMode
-            ? const Color.fromARGB(255, 18, 18, 18)
-            : const Color(0xFFF5F9F6),
-        body: SingleChildScrollView(
-          child: Stack(
-            children: [
-              // Gradient background circles
-              Positioned(
-                top: -150.h,
-                right: -100.w,
-                child: Container(
-                  width: 400.w,
-                  height: 400.w,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        (isDarkMode
-                                ? const Color.fromARGB(255, 48, 165, 100)
-                                : const Color.fromARGB(255, 112, 211, 88))
-                            .withOpacity(0.15),
-                        Colors.transparent,
-                      ],
-                    ),
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: isDarkMode
+                  ? const [
+                      Color(0xFF1A2E1A),
+                      Color(0xFF0D1F1A),
+                      Color(0xFF162A22),
+                    ]
+                  : const [
+                      Color.fromARGB(255, 226, 244, 202),
+                      Color(0xFFF5F9F6),
+                      Colors.white,
+                    ],
+            ),
+          ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                // ── App Bar ──
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 20.w,
+                    vertical: 12.h,
                   ),
-                ),
-              ),
-              Positioned(
-                bottom: -150.h,
-                left: -100.w,
-                child: Container(
-                  width: 350.w,
-                  height: 350.w,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        const Color(0xFFE53935).withOpacity(0.1),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              // Main content
-              Column(
-                children: [
-                  // AppBar
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 20.w,
-                      vertical: 30.h,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        IconButton(
-                          onPressed: () async {
-                            if (_isRecording && !_isLoading) {
-                              await _recorder.stopRecorder();
-                            }
-                            if (mounted) Navigator.pop(context);
-                          },
-                          icon: Icon(
-                            Icons.close_rounded,
-                            color: isDarkMode ? Colors.white : Colors.black,
-                            size: 26.sp,
-                          ),
-                        ),
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
-                          transitionBuilder: (child, animation) {
-                            return FadeTransition(
-                              opacity: animation,
-                              child: ScaleTransition(
-                                scale: animation,
-                                child: child,
-                              ),
-                            );
-                          },
-                          child: _isLoading
-                              ? _buildLoadingBadge(isDarkMode)
-                              : (_isRecording
-                                    ? _buildRecordingBadge()
-                                    : const SizedBox.shrink()),
-                        ),
-                        SizedBox(width: 48.w), // Balance the layout
-                      ],
-                    ),
-                  ),
-
-                  // Timer
-                  if (_isRecording && !_isLoading)
-                    TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0.0, end: 1.0),
-                      duration: const Duration(milliseconds: 400),
-                      builder: (context, value, child) {
-                        return Opacity(
-                          opacity: value,
-                          child: Transform.scale(
-                            scale: 0.8 + (value * 0.2),
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 20.w,
-                                vertical: 10.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isDarkMode
-                                    ? Colors.white.withOpacity(0.1)
-                                    : Colors.black.withOpacity(0.05),
-                                borderRadius: BorderRadius.circular(20.r),
-                              ),
-                              child: Text(
-                                _formatTime(_secondsElapsed),
-                                style: TextStyle(
-                                  fontSize: 32.sp,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDarkMode
-                                      ? Colors.white
-                                      : Colors.black,
-                                  letterSpacing: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-
-                  SizedBox(height: 40.h),
-
-                  // Mic button
-                  _buildMicButton(),
-
-                  SizedBox(height: 40.h),
-
-                  // Audio wave
-                  if (_isRecording && !_isLoading)
-                    TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0.0, end: 1.0),
-                      duration: const Duration(milliseconds: 500),
-                      builder: (context, value, child) {
-                        return Opacity(
-                          opacity: value,
-                          child: Transform.scale(
-                            scale: 0.8 + (value * 0.2),
-                            child: AudioWave(isRecording: _isRecording),
-                          ),
-                        );
-                      },
-                    ),
-
-                  // Hints
-                  if (!_isLoading)
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 40.w),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 400),
-                        transitionBuilder: (child, animation) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: SlideTransition(
-                              position: Tween<Offset>(
-                                begin: const Offset(0, 0.1),
-                                end: Offset.zero,
-                              ).animate(animation),
-                              child: child,
-                            ),
-                          );
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _RoundIconButton(
+                        icon: Icons.close_rounded,
+                        isDarkMode: isDarkMode,
+                        onTap: () async {
+                          if (_isRecording && !_isLoading) {
+                            await _recorder.stopRecorder();
+                          }
+                          if (mounted) Navigator.pop(context);
                         },
-                        child: Container(
-                          key: ValueKey(_currentHint),
-                          padding: EdgeInsets.all(20.w),
-                          decoration: BoxDecoration(
+                      ),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        transitionBuilder: (child, animation) => FadeTransition(
+                          opacity: animation,
+                          child: ScaleTransition(
+                            scale: animation,
+                            child: child,
+                          ),
+                        ),
+                        child: _isLoading
+                            ? _buildLoadingBadge(isDarkMode)
+                            : (_isRecording
+                                  ? _buildRecordingBadge()
+                                  : const SizedBox.shrink()),
+                      ),
+                      SizedBox(width: 44.w),
+                    ],
+                  ),
+                ),
+
+                const Spacer(),
+
+                // ── Timer ──
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 300),
+                  opacity: (_isRecording && !_isLoading) ? 1 : 0,
+                  child: Text(
+                    _formatTime(_secondsElapsed),
+                    style: TextStyle(
+                      fontSize: 44.sp,
+                      fontWeight: FontWeight.w700,
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                      letterSpacing: 3,
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 36.h),
+
+                // ── Mic Button ──
+                _buildMicButton(),
+
+                SizedBox(height: 28.h),
+
+                // ── Audio Wave ──
+                SizedBox(
+                  height: 40.h,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 300),
+                    opacity: (_isRecording && !_isLoading) ? 1 : 0,
+                    child: AudioWave(isRecording: _isRecording),
+                  ),
+                ),
+
+                const Spacer(),
+
+                // ── Hint Card ──
+                if (!_isLoading)
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 28.w),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 400),
+                      transitionBuilder: (child, animation) => FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0, 0.15),
+                            end: Offset.zero,
+                          ).animate(animation),
+                          child: child,
+                        ),
+                      ),
+                      child: Container(
+                        key: ValueKey(_currentHint),
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20.w,
+                          vertical: 18.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isDarkMode
+                              ? Colors.white.withOpacity(0.06)
+                              : Colors.white.withOpacity(0.85),
+                          borderRadius: BorderRadius.circular(18.r),
+                          border: Border.all(
                             color: isDarkMode
                                 ? Colors.white.withOpacity(0.08)
-                                : Colors.white.withOpacity(0.7),
-                            borderRadius: BorderRadius.circular(20.r),
-                            border: Border.all(
-                              color: isDarkMode
-                                  ? Colors.white.withOpacity(0.1)
-                                  : Colors.black.withOpacity(0.1),
-                            ),
+                                : primaryGreen.withOpacity(0.15),
                           ),
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.lightbulb_outline_rounded,
-                                color: const Color.fromARGB(255, 37, 167, 61),
-                                size: 28.sp,
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(8.w),
+                              decoration: BoxDecoration(
+                                color: primaryGreen.withOpacity(0.12),
+                                shape: BoxShape.circle,
                               ),
-                              SizedBox(height: 12.h),
-                              Text(
+                              child: Icon(
+                                Icons.lightbulb_outline_rounded,
+                                color: primaryGreen,
+                                size: 20.sp,
+                              ),
+                            ),
+                            SizedBox(width: 12.w),
+                            Expanded(
+                              child: Text(
                                 _hints[_currentHint],
                                 style: AppText.body14(context).copyWith(
                                   color: isDarkMode
                                       ? Colors.white.withOpacity(0.9)
-                                      : Colors.black,
+                                      : Colors.black87,
                                   height: 1.4,
                                 ),
-                                textAlign: TextAlign.center,
+                                textAlign: TextAlign.right,
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  SizedBox(height: 20.h),
-
-                  // Stop button
-                  if (!_isLoading)
-                    Padding(
-                      padding: EdgeInsets.only(
-                        bottom: 48.h,
-                        left: 40.w,
-                        right: 40.w,
-                      ),
-                      child: GestureDetector(
-                        onTap: () => _stopAndSave(isDarkMode),
-                        child: Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.symmetric(vertical: 16.h),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [
-                                Color.fromARGB(255, 37, 167, 61),
-                                Color.fromARGB(255, 4, 76, 7),
-                              ],
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
                             ),
-                            borderRadius: BorderRadius.circular(18.r),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color.fromARGB(
-                                  255,
-                                  48,
-                                  165,
-                                  100,
-                                ).withOpacity(0.3),
-                                blurRadius: 20,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.stop_rounded, size: 22),
-                              SizedBox(width: 10.w),
-                              Text(
-                                'إيقاف وتحليل',
-                                style: AppText.body16(context).copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
+                          ],
                         ),
                       ),
                     ),
-                ],
-              ),
-            ],
+                  ),
+
+                SizedBox(height: 20.h),
+
+                // ── Stop Button ──
+                if (!_isLoading)
+                  Padding(
+                    padding: EdgeInsets.only(
+                      bottom: 32.h,
+                      left: 28.w,
+                      right: 28.w,
+                    ),
+                    child: GestureDetector(
+                      onTap: () => _stopAndSave(isDarkMode),
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(vertical: 17.h),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [primaryGreen, darkGreenDeep],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: BorderRadius.circular(20.r),
+                          boxShadow: [
+                            BoxShadow(
+                              color: primaryGreen.withOpacity(0.35),
+                              blurRadius: 24,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.stop_rounded,
+                              size: 22,
+                              color: Colors.white,
+                            ),
+                            SizedBox(width: 10.w),
+                            Text(
+                              'إيقاف وتحليل',
+                              style: AppText.body16(context).copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -699,29 +669,22 @@ class _RecordingPageState extends State<RecordingPage>
   Widget _buildRecordingBadge() {
     return Container(
       key: const ValueKey('recording'),
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
       decoration: BoxDecoration(
-        color: const Color(0xFFE53935).withOpacity(0.15),
+        color: errorRed.withOpacity(0.15),
         borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: const Color(0xFFE53935).withOpacity(0.3)),
+        border: Border.all(color: errorRed.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 8.w,
-            height: 8.w,
-            decoration: const BoxDecoration(
-              color: Color(0xFFE53935),
-              shape: BoxShape.circle,
-            ),
-          ),
+          _BlinkingDot(color: errorRed),
           SizedBox(width: 8.w),
           Text(
             'يسجل الآن',
             style: TextStyle(
-              color: const Color(0xFFE53935),
-              fontSize: 13.sp,
+              color: errorRed,
+              fontSize: 12.sp,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -733,31 +696,29 @@ class _RecordingPageState extends State<RecordingPage>
   Widget _buildLoadingBadge(isDarkMode) {
     return Container(
       key: const ValueKey('loading'),
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
       decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 95, 229, 95).withOpacity(0.12),
+        color: primaryGreen.withOpacity(0.12),
         borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(
-          color: const Color.fromARGB(255, 43, 131, 46).withOpacity(0.3),
-        ),
+        border: Border.all(color: primaryGreen.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            width: 14.w,
-            height: 14.w,
+            width: 13.w,
+            height: 13.w,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              valueColor: const AlwaysStoppedAnimation(Color(0xFF00D4AA)),
+              valueColor: AlwaysStoppedAnimation(primaryGreen),
             ),
           ),
-          SizedBox(width: 10.w),
+          SizedBox(width: 8.w),
           Text(
             'AI بيحلل كلامك...',
             style: TextStyle(
-              color: isDarkMode ? Colors.white : Colors.black,
-              fontSize: 13.sp,
+              color: isDarkMode ? Colors.white : Colors.black87,
+              fontSize: 12.sp,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -768,12 +729,11 @@ class _RecordingPageState extends State<RecordingPage>
 
   Widget _buildMicButton() {
     return SizedBox(
-      width: 200.w,
-      height: 200.w,
+      width: 190.w,
+      height: 190.w,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Ripple rings
           if (_isRecording && !_isLoading)
             ...List.generate(3, (i) {
               return AnimatedBuilder(
@@ -784,22 +744,17 @@ class _RecordingPageState extends State<RecordingPage>
                   return Opacity(
                     opacity: (1 - progress) * 0.4,
                     child: Container(
-                      width: 100.w + (progress * 100.w),
-                      height: 100.w + (progress * 100.w),
+                      width: 100.w + (progress * 90.w),
+                      height: 100.w + (progress * 90.w),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFFE53935),
-                          width: 1.5,
-                        ),
+                        border: Border.all(color: errorRed, width: 1.5),
                       ),
                     ),
                   );
                 },
               );
             }),
-
-          // Main button
           AnimatedBuilder(
             animation: _isRecording && !_isLoading
                 ? _pulseAnimation
@@ -817,41 +772,118 @@ class _RecordingPageState extends State<RecordingPage>
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
                       colors: _isLoading
-                          ? [
-                              const Color.fromARGB(255, 112, 211, 88),
-                              const Color.fromARGB(255, 7, 133, 47),
-                            ]
-                          : [const Color(0xFFE53935), const Color(0xFFFF6B6B)],
+                          ? [primaryGreen, darkGreenDeep]
+                          : const [errorRed, Color(0xFFFF6B6B)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color:
-                            (_isLoading
-                                    ? const Color.fromARGB(255, 44, 182, 34)
-                                    : const Color(0xFFE53935))
-                                .withOpacity(0.4),
-                        blurRadius: 30,
-                        spreadRadius: 4,
+                        color: (_isLoading ? primaryGreen : errorRed)
+                            .withOpacity(0.4),
+                        blurRadius: 28,
+                        spreadRadius: 3,
                       ),
                     ],
                   ),
                   child: _isLoading
                       ? RotationTransition(
                           turns: _loadingController,
-                          child: Icon(Icons.auto_awesome, size: 36.sp),
+                          child: Icon(
+                            Icons.auto_awesome,
+                            color: Colors.white,
+                            size: 34.sp,
+                          ),
                         )
                       : Icon(
                           Icons.mic_rounded,
                           color: Colors.white,
-                          size: 42.sp,
+                          size: 40.sp,
                         ),
                 ),
               );
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Widgets مساعدة ──
+
+class _RoundIconButton extends StatelessWidget {
+  final IconData icon;
+  final bool isDarkMode;
+  final VoidCallback onTap;
+
+  const _RoundIconButton({
+    required this.icon,
+    required this.isDarkMode,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14.r),
+        child: Container(
+          padding: EdgeInsets.all(10.w),
+          decoration: BoxDecoration(
+            color: isDarkMode
+                ? Colors.white.withOpacity(0.08)
+                : Colors.black.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(14.r),
+          ),
+          child: Icon(
+            icon,
+            color: isDarkMode ? Colors.white : Colors.black87,
+            size: 22.sp,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BlinkingDot extends StatefulWidget {
+  final Color color;
+  const _BlinkingDot({required this.color});
+
+  @override
+  State<_BlinkingDot> createState() => _BlinkingDotState();
+}
+
+class _BlinkingDotState extends State<_BlinkingDot>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _controller,
+      child: Container(
+        width: 8.w,
+        height: 8.w,
+        decoration: BoxDecoration(color: widget.color, shape: BoxShape.circle),
       ),
     );
   }

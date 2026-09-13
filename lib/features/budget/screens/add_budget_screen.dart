@@ -147,8 +147,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
       final dynamic iconData = categoryData.icon;
 
       final int codePoint = iconData.codePoint;
-      final String fontFamily =
-          iconData.fontFamily ?? 'FontAwesomeSolid';
+      final String fontFamily = iconData.fontFamily ?? 'FontAwesomeSolid';
       final String? fontPackage = iconData.fontPackage;
 
       final budget = BudgetModel(
@@ -482,9 +481,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
                           child: Center(
                             child: FaIcon(
                               cat.icon,
-                              color: isSelected
-                                  ? Colors.white
-                                  : cat.color,
+                              color: isSelected ? Colors.white : cat.color,
                               size: 24.sp,
                             ),
                           ),

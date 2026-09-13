@@ -272,8 +272,9 @@ class _MainSettingViewState extends State<_MainSettingView> {
                   SizedBox(height: 4.h),
                   Text(
                     user?.email ?? 'user@example.com',
-                    style: AppText.body14(context).copyWith(
+                    style: AppText.body13(context).copyWith(
                       color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                      overflow: TextOverflow.clip,
                     ),
                   ),
                 ],
@@ -474,7 +475,9 @@ class _MainSettingViewState extends State<_MainSettingView> {
                           Text(
                             'settings.theme_color_desc'.tr(),
                             style: AppText.body12(context).copyWith(
-                              color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                              color: isDarkMode
+                                  ? Colors.grey[500]
+                                  : Colors.grey[600],
                             ),
                           ),
                         ],
@@ -497,11 +500,14 @@ class _MainSettingViewState extends State<_MainSettingView> {
                         separatorBuilder: (_, __) => SizedBox(width: 10.w),
                         itemBuilder: (context, index) {
                           final preset = AppColors.themePresets[index];
-                          final isSelected = currentAccent == preset.color.value;
+                          final isSelected =
+                              currentAccent == preset.color.value;
 
                           return GestureDetector(
                             onTap: () {
-                              context.read<SettingsCubit>().setAccentColor(preset.color.value);
+                              context.read<SettingsCubit>().setAccentColor(
+                                preset.color.value,
+                              );
                             },
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
@@ -512,20 +518,28 @@ class _MainSettingViewState extends State<_MainSettingView> {
                                 shape: BoxShape.circle,
                                 border: Border.all(
                                   color: isSelected
-                                      ? (isDarkMode ? Colors.white : Colors.black87)
+                                      ? (isDarkMode
+                                            ? Colors.white
+                                            : Colors.black87)
                                       : Colors.transparent,
                                   width: 2.5,
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: preset.color.withOpacity(isSelected ? 0.6 : 0.2),
+                                    color: preset.color.withOpacity(
+                                      isSelected ? 0.6 : 0.2,
+                                    ),
                                     blurRadius: isSelected ? 8 : 4,
                                     offset: const Offset(0, 2),
                                   ),
                                 ],
                               ),
                               child: isSelected
-                                  ? const Icon(Icons.check, color: Colors.white, size: 18)
+                                  ? const Icon(
+                                      Icons.check,
+                                      color: Colors.white,
+                                      size: 18,
+                                    )
                                   : null,
                             ),
                           );
@@ -661,7 +675,9 @@ class _MainSettingViewState extends State<_MainSettingView> {
             onTap: () async {
               final result = await Navigator.push<bool>(
                 context,
-                MaterialPageRoute(builder: (context) => const FamilySharingScreen()),
+                MaterialPageRoute(
+                  builder: (context) => const FamilySharingScreen(),
+                ),
               );
               if (result == true && context.mounted) {
                 await context.read<HomeCubit>().refresh();

@@ -29,21 +29,22 @@ Widget buildAmountCard(
         end: Alignment.bottomRight,
         colors: isDarkMode
             ? [
-                const Color(0xFF1A2E1A),
-                const Color(0xFF0D1F1A),
-                const Color(0xFF162A22),
+                Color(0xFF1A2E1A),
+                Color(0xFF0D1F1A),
+                Color(0xFF162A22),
+                Color(0xFF25412F), // لمسة أخضر أوضح في الحافة
               ]
             : [
-                const Color.fromARGB(255, 177, 228, 166),
-                const Color.fromARGB(255, 226, 244, 202).withOpacity(0.9),
+                const Color.fromARGB(255, 140, 210, 120), // أخضر أوضح شوية
+                const Color.fromARGB(255, 226, 244, 202), // نفس الفاتح بتاعك
               ],
       ),
+
       boxShadow: [
         BoxShadow(
-          color: AppColors.greenColor.withOpacity(isDarkMode ? 0.15 : 0.3),
-          blurRadius: 24,
+          color: Colors.black.withOpacity(0.4),
+          blurRadius: 20,
           offset: const Offset(0, 8),
-          spreadRadius: -4,
         ),
       ],
     ),
