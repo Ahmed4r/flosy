@@ -59,6 +59,8 @@ class AIExtractionService {
         Uri.parse('https://api.groq.com/openai/v1/audio/transcriptions'),
       );
       whisperRequest.headers['Authorization'] = 'Bearer $apiKey';
+      whisperRequest.fields['model'] = 'whisper-large-v3';
+      whisperRequest.fields['language'] = 'ar'; // إضافة السطر ده
       whisperRequest.files.add(
         await http.MultipartFile.fromPath(
           'file',
@@ -98,7 +100,7 @@ class AIExtractionService {
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          "model": "llama-3.3-70b-versatile",
+          "model": "openai/gpt-oss-120b",
           "messages": [
             {
               "role": "system",
@@ -136,9 +138,13 @@ Example output: {"title": "اكل", "amount": 50, "type": 1, "category": "food"}
         }),
       );
 
-      // 2️⃣ التغيير الثاني
+      log("Llama status: ${llamaResponse.statusCode}");
+      log("Llama body: ${llamaResponse.body}");
+
       if (llamaResponse.statusCode != 200) {
-        throw Exception('فشل الاتصال بالذكاء الاصطناعي (Llama Error)');
+        throw Exception(
+          'فشل الاتصال بالذكاء الاصطناعي (${llamaResponse.statusCode}): ${llamaResponse.body}',
+        );
       }
 
       final Map<String, dynamic> content = jsonDecode(
@@ -176,7 +182,6 @@ Example output: {"title": "اكل", "amount": 50, "type": 1, "category": "food"}
         type: TransactionType.values[content['type'] ?? 1],
         date: DateTime.now(),
         category: categoryId, // سيطابق الآن TransactionColors.name في الـ Tile
-      
       );
 
       // 🔴 احذف السطرين دول تماماً ⬇️

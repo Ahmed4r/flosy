@@ -1,4 +1,5 @@
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flosy/core/navigation/main_nav_screen.dart';
 import 'package:flosy/core/services/biometric_service_helper.dart';
 import 'package:flosy/core/utils/app_colors.dart';
 import 'package:flosy/core/utils/app_text.dart';
@@ -7,7 +8,6 @@ import 'package:flosy/features/auth/screens/forget_screen.dart';
 import 'package:flosy/features/auth/screens/register_screen.dart';
 import 'package:flosy/features/auth/service/auth_service.dart';
 import 'package:flosy/features/auth/service/secure_storages_service.dart';
-import 'package:flosy/features/navigation/main_nav_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -32,6 +32,15 @@ class _LoginScreenState extends State<LoginScreen> {
   bool isArabic = false;
   bool _isFaceIdEnabled = false;
   bool _canUseBiometrics = false;
+
+  bool isObsecured = true;
+
+  void changeVisiability() {
+    developer.log(isObsecured.toString());
+    setState(() {
+      isObsecured = !isObsecured;
+    });
+  }
 
   @override
   void initState() {
@@ -297,9 +306,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Password Field
                     TextFormField(
                       controller: passwordController,
-                      obscureText: true,
+                      obscureText: isObsecured,
                       textAlign: isArabic ? TextAlign.right : TextAlign.left,
                       decoration: InputDecoration(
+                        suffixIcon: IconButton(
+                          icon: isObsecured
+                              ? Icon(Icons.visibility_off, color: Colors.grey)
+                              : Icon(Icons.visibility, color: Colors.grey),
+                          onPressed: changeVisiability,
+                        ),
+
                         contentPadding: EdgeInsets.all(20.r),
                         hintText: 'enter_your_password'.tr(),
                         border: OutlineInputBorder(

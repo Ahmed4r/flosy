@@ -72,12 +72,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                   // Header
                   Text(
-                    'forgot_password_title'.tr(),
+                    'forget_password_title'.tr(),
                     style: AppText.head24(context),
                   ),
                   SizedBox(height: 8.h),
                   Text(
-                    'forgot_password_subtitle'.tr(),
+                    'forget_password_subtitle'.tr(),
                     style: AppText.body16(
                       context,
                     ).copyWith(color: Colors.grey[600], height: 1.5),
@@ -155,7 +155,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                 : () {
                                     if (_formKey.currentState!.validate()) {
                                       BlocProvider.of<AuthCubit>(
-
                                         context,
                                       ).resetPassword(
                                         emailController.text.trim(),
