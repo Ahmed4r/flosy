@@ -1,13 +1,13 @@
 workflows:
   ios-ipa-build:
-    name: 🎉 iOS Build
+    name: iOS IPA Build
     max_build_duration: 120
     instance_type: mac_mini_m1
 
     environment:
       flutter: stable
       xcode: latest
-      cocoapods: default
+
       vars:
         API_ENV: $API_ENV
 
@@ -19,71 +19,69 @@ workflows:
     scripts:
 
       # ==========================================
-      # 1. Clean Flutter
+      # 1. Clean
       # ==========================================
-      - name: Clean Flutter
+      - name: Flutter clean
         script: |
           set -e
+
           flutter clean
 
       # ==========================================
-      # 2. Get Flutter dependencies
+      # 2. Pub get
       # ==========================================
       - name: Flutter pub get
         script: |
           set -e
+
           flutter pub get
 
       # ==========================================
       # 3. Create api.env
       # ==========================================
-      - name: Create api.env file
+      - name: Create api.env
         script: |
           set -e
 
           echo "$API_ENV" > "$CM_BUILD_DIR/api.env"
 
           echo "✅ api.env created"
-          echo "File exists:"
-          ls -l "$CM_BUILD_DIR/api.env"
 
       # ==========================================
-      # 4. Verify Firebase plugins
+      # 4. Verify Flutter / SwiftPM
       # ==========================================
-      - name: Verify Flutter plugins
+      - name: Verify Flutter configuration
         script: |
           set -e
 
           echo "=========================================="
-          echo "Firebase in .flutter-plugins-dependencies"
+          echo "Flutter version"
           echo "=========================================="
 
-          if [ -f .flutter-plugins-dependencies ]; then
-            grep -i -C 3 -E \
-              'firebase_core|firebase_auth|cloud_firestore' \
-              .flutter-plugins-dependencies || true
-          else
-            echo "❌ .flutter-plugins-dependencies not found"
-          fi
+          flutter --version
 
           echo ""
           echo "=========================================="
-          echo "Firebase iOS symlinks"
+          echo "Swift Package Manager configuration"
           echo "=========================================="
 
-          for plugin in firebase_core firebase_auth cloud_firestore; do
-            if [ -e "ios/.symlinks/plugins/$plugin" ]; then
-              echo "✅ $plugin exists"
-              ls -la "ios/.symlinks/plugins/$plugin"
-            else
-              echo "❌ $plugin missing"
-            fi
-          done
+          grep -o \
+            '"swift_package_manager_enabled"[^}]*}' \
+            .flutter-plugins-dependencies || true
+
+          echo ""
+          echo "=========================================="
+          echo "Firebase plugins"
+          echo "=========================================="
+
+          grep -i -E \
+            'cloud_firestore|firebase_auth|firebase_core' \
+            .flutter-plugins-dependencies || true
 
       # ==========================================
-      # 5. Generate Flutter iOS configuration
+      # 5. Generate iOS project
       # ==========================================
-      - name: Generate Flutter iOS configuration
+      - name: Generate iOS project
         script: |
           set -e
 
@@ -94,108 +92,36 @@ workflows:
             --release \
             --no-codesign
 
-          echo "✅ Flutter iOS configuration generated"
+          echo "✅ iOS project generated"
 
       # ==========================================
-      # 6. Show xcconfig files
+      # 6. Verify Swift Package integration
       # ==========================================
-      - name: Verify xcconfig files
+      - name: Verify Swift Package integration
         script: |
           set -e
 
           echo "=========================================="
-          echo "Release.xcconfig"
+          echo "Flutter iOS Swift Packages"
           echo "=========================================="
 
-          cat ios/Flutter/Release.xcconfig
+          find ios -maxdepth 4 \
+            \( -name "*.swift" -o -name "Package.swift" \) \
+            -print | head -100 || true
 
           echo ""
           echo "=========================================="
-          echo "Debug.xcconfig"
+          echo "Runner project references"
           echo "=========================================="
 
-          cat ios/Flutter/Debug.xcconfig || true
-
-          echo ""
-          echo "=========================================="
-          echo "Profile.xcconfig"
-          echo "=========================================="
-
-          cat ios/Flutter/Profile.xcconfig || true
+          grep -R -i \
+            "FlutterGeneratedPluginSwiftPackage" \
+            ios/Runner.xcodeproj \
+            ios/Runner.xcworkspace \
+            2>/dev/null || true
 
       # ==========================================
-      # 7. Install CocoaPods
-      # ==========================================
-      - name: Install CocoaPods
-        script: |
-          set -e
-
-          cd ios
-
-          echo "🧹 Removing old Pods..."
-          rm -rf Pods
-          rm -f Podfile.lock
-
-          echo "🔧 Running pod deintegrate..."
-          pod deintegrate || true
-
-          echo "📦 Installing CocoaPods..."
-          pod install --repo-update
-
-          echo ""
-          echo "=========================================="
-          echo "Firebase pods"
-          echo "=========================================="
-
-          grep -i -E \
-            "Firebase|Firestore|cloud_firestore|firebase_auth|firebase_core" \
-            Podfile.lock || true
-
-          if ! grep -qi "cloud_firestore" Podfile.lock; then
-            echo "❌ cloud_firestore still missing from Podfile.lock"
-            exit 1
-          fi
-
-          echo "✅ Firebase pods detected"
-
-          cd ..
-      # ==========================================
-      # 8. Verify CocoaPods configuration
-      # ==========================================
-      - name: Verify CocoaPods configuration
-        script: |
-          set -e
-
-          echo "=========================================="
-          echo "Pods-Runner files"
-          echo "=========================================="
-
-          find "ios/Pods/Target Support Files/Pods-Runner" \
-            -maxdepth 1 \
-            -type f \
-            -print || true
-
-          echo ""
-          echo "=========================================="
-          echo "Release Pods xcconfig"
-          echo "=========================================="
-
-          cat \
-            "ios/Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig" \
-            || true
-
-          echo ""
-          echo "=========================================="
-          echo "Checking Firebase headers"
-          echo "=========================================="
-
-          find ios/Pods \
-            -iname "*Firebase*" \
-            -o -iname "*Firestore*" \
-            | head -100 || true
-
-      # ==========================================
-      # 9. Disable Code Signing
+      # 7. Disable Code Signing
       # ==========================================
       - name: Disable Code Signing
         script: |
@@ -222,60 +148,43 @@ workflows:
           echo "✅ Code signing disabled"
 
       # ==========================================
-      # 10. Build with Xcode
+      # 8. Build iOS
       # ==========================================
-      - name: Build with xcodebuild
+      - name: Build Flutter iOS
         script: |
           set -e
 
-          cd ios
+          flutter build ios \
+            --release \
+            --no-codesign \
+            --no-tree-shake-icons
 
-          xcodebuild \
-            -workspace Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -sdk iphoneos \
-            -derivedDataPath "$CM_BUILD_DIR/derived" \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            DEVELOPMENT_TEAM="" \
-            PROVISIONING_PROFILE_SPECIFIER="" \
-            COMPILER_INDEX_STORE_ENABLE=NO \
-            build
-
-          cd ..
-
-          echo "✅ Xcode build completed successfully"
+          echo "✅ Flutter iOS build completed"
 
       # ==========================================
-      # 11. Create unsigned IPA
+      # 9. Create IPA
       # ==========================================
       - name: Create IPA
         script: |
           set -e
 
-          APP_PATH=$(find "$CM_BUILD_DIR/derived" \
-            -name "Runner.app" \
-            -type d \
-            | head -1)
+          APP_PATH="$CM_BUILD_DIR/build/ios/iphoneos/Runner.app"
 
-          if [ -z "$APP_PATH" ]; then
+          if [ ! -d "$APP_PATH" ]; then
             echo "❌ Runner.app not found"
             exit 1
           fi
 
-          echo "Found app at:"
-          echo "$APP_PATH"
+          rm -rf "$CM_BUILD_DIR/build/ios/iphoneos/Payload"
 
-          rm -rf build/ios/iphoneos/Payload
+          mkdir -p \
+            "$CM_BUILD_DIR/build/ios/iphoneos/Payload"
 
-          mkdir -p build/ios/iphoneos/Payload
+          cp -R \
+            "$APP_PATH" \
+            "$CM_BUILD_DIR/build/ios/iphoneos/Payload/Runner.app"
 
-          cp -R "$APP_PATH" \
-            build/ios/iphoneos/Payload/Runner.app
-
-          cd build/ios/iphoneos
+          cd "$CM_BUILD_DIR/build/ios/iphoneos"
 
           zip -qq -r -9 \
             FlutterIpaExport.ipa \
