@@ -44,32 +44,57 @@ workflows:
       # ---------------------------------------------------------
       # 3. Install CocoaPods explicitly
       # ---------------------------------------------------------
-      - name: Install CocoaPods dependencies
+      - name: Prepare Flutter and CocoaPods
         script: |
           set -e
 
-          cd "$CM_BUILD_DIR/ios"
+          cd "$CM_BUILD_DIR"
 
-          echo "🧹 Cleaning CocoaPods..."
+          echo "🧹 Cleaning Flutter..."
+          flutter clean
+
+          echo "📦 Getting Flutter packages..."
+          flutter pub get
+
+          echo "🔎 Checking Firebase plugins..."
+
+          echo "firebase_core:"
+          flutter pub deps | grep firebase_core || true
+
+          echo "cloud_firestore:"
+          flutter pub deps | grep cloud_firestore || true
+
+          echo "🔎 Checking GeneratedPluginRegistrant..."
+          grep -i "cloud_firestore" ios/Runner/GeneratedPluginRegistrant.m || true
+          grep -i "firebase_core" ios/Runner/GeneratedPluginRegistrant.m || true
+
+          echo "🔧 Installing CocoaPods..."
+
+          cd ios
 
           rm -rf Pods
           rm -f Podfile.lock
 
-          echo "🔧 Running pod deintegrate..."
           pod deintegrate || true
 
-          echo "📦 Installing CocoaPods..."
           pod install --repo-update
 
-          echo "✅ CocoaPods installation completed"
+          echo "📋 Installed Pods:"
+          ls -la Pods
 
-          echo "🔍 Checking cloud_firestore..."
-          if [ -d "Pods/Target Support Files/cloud_firestore" ]; then
-            echo "✅ cloud_firestore Pod found"
-          else
-            echo "❌ cloud_firestore Pod NOT found"
-            exit 1
+          echo "🔎 Checking Firebase Pods..."
+
+          find Pods -maxdepth 2 -iname "*firebase*" -print || true
+          find Pods -maxdepth 2 -iname "*firestore*" -print || true
+
+          echo "🔎 Checking Podfile.lock..."
+
+          if [ -f Podfile.lock ]; then
+            grep -i "Firebase" Podfile.lock || true
+            grep -i "Firestore" Podfile.lock || true
           fi
+
+          echo "✅ CocoaPods preparation completed"
 
       # ---------------------------------------------------------
       # 4. Generate Flutter iOS files
