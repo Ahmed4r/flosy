@@ -30,12 +30,11 @@ dependencies:
   pdf: ^3.10.4
   printing: ^5.11.0
   permission_handler: ^11.0.1
-  tflite_flutter: ^0.12.1
   device_info_plus: ^10.1.0
   flutter_secure_storage: ^10.0.0
   connectivity_plus: ^7.0.0
   animate_do: ^4.2.0
-  audioplayers: ^5.2.1
+  audioplayers: ^6.8.1
   audio_waveforms: ^1.0.4
   flutter_sound: ^9.30.0
   equatable: ^2.0.8

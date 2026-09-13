@@ -4,7 +4,7 @@ import 'package:bloc/bloc.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flosy/features/ai_insights/data/model/insight_model.dart';
 import 'package:flosy/features/ai_insights/data/model/prediction_model.dart';
-import 'package:flosy/features/ai_insights/services/ml_prediction_service.dart';
+
 import 'package:flosy/features/home/data/model/transaction_model.dart';
 import 'package:flosy/features/home/presentation/services/db.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -18,9 +18,7 @@ class AiInsightsCubit extends Cubit<AiInsightsState> {
     emit(AiInsightsLoading());
 
     try {
-      if (!mlService.isInitialized) {
-        await mlService.initialize();
-      }
+    
 
       final transactions = await dbService.getTransactions();
 
@@ -92,13 +90,8 @@ class AiInsightsCubit extends Cubit<AiInsightsState> {
 
       double predictedAmount;
       try {
-        predictedAmount = await mlService.predictExpense(
-          lastMonthExpense: lastMonthSpending,
-          twoMonthsAgo: twoMonthsAgoSpending,
-          avgThreeMonths: avgThreeMonths,
-          monthNumber: now.month,
-          dayOfMonth: now.day,
-        );
+     
+        
       } catch (e) {
         predictedAmount = avgThreeMonths;
       }
@@ -109,22 +102,11 @@ class AiInsightsCubit extends Cubit<AiInsightsState> {
                 100
           : 0.0;
 
-      final confidence = mlService.calculateConfidence(
-        lastMonth: lastMonthSpending,
-        twoMonthsAgo: twoMonthsAgoSpending,
-        threeMonthsAgo: threeMonthsAgoSpending,
-      );
+     
 
-      predictions.add(
-        PredictionModel(
-          category: category,
-          predictedAmount: predictedAmount,
-          currentSpending: lastMonthSpending,
-          growthRate: growthRate,
-          predictedFor: DateTime(now.year, now.month + 1),
-          confidence: confidence,
-        ),
-      );
+ 
+      
+      
     }
 
     return predictions;
@@ -282,55 +264,18 @@ class AiInsightsCubit extends Cubit<AiInsightsState> {
     emit(AiInsightsLoading());
 
     try {
-      if (!mlService.isInitialized) {
-        await mlService.initialize();
-      }
+   
 
-      final prediction = await mlService.predictExpense(
-        lastMonthExpense: 500.0,
-        twoMonthsAgo: 450.0,
-        avgThreeMonths: 470.0,
-        monthNumber: DateTime.now().month,
-        dayOfMonth: DateTime.now().day,
-      );
+     
 
-      log('Test prediction result: \$$prediction');
+  
+     
 
-      final confidence = mlService.calculateConfidence(
-        lastMonth: 500.0,
-        twoMonthsAgo: 450.0,
-        threeMonthsAgo: 460.0,
-      );
+    
 
-      print('Confidence: $confidence%');
 
-      // Emit loaded state with test data
-      emit(
-        AiInsightsLoaded(
-          predictions: [
-            PredictionModel(
-              category: 'food',
-              predictedAmount: prediction,
-              currentSpending: 500.0,
-              growthRate: 11.1,
-              predictedFor: DateTime.now(),
-              confidence: confidence,
-            ),
-          ],
-          insights: [
-            InsightModel(
-              title: 'ai.ai_active'.tr(),
-              description: 'ai.ai_active_desc'.tr(args: ['50']),
-              type: InsightType.info,
-              icon: FontAwesomeIcons.microchip,
-              createdAt: DateTime.now(),
-            ),
-          ],
-          totalPredicted: prediction,
-          potentialSavings: prediction * 0.15,
-          riskScore: 60.0,
-        ),
-      );
+       
+      
     } catch (e) {
       log('Test failed: $e');
       emit(AiInsightsError(e.toString()));

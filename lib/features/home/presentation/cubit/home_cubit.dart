@@ -154,7 +154,10 @@ class HomeCubit extends Cubit<HomeState> {
         if (user == null) return;
         if (!await _hasInternet()) return;
 
-        final userDocSnapshot = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        final userDocSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
         final familyId = userDocSnapshot.data()?['familyId'] ?? user.uid;
 
         final familyDocRef = FirebaseFirestore.instance
@@ -196,8 +199,11 @@ class HomeCubit extends Cubit<HomeState> {
 
     try {
       final firestore = FirebaseFirestore.instance;
-      
-      final userDocSnapshot = await firestore.collection('users').doc(user.uid).get();
+
+      final userDocSnapshot = await firestore
+          .collection('users')
+          .doc(user.uid)
+          .get();
       final familyId = userDocSnapshot.data()?['familyId'] ?? user.uid;
       final familyDocRef = firestore.collection('families').doc(familyId);
 
@@ -262,9 +268,15 @@ class HomeCubit extends Cubit<HomeState> {
     if (user == null) return;
 
     try {
-      await FirebaseFirestore.instance
+      final userDocSnapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
+          .get();
+      final familyId = userDocSnapshot.data()?['familyId'] ?? user.uid;
+
+      await FirebaseFirestore.instance
+          .collection('families')
+          .doc(familyId)
           .collection('transactions')
           .doc(id)
           .delete();
@@ -338,15 +350,24 @@ class HomeCubit extends Cubit<HomeState> {
       await prefs.setDouble('total_balance', value);
       totalBalance = value;
 
-      // Also persist balance to Firestore so other devices get it too
+      // Persist balance to Firestore families collection
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final online = await _hasInternet();
         if (online) {
-          await FirebaseFirestore.instance
+          final userDocSnapshot = await FirebaseFirestore.instance
               .collection('users')
               .doc(user.uid)
-              .set({'totalBalance': value}, SetOptions(merge: true));
+              .get();
+          final familyId = userDocSnapshot.data()?['familyId'] ?? user.uid;
+
+          await FirebaseFirestore.instance
+              .collection('families')
+              .doc(familyId)
+              .set({
+                'totalBalance': value,
+                'lastSync': Timestamp.fromDate(DateTime.now()),
+              }, SetOptions(merge: true));
           log('✅ Balance saved to Firestore: $value');
         }
       }
