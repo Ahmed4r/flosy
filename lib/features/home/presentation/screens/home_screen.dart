@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flosy/core/theme/app_theme.dart';
 import 'package:flosy/core/utils/app_colors.dart';
@@ -15,8 +14,7 @@ import 'package:flosy/features/settings/cubit/settings_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flosy/features/home/presentation/services/db.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
 import '../../../settings/cubit/settings_state.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -27,15 +25,12 @@ class HomeScreen extends StatefulWidget {
 }
 
 class HomeScreenState extends State<HomeScreen> {
-  Future<void> refresh() async {
-    // Call your cubit's refresh method here
-    context.read<HomeCubit>().refresh();
-  }
-
   @override
   void initState() {
     super.initState();
-    context.read<HomeCubit>().loadAll();
+    // NOTE: no loadAll() here — the HomeCubit constructor already calls it.
+    // Calling it again caused every load to run twice.
+    context.read<HomeCubit>();
   }
 
   @override
@@ -377,7 +372,7 @@ class HomeScreenState extends State<HomeScreen> {
               child: Text(
                 entry.key,
                 style: AppText.body12(context).copyWith(
-                  color: isDarkMode ? Colors.grey[500] : Colors.grey[500],
+                  color: Colors.grey[500],
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5,
                 ),
@@ -417,33 +412,8 @@ class HomeScreenState extends State<HomeScreen> {
                 size: 24.sp,
               ),
             ),
-            onDismissed: (_) async {
-              try {
-                final prefs = await SharedPreferences.getInstance();
-                double current = prefs.getDouble('total_balance') ?? 0.0;
-                final delta = transaction.amount * (isExpense ? -1.0 : 1.0);
-                current -= delta;
-                await prefs.setDouble('total_balance', current);
-                if (!mounted) return;
-                final idx = context.read<HomeCubit>().transactions.indexOf(
-                  transaction,
-                );
-                setState(() {
-                  context.read<HomeCubit>().totalBalance = current;
-                  if (idx >= 0)
-                    context.read<HomeCubit>().transactions.removeAt(idx);
-                });
-                if (transaction.id != null) {
-                  await dbService.deleteTransaction(transaction.id!);
-
-                  await context.read<HomeCubit>().deleteTransactionFromFireBase(
-                    transaction.id.toString(),
-                  );
-                }
-              } catch (e) {
-                log('Failed to delete transaction: $e');
-              }
-            },
+            onDismissed: (_) =>
+                context.read<HomeCubit>().removeTransaction(transaction),
             child: GestureDetector(
               onTap: () async {
                 final result = await Navigator.push(
@@ -466,13 +436,18 @@ class HomeScreenState extends State<HomeScreen> {
                   color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
                   borderRadius: BorderRadius.circular(16.r),
                   border: transaction.colorValue != null
-                      ? Border.all(color: tileColor.withOpacity(0.35), width: 1.2)
+                      ? Border.all(
+                          color: tileColor.withOpacity(0.35),
+                          width: 1.2,
+                        )
                       : null,
                   boxShadow: [
                     BoxShadow(
                       color: transaction.colorValue != null
                           ? tileColor.withOpacity(isDarkMode ? 0.2 : 0.08)
-                          : Colors.black.withOpacity(isDarkMode ? 0.15 : 0.04),
+                          : Colors.black.withOpacity(
+                              isDarkMode ? 0.15 : 0.04,
+                            ),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -520,31 +495,40 @@ class HomeScreenState extends State<HomeScreen> {
                                   transaction.category,
                                 ),
                                 style: AppText.body12(context).copyWith(
-                                  color: isDarkMode
-                                      ? Colors.grey[500]
-                                      : Colors.grey[500],
+                                  color: Colors.grey[500],
                                 ),
                               ),
                               if (transaction.createdBy != null &&
                                   transaction.createdBy!.isNotEmpty) ...[
                                 SizedBox(width: 6.w),
                                 Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.h),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 6.w,
+                                    vertical: 1.h,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: isDarkMode ? Colors.white10 : Colors.black.withOpacity(0.05),
+                                    color: isDarkMode
+                                        ? Colors.white10
+                                        : Colors.black.withOpacity(0.05),
                                     borderRadius: BorderRadius.circular(6.r),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.person_outline, size: 10.sp, color: AppColors.greenColor),
+                                      Icon(
+                                        Icons.person_outline,
+                                        size: 10.sp,
+                                        color: AppColors.greenColor,
+                                      ),
                                       SizedBox(width: 2.w),
                                       Text(
                                         transaction.createdBy!,
                                         style: TextStyle(
                                           fontSize: 10.sp,
                                           fontWeight: FontWeight.w500,
-                                          color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                          color: isDarkMode
+                                              ? Colors.grey[400]
+                                              : Colors.grey[600],
                                         ),
                                       ),
                                     ],
@@ -565,14 +549,19 @@ class HomeScreenState extends State<HomeScreen> {
                         if (state is SettingsLoaded) {
                           currency = state.selectedCurrency;
                         }
+                        final amountStr =
+                            transaction.amount.toStringAsFixed(2);
+                        final sign = isExpense ? '-' : '+';
+                        final isAr =
+                            context.read<HomeCubit>().isArabicLocale(context);
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              context.read<HomeCubit>().isArabicLocale(context)
-                                  ? '${transaction.amount.toStringAsFixed(1)}${currency}${isExpense ? '-' : '+'}'
-                                  : '${isExpense ? '-' : '+'} ${transaction.amount.toStringAsFixed(2)} \$ ',
+                              isAr
+                                  ? '$amountStr$currency$sign'
+                                  : '$sign $amountStr $currency',
                               style: AppText.body16(context).copyWith(
                                 color: isExpense
                                     ? Colors.redAccent
@@ -584,9 +573,7 @@ class HomeScreenState extends State<HomeScreen> {
                             Text(
                               DateFormat('hh:mm a').format(transaction.date),
                               style: AppText.body12(context).copyWith(
-                                color: isDarkMode
-                                    ? Colors.grey[500]
-                                    : Colors.grey[500],
+                                color: Colors.grey[500],
                               ),
                             ),
                           ],
@@ -608,7 +595,7 @@ class HomeScreenState extends State<HomeScreen> {
   Future<void> _showEditBalanceDialog() async {
     bool isDarkMode = AppTheme.isDarkMode(context);
     final controller = TextEditingController(
-      text: context.read<HomeCubit>().totalBalance.toStringAsFixed(0)
+      text: context.read<HomeCubit>().totalBalance.toStringAsFixed(0),
     );
 
     final result = await showDialog<double>(

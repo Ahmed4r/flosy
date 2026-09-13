@@ -14,7 +14,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 part 'home_state.dart';
 
 class HomeCubit extends Cubit<HomeState> {
-
   String userName = '';
 
   HomeCubit() : super(HomeInitial()) {
@@ -26,18 +25,113 @@ class HomeCubit extends Cubit<HomeState> {
   bool isLoading = true;
   bool showAllTransactions = false;
 
-  // ─── CONNECTIVITY CHECK ──────────────────────────────────────────────────────
+  // ─── FAMILY SYNC (LIVE LISTENER) ─────────────────────────────────────────
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _familyTxSub;
+  Set<String> _knownCloudIds =
+      {}; // cloud ids we've seen (safe to delete locally if they vanish)
+
+  Future<String> _getFamilyId() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return '';
+    final snap = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+    final fid = snap.data()?['familyId'];
+    return (fid == null || fid.toString().isEmpty) ? user.uid : fid.toString();
+  }
+
+  Future<String> _myName() async {
+    final user = FirebaseAuth.instance.currentUser;
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString('user_name') ?? '';
+    if (saved.isNotEmpty) return saved;
+    return user?.displayName ?? user?.email ?? '';
+  }
+
+  void _upsertLocalState(TransactionModel tx) {
+    final i = transactions.indexWhere((t) => t.id == tx.id);
+    if (i != -1) {
+      transactions[i] = tx;
+    } else {
+      transactions.insert(0, tx);
+    }
+  }
+
+  /// Live listener: remote adds/updates/deletes from family members
+  /// flow into local DB + state automatically.
+  Future<void> _startFamilyListener() async {
+    await _familyTxSub?.cancel();
+    final familyId = await _getFamilyId();
+    if (familyId.isEmpty) return;
+
+    _familyTxSub = FirebaseFirestore.instance
+        .collection('families')
+        .doc(familyId)
+        .collection('transactions')
+        .snapshots()
+        .listen((snapshot) async {
+          try {
+            final cloudIds = <String>{};
+            for (final doc in snapshot.docs) {
+              cloudIds.add(doc.id);
+              final id = int.tryParse(doc.id);
+              if (id == null) continue;
+              final tx = TransactionModel.fromMap(doc.data())..id = id;
+              await dbService.addTransaction(
+                tx,
+              ); // INSERT OR REPLACE → id preserved
+              _upsertLocalState(tx);
+            }
+            // Deleted on another device → remove locally.
+            // Only ids we know came from cloud are touched, so offline-only
+            // local rows are never deleted by the listener.
+            for (final gone in _knownCloudIds.difference(cloudIds)) {
+              final id = int.tryParse(gone);
+              if (id != null) {
+                await dbService.deleteTransaction(id);
+                transactions.removeWhere((t) => t.id == id);
+              }
+            }
+            _knownCloudIds = cloudIds;
+            emit(HomeLoaded(transactions, totalBalance));
+          } catch (e) {
+            log('❌ Family listener error: $e');
+          }
+        });
+  }
+
+  /// Re-syncs from scratch and (re)starts the live listener.
+  /// Call this after joining/leaving a family or toggling the sync setting.
+  Future<void> restartFamilySync() async {
+    final prefs = await SharedPreferences.getInstance();
+    final syncing = prefs.getBool('is_syncing') ?? false;
+    if (syncing && await _hasInternet()) {
+      await _syncFromFirestore();
+      await _startFamilyListener();
+    } else {
+      await _familyTxSub?.cancel();
+      _familyTxSub = null;
+    }
+  }
+
+  @override
+  Future<void> close() {
+    _familyTxSub?.cancel();
+    return super.close();
+  }
+
+  // ─── CONNECTIVITY CHECK ────────────────────────────────────────────────────
 
   Future<bool> _hasInternet() async {
     final result = await Connectivity().checkConnectivity();
     return result != ConnectivityResult.none;
   }
 
-  // ─── LOAD ALL ────────────────────────────────────────────────────────────────
-  // Entry point called from HomeScreen.initState().
-  // If online → sync from Firestore first, then load from local DB.
+  // ─── LOAD ALL ──────────────────────────────────────────────────────────────
+  // Entry point. If online + sync enabled → two-way Firestore sync first,
+  // then start the live listener, then load local DB into state.
   // If offline → load from local DB only (works without internet).
-
 
   Future<void> loadAll() async {
     if (state is! HomeLoaded) emit(HomeLoading());
@@ -48,10 +142,9 @@ class HomeCubit extends Cubit<HomeState> {
       final bool isSyncing = prefs.getBool('is_syncing') ?? false;
       final user = FirebaseAuth.instance.currentUser;
 
-      // When sync is enabled we should pull from Firestore first (cloud -> local),
-      // then load local DB into state. This prevents overwriting cloud data.
       if (user != null && online && isSyncing) {
         await _syncFromFirestore();
+        await _startFamilyListener();
       }
 
       await _loadFromLocal();
@@ -60,18 +153,21 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
-  // ─── REFRESH ─────────────────────────────────────────────────────────────────
+  // ─── REFRESH ───────────────────────────────────────────────────────────────
 
   Future<void> refresh() async {
-// force re-sync on manual pull
+    // force re-sync on manual pull
     await loadAll();
   }
 
-  // local
   // ─── LOCAL-FIRST ADD (NO BLOCKING) ────────────────────────────────────────
 
   Future<void> addTransactionLocal(TransactionModel tx) async {
     try {
+      if (tx.createdBy == null || tx.createdBy!.isEmpty) {
+        tx = tx.copyWith(createdBy: await _myName());
+      }
+
       final int localId = await dbService.addTransaction(tx);
       tx.id = localId;
 
@@ -90,6 +186,9 @@ class HomeCubit extends Cubit<HomeState> {
       totalBalance = newBalance;
       emit(HomeLoaded(transactions, totalBalance));
 
+      // Upload to the family cloud too (fire-and-forget)
+      syncSingleTransactionToCloud(tx);
+
       log('✅ Transaction added locally (ID: $localId)');
     } catch (e) {
       log('❌ Failed to add transaction locally: $e');
@@ -104,6 +203,9 @@ class HomeCubit extends Cubit<HomeState> {
       if (tx.id == null) return;
 
       final oldTx = transactions.firstWhere((t) => t.id == tx.id);
+      if (tx.createdBy == null || tx.createdBy!.isEmpty) {
+        tx = tx.copyWith(createdBy: oldTx.createdBy ?? await _myName());
+      }
 
       final oldDelta = oldTx.type == TransactionType.expense
           ? oldTx.amount
@@ -128,6 +230,9 @@ class HomeCubit extends Cubit<HomeState> {
       totalBalance = newBalance;
       emit(HomeLoaded(transactions, totalBalance));
 
+      // Propagate the update to the family cloud
+      syncSingleTransactionToCloud(tx);
+
       log('✅ Transaction updated locally (ID: ${tx.id})');
     } catch (e) {
       log('❌ Failed to update transaction locally: $e');
@@ -151,11 +256,11 @@ class HomeCubit extends Cubit<HomeState> {
         if (user == null) return;
         if (!await _hasInternet()) return;
 
-        final userDocSnapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-        final familyId = userDocSnapshot.data()?['familyId'] ?? user.uid;
+        if (tx.createdBy == null || tx.createdBy!.isEmpty) {
+          tx = tx.copyWith(createdBy: await _myName());
+        }
+
+        final familyId = await _getFamilyId();
 
         final familyDocRef = FirebaseFirestore.instance
             .collection('families')
@@ -183,9 +288,11 @@ class HomeCubit extends Cubit<HomeState> {
     });
   }
 
-  // ─── SYNC FROM FIRESTORE → LOCAL DB ─────────────────────────────────────────
-  // Pulls all transactions + balance from Firestore and overwrites local DB.
-  // Uses the Firestore doc ID as the source of truth to avoid duplicates.
+  // ─── TWO-WAY SYNC: FIRESTORE ↔ LOCAL DB ───────────────────────────────────
+  // - Uploads local rows missing from cloud (offline leftovers), ids preserved
+  // - Pulls cloud rows into local via upsert (INSERT OR REPLACE, no duplicates,
+  //   no id renumbering)
+  // - Removes local rows whose cloud id vanished (deleted on another device)
 
   Future<void> _syncFromFirestore() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -196,12 +303,8 @@ class HomeCubit extends Cubit<HomeState> {
 
     try {
       final firestore = FirebaseFirestore.instance;
-
-      final userDocSnapshot = await firestore
-          .collection('users')
-          .doc(user.uid)
-          .get();
-      final familyId = userDocSnapshot.data()?['familyId'] ?? user.uid;
+      final familyId = await _getFamilyId();
+      if (familyId.isEmpty) return;
       final familyDocRef = firestore.collection('families').doc(familyId);
 
       // 1. Sync balance from Firestore
@@ -224,31 +327,50 @@ class HomeCubit extends Cubit<HomeState> {
         }
       }
 
-      // 2. Sync transactions from Firestore
+      // 2. Two-way transaction sync
       final snapshot = await familyDocRef.collection('transactions').get();
-      if (snapshot.docs.isEmpty) {
-        log('ℹ️ No transactions found in Firestore');
-        return;
+      final cloudMap = {for (final d in snapshot.docs) d.id: d.data()};
+
+      // 2a. Upload local rows missing from cloud (offline leftovers)
+      for (final tx in await dbService.getTransactions()) {
+        if (tx.id == null) continue;
+        final key = tx.id.toString();
+        if (!cloudMap.containsKey(key)) {
+          await familyDocRef
+              .collection('transactions')
+              .doc(key)
+              .set(tx.toMap(), SetOptions(merge: true));
+        }
       }
 
-      final cloudTransactions = snapshot.docs
-          .map((doc) => TransactionModel.fromMap(doc.data()))
-          .toList();
-
-      // Clear local DB and replace with cloud data (avoids duplicates completely)
-      await dbService.deleteAllTransactions();
-      for (final tx in cloudTransactions) {
+      // 2b. Pull cloud rows into local (upsert, id preserved)
+      final cloudIds = cloudMap.keys.toSet();
+      for (final entry in cloudMap.entries) {
+        final id = int.tryParse(entry.key);
+        if (id == null) continue;
+        final tx = TransactionModel.fromMap(entry.value)..id = id;
         await dbService.addTransaction(tx);
+        _upsertLocalState(tx);
       }
 
-      log('✅ Synced ${cloudTransactions.length} transactions from Firestore');
+      // 2c. Rows that were on cloud but vanished = deleted on another device
+      for (final gone in _knownCloudIds.difference(cloudIds)) {
+        final id = int.tryParse(gone);
+        if (id != null) {
+          await dbService.deleteTransaction(id);
+          transactions.removeWhere((t) => t.id == id);
+        }
+      }
+      _knownCloudIds = cloudIds;
+
+      log('✅ Two-way sync done: ${cloudMap.length} cloud transactions');
     } catch (e) {
       // Don't crash the app if sync fails — fall back to local data
       log('❌ Firebase sync failed: $e');
     }
   }
 
-  // ─── LOAD FROM LOCAL DB → STATE ──────────────────────────────────────────────
+  // ─── LOAD FROM LOCAL DB → STATE ────────────────────────────────────────────
 
   Future<void> _loadFromLocal() async {
     final loadedTransactions = await dbService.getTransactions();
@@ -258,18 +380,37 @@ class HomeCubit extends Cubit<HomeState> {
     emit(HomeLoaded(transactions, totalBalance));
   }
 
-  // ─── DELETE FROM FIREBASE ────────────────────────────────────────────────────
+  // ─── DELETE (LOCAL + CLOUD) ────────────────────────────────────────────────
+
+  Future<void> removeTransaction(TransactionModel tx) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final current = prefs.getDouble('total_balance') ?? 0;
+      final delta = tx.type == TransactionType.expense ? -tx.amount : tx.amount;
+      totalBalance = current - delta;
+      await prefs.setDouble('total_balance', totalBalance);
+
+      transactions.removeWhere((t) => t.id == tx.id);
+
+      if (tx.id != null) {
+        await dbService.deleteTransaction(tx.id!);
+        await deleteTransactionFromFireBase(tx.id.toString());
+      }
+
+      emit(HomeLoaded(transactions, totalBalance));
+    } catch (e) {
+      log('❌ Failed to delete transaction: $e');
+    }
+  }
+
+  // ─── DELETE FROM FIREBASE ──────────────────────────────────────────────────
 
   Future<void> deleteTransactionFromFireBase(String id) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
     try {
-      final userDocSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-      final familyId = userDocSnapshot.data()?['familyId'] ?? user.uid;
+      final familyId = await _getFamilyId();
 
       await FirebaseFirestore.instance
           .collection('families')
@@ -283,14 +424,13 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
-  // ─── KEPT FOR BACKWARDS COMPATIBILITY ────────────────────────────────────────
-  // (was called manually before — now loadAll() handles this automatically)
+  // ─── KEPT FOR BACKWARDS COMPATIBILITY ──────────────────────────────────────
 
   Future<void> fetchDataFromFireBase() async {
     await loadAll();
   }
 
-  // ─── CATEGORY LABELS ─────────────────────────────────────────────────────────
+  // ─── CATEGORY LABELS ───────────────────────────────────────────────────────
 
   String getCategoryLabel(String id) {
     switch (id) {
@@ -315,7 +455,7 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
-  // ─── LOAD TRANSACTIONS (used after add/edit) ──────────────────────────────────
+  // ─── LOAD TRANSACTIONS (used after add/edit) ───────────────────────────────
 
   Future<void> loadTransactions() async {
     try {
@@ -327,7 +467,7 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
-  // ─── LOAD BALANCE ─────────────────────────────────────────────────────────────
+  // ─── LOAD BALANCE ───────────────────────────────────────────────────────────
 
   Future<void> loadBalance() async {
     final prefs = await SharedPreferences.getInstance();
@@ -339,7 +479,7 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
-  // ─── SET BALANCE ──────────────────────────────────────────────────────────────
+  // ─── SET BALANCE ────────────────────────────────────────────────────────────
 
   Future<void> setBalance(double value) async {
     final prefs = await SharedPreferences.getInstance();
@@ -352,11 +492,7 @@ class HomeCubit extends Cubit<HomeState> {
       if (user != null) {
         final online = await _hasInternet();
         if (online) {
-          final userDocSnapshot = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .get();
-          final familyId = userDocSnapshot.data()?['familyId'] ?? user.uid;
+          final familyId = await _getFamilyId();
 
           await FirebaseFirestore.instance
               .collection('families')
@@ -375,7 +511,7 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
-  // ─── HELPERS ──────────────────────────────────────────────────────────────────
+  // ─── HELPERS ────────────────────────────────────────────────────────────────
 
   bool isArabicLocale(BuildContext context) {
     return Localizations.localeOf(context).languageCode == 'ar';
@@ -458,6 +594,10 @@ class HomeCubit extends Cubit<HomeState> {
 
   Future<void> addTransaction(TransactionModel tx) async {
     try {
+      if (tx.createdBy == null || tx.createdBy!.isEmpty) {
+        tx = tx.copyWith(createdBy: await _myName());
+      }
+
       final int localId = await dbService.addTransaction(tx);
       tx.id = localId;
       transactions.insert(0, tx);
@@ -495,10 +635,7 @@ class HomeCubit extends Cubit<HomeState> {
       final savedUserName = prefs.getString('user_name') ?? '';
       userName = savedUserName;
 
-      // You can load settings here, but do not emit SettingsLoaded.
-      // Instead, update any HomeCubit fields as needed, and emit a HomeState if necessary.
-      // For example, you might want to emit HomeLoaded or a custom HomeSettingsLoaded if you define one.
-      // Here, we just reload the home state:
+      // Reload home state with any changed settings
       emit(HomeLoaded(transactions, totalBalance));
     } catch (e) {
       emit(HomeError('Failed to load settings: $e'));

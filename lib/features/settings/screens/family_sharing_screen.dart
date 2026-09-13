@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FamilySharingScreen extends StatefulWidget {
   const FamilySharingScreen({Key? key}) : super(key: key);
@@ -35,24 +38,35 @@ class _FamilySharingScreenState extends State<FamilySharingScreen> {
 
   Future<void> _loadFamilyId() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      try {
-        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-        if (doc.exists && mounted) {
-          setState(() {
-            _myFamilyId = doc.data()?['familyId'] ?? user.uid;
-            _isLoading = false;
-          });
-        } else if (mounted) {
-          setState(() {
-            _myFamilyId = user.uid;
-            _isLoading = false;
-          });
-        }
-      } catch (e) {
-        if (mounted) setState(() => _isLoading = false);
+    if (user == null) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      String familyId = doc.data()?['familyId'] ?? '';
+
+      // ✅ If no familyId yet, use uid as own family and persist it,
+      // so other members' queries can find this document.
+      if (familyId.isEmpty) {
+        familyId = user.uid;
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'familyId': user.uid,
+        }, SetOptions(merge: true));
       }
-    } else {
+
+      if (mounted) {
+        setState(() {
+          _myFamilyId = familyId;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -74,6 +88,12 @@ class _FamilySharingScreenState extends State<FamilySharingScreen> {
 
       // 2. Clear local DB to prepare for new family sync
       await dbService.deleteAllTransactions();
+
+      // 3. Clear local balance & sync timestamps so the old family's
+      //    balance doesn't leak into the new family
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('total_balance');
+      await prefs.remove('last_sync');
 
       if (mounted) {
         setState(() {
@@ -119,7 +139,10 @@ class _FamilySharingScreenState extends State<FamilySharingScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('settings.leave_family'.tr(), style: const TextStyle(color: Colors.white)),
+            child: Text(
+              'settings.leave_family'.tr(),
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -136,6 +159,11 @@ class _FamilySharingScreenState extends State<FamilySharingScreen> {
 
       await dbService.deleteAllTransactions();
 
+      // Clear local balance & sync timestamps (same as join)
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('total_balance');
+      await prefs.remove('last_sync');
+
       if (mounted) {
         setState(() {
           _myFamilyId = user.uid;
@@ -147,7 +175,10 @@ class _FamilySharingScreenState extends State<FamilySharingScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     }
@@ -157,7 +188,8 @@ class _FamilySharingScreenState extends State<FamilySharingScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final user = FirebaseAuth.instance.currentUser;
-    final isSharedFamily = user != null && _myFamilyId.isNotEmpty && _myFamilyId != user.uid;
+    final isSharedFamily =
+        user != null && _myFamilyId.isNotEmpty && _myFamilyId != user.uid;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.blackColor : AppColors.whiteColor,
@@ -204,7 +236,9 @@ class _FamilySharingScreenState extends State<FamilySharingScreen> {
                       ),
                       borderRadius: BorderRadius.circular(20.r),
                       border: Border.all(
-                        color: isDark ? Colors.white12 : Colors.grey.withOpacity(0.2),
+                        color: isDark
+                            ? Colors.white12
+                            : Colors.grey.withOpacity(0.2),
                       ),
                     ),
                     child: Column(
@@ -258,12 +292,19 @@ class _FamilySharingScreenState extends State<FamilySharingScreen> {
                   ),
                   SizedBox(height: 10.h),
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16.w,
+                      vertical: 12.h,
+                    ),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
+                      color: isDark
+                          ? const Color(0xFF1E1E1E)
+                          : const Color(0xFFF5F5F5),
                       borderRadius: BorderRadius.circular(16.r),
                       border: Border.all(
-                        color: isDark ? Colors.white12 : Colors.grey.withOpacity(0.25),
+                        color: isDark
+                            ? Colors.white12
+                            : Colors.grey.withOpacity(0.25),
                       ),
                     ),
                     child: Row(
@@ -279,7 +320,11 @@ class _FamilySharingScreenState extends State<FamilySharingScreen> {
                           ),
                         ),
                         IconButton(
-                          icon: Icon(Icons.copy_rounded, color: AppColors.greenColor, size: 22.sp),
+                          icon: Icon(
+                            Icons.copy_rounded,
+                            color: AppColors.greenColor,
+                            size: 22.sp,
+                          ),
                           tooltip: 'settings.copy_code'.tr(),
                           onPressed: () {
                             Clipboard.setData(ClipboardData(text: _myFamilyId));
@@ -288,7 +333,9 @@ class _FamilySharingScreenState extends State<FamilySharingScreen> {
                                 content: Text('settings.code_copied'.tr()),
                                 backgroundColor: AppColors.greenColor,
                                 behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10.r),
+                                ),
                               ),
                             );
                           },
@@ -315,11 +362,18 @@ class _FamilySharingScreenState extends State<FamilySharingScreen> {
                           .where('familyId', isEqualTo: _myFamilyId)
                           .snapshots(),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: Padding(
-                            padding: EdgeInsets.all(12.0),
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ));
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(12.0),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          );
+                        }
+
+                        if (snapshot.hasError) {
+                          log('FAMILY MEMBERS ERROR: ${snapshot.error}');
                         }
 
                         final docs = snapshot.data?.docs ?? [];
@@ -327,7 +381,9 @@ class _FamilySharingScreenState extends State<FamilySharingScreen> {
                           return Container(
                             padding: EdgeInsets.all(12.w),
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
+                              color: isDark
+                                  ? const Color(0xFF1E1E1E)
+                                  : const Color(0xFFF5F5F5),
                               borderRadius: BorderRadius.circular(12.r),
                             ),
                             child: Row(
@@ -335,12 +391,20 @@ class _FamilySharingScreenState extends State<FamilySharingScreen> {
                                 CircleAvatar(
                                   radius: 16.r,
                                   backgroundColor: AppColors.greenColor,
-                                  child: const Icon(Icons.person, color: Colors.white, size: 16),
+                                  child: const Icon(
+                                    Icons.person,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
                                 ),
                                 SizedBox(width: 12.w),
                                 Text(
-                                  user?.displayName ?? user?.email ?? 'settings.member_you'.tr(),
-                                  style: AppText.body14(context).copyWith(fontWeight: FontWeight.w600),
+                                  user?.displayName ??
+                                      user?.email ??
+                                      'settings.member_you'.tr(),
+                                  style: AppText.body14(
+                                    context,
+                                  ).copyWith(fontWeight: FontWeight.w600),
                                 ),
                               ],
                             ),
@@ -351,50 +415,86 @@ class _FamilySharingScreenState extends State<FamilySharingScreen> {
                           children: docs.map((doc) {
                             final data = doc.data();
                             final isMe = doc.id == user?.uid;
-                            final name = data['name'] ?? data['displayName'] ?? (isMe ? (user?.displayName ?? user?.email ?? 'settings.member_you'.tr()) : doc.id.substring(0, 6));
+                            final name = data['name'] ??
+                                data['displayName'] ??
+                                (isMe
+                                    ? (user?.displayName ??
+                                        user?.email ??
+                                        'settings.member_you'.tr())
+                                    : doc.id.substring(0, 6));
 
                             return Container(
                               margin: EdgeInsets.only(bottom: 8.h),
-                              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 14.w,
+                                vertical: 10.h,
+                              ),
                               decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
+                                color: isDark
+                                    ? const Color(0xFF1E1E1E)
+                                    : const Color(0xFFF5F5F5),
                                 borderRadius: BorderRadius.circular(14.r),
                                 border: Border.all(
                                   color: isMe
                                       ? AppColors.greenColor.withOpacity(0.4)
-                                      : (isDark ? Colors.white12 : Colors.grey.withOpacity(0.2)),
+                                      : (isDark
+                                          ? Colors.white12
+                                          : Colors.grey.withOpacity(0.2)),
                                 ),
                               ),
                               child: Row(
                                 children: [
                                   CircleAvatar(
                                     radius: 18.r,
-                                    backgroundColor: isMe ? AppColors.greenColor : Colors.purple,
+                                    backgroundColor: isMe
+                                        ? AppColors.greenColor
+                                        : Colors.purple,
                                     child: Text(
-                                      (name.isNotEmpty ? name[0] : 'U').toUpperCase(),
-                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                      (name.isNotEmpty ? name[0] : 'U')
+                                          .toUpperCase(),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                   SizedBox(width: 12.w),
                                   Expanded(
                                     child: Text(
-                                      isMe ? '$name (${"settings.member_you".tr()})' : name,
+                                      isMe
+                                          ? '$name (${"settings.member_you".tr()})'
+                                          : name,
                                       style: AppText.body14(context).copyWith(
-                                        fontWeight: isMe ? FontWeight.bold : FontWeight.w500,
-                                        color: isDark ? Colors.white : Colors.black87,
+                                        fontWeight: isMe
+                                            ? FontWeight.bold
+                                            : FontWeight.w500,
+                                        color: isDark
+                                            ? Colors.white
+                                            : Colors.black87,
                                       ),
                                     ),
                                   ),
                                   if (isMe)
                                     Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 8.w,
+                                        vertical: 4.h,
+                                      ),
                                       decoration: BoxDecoration(
-                                        color: AppColors.greenColor.withOpacity(0.15),
-                                        borderRadius: BorderRadius.circular(8.r),
+                                        color: AppColors.greenColor.withOpacity(
+                                          0.15,
+                                        ),
+                                        borderRadius: BorderRadius.circular(
+                                          8.r,
+                                        ),
                                       ),
                                       child: Text(
                                         'Active',
-                                        style: TextStyle(color: AppColors.greenColor, fontSize: 11.sp, fontWeight: FontWeight.bold),
+                                        style: TextStyle(
+                                          color: AppColors.greenColor,
+                                          fontSize: 11.sp,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
                                 ],
@@ -420,17 +520,27 @@ class _FamilySharingScreenState extends State<FamilySharingScreen> {
                     controller: _codeController,
                     decoration: InputDecoration(
                       hintText: 'settings.enter_family_code'.tr(),
-                      hintStyle: TextStyle(color: isDark ? Colors.grey[500] : Colors.grey[400]),
+                      hintStyle: TextStyle(
+                        color: isDark ? Colors.grey[500] : Colors.grey[400],
+                      ),
                       filled: true,
-                      fillColor: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                      fillColor: isDark
+                          ? const Color(0xFF1E1E1E)
+                          : const Color(0xFFF5F5F5),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 14.h,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14.r),
                         borderSide: BorderSide.none,
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14.r),
-                        borderSide: BorderSide(color: AppColors.greenColor, width: 1.5),
+                        borderSide: BorderSide(
+                          color: AppColors.greenColor,
+                          width: 1.5,
+                        ),
                       ),
                     ),
                   ),
