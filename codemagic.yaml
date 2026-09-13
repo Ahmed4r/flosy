@@ -13,10 +13,7 @@ workflows:
       cache_paths:
         - $FLUTTER_ROOT/.pub-cache
         - $HOME/.pub-cache
-        - ios/Pods
-        - $HOME/.cocoapods
-        - ios/.symlinks
-        - $HOME/.dart
+        # تم إزالة ios/Pods من الكاش لتجنب التعارض عند إضافة مكتبات جديدة
 
     scripts:
       - name: Flutter pub get
@@ -30,15 +27,11 @@ workflows:
           echo "$API_ENV" > "$CM_BUILD_DIR/api.env"
           echo "✅ api.env created"
 
-      
-      - name: Install CocoaPods
+      - name: Build Flutter iOS (Generates native links & Pods)
         script: |
           set -e
-          cd ios
-          pod install
-          cd ..
-
-      
+          # هذا الأمر يجهز ملفات GeneratedPluginRegistrant ويسحب الـ Pods بشكل صحيح
+          flutter build ios --release --no-codesign
 
       - name: Disable Code Signing
         script: |
@@ -69,7 +62,6 @@ workflows:
           cd ..
           
           echo "Build completed successfully"
-
 
       - name: Create IPA
         script: |
