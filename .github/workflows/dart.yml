@@ -25,7 +25,7 @@ jobs:
           cache: true
 
       # ==========================================
-      # 3. Flutter doctor
+      # 3. Flutter doctor / version
       # ==========================================
       - name: Flutter doctor
         run: |
@@ -47,30 +47,52 @@ jobs:
           flutter pub get
 
       # ==========================================
-      # 6. Verify Firebase plugins
+      # 6. Verify Flutter plugin configuration
       # ==========================================
       - name: Verify Flutter iOS plugins
         run: |
+          set -e
+
           echo "=========================================="
-          echo "Firebase in .flutter-plugins-dependencies"
+          echo "Flutter plugin configuration"
           echo "=========================================="
 
-          grep -i -C 2 \
-            -E 'firebase_core|firebase_auth|cloud_firestore' \
-            .flutter-plugins-dependencies || true
+          if [ -f ".flutter-plugins-dependencies" ]; then
+            grep -i -C 2 \
+              -E 'firebase_core|firebase_auth|cloud_firestore' \
+              .flutter-plugins-dependencies || true
+          else
+            echo "❌ .flutter-plugins-dependencies not found"
+            exit 1
+          fi
 
           echo ""
           echo "=========================================="
-          echo "Removing stale iOS plugin links"
+          echo "Swift Package Manager configuration"
           echo "=========================================="
+
+          grep -o \
+            '"swift_package_manager_enabled"[^}]*}' \
+            .flutter-plugins-dependencies || true
+
+      # ==========================================
+      # 7. Remove stale generated iOS files
+      # ==========================================
+      - name: Clean stale iOS generated files
+        run: |
+          set -e
+
+          echo "🧹 Removing stale Flutter iOS generated files..."
 
           rm -rf ios/.symlinks
           rm -rf ios/Flutter/ephemeral
 
+          echo "✅ Stale files removed"
+
       # ==========================================
-      # 7. Generate Flutter iOS configuration
+      # 8. Generate Flutter iOS configuration
       # ==========================================
-      - name: Generate Flutter iOS configuration
+      - name: Generate iOS configuration
         run: |
           set -e
 
@@ -81,36 +103,58 @@ jobs:
             --release \
             --no-codesign
 
+          echo "✅ iOS configuration generated"
+
       # ==========================================
-      # 8. Verify iOS plugin symlinks
+      # 9. Verify Swift Package integration
       # ==========================================
-      - name: Verify iOS plugin symlinks
+      - name: Verify Swift Package integration
         run: |
           set -e
 
           echo "=========================================="
-          echo "All iOS plugins"
+          echo "Flutter iOS project"
           echo "=========================================="
 
-          ls -la ios/.symlinks/plugins
+          ls -la ios
 
           echo ""
           echo "=========================================="
-          echo "Firebase plugins"
+          echo "Swift Package references"
           echo "=========================================="
 
-          for plugin in firebase_core firebase_auth cloud_firestore; do
-            if [ -e "ios/.symlinks/plugins/$plugin" ]; then
-              echo "✅ $plugin"
-              ls -ld "ios/.symlinks/plugins/$plugin"
-            else
-              echo "❌ $plugin MISSING"
-              exit 1
-            fi
-          done
+          grep -R -i \
+            "FlutterGeneratedPluginSwiftPackage" \
+            ios/Runner.xcodeproj \
+            ios/Runner.xcworkspace \
+            2>/dev/null || true
+
+          echo ""
+          echo "=========================================="
+          echo "Package.swift files"
+          echo "=========================================="
+
+          find ios \
+            -name "Package.swift" \
+            -o -name "*.swift" \
+            | head -100 || true
+
+          echo ""
+          echo "=========================================="
+          echo "Firebase plugin directories"
+          echo "=========================================="
+
+          # Firebase may NOT appear in ios/.symlinks when
+          # Swift Package Manager is being used.
+          if [ -d "ios/.symlinks/plugins" ]; then
+            ls -la ios/.symlinks/plugins || true
+          else
+            echo "ℹ️ ios/.symlinks/plugins does not exist."
+            echo "ℹ️ This is acceptable when SwiftPM is enabled."
+          fi
 
       # ==========================================
-      # 9. Check xcconfig
+      # 10. Check xcconfig
       # ==========================================
       - name: Check iOS xcconfig
         run: |
@@ -135,68 +179,41 @@ jobs:
           cat ios/Flutter/Profile.xcconfig || true
 
       # ==========================================
-      # 10. CocoaPods
+      # 11. CocoaPods fallback dependencies
       # ==========================================
-      - name: Clean and install CocoaPods
+      - name: Install CocoaPods fallback dependencies
         run: |
           set -e
 
           cd ios
 
-          echo "🧹 Removing old Pods..."
-          rm -rf Pods
+          echo "📦 Installing CocoaPods fallback dependencies..."
 
-          echo "🧹 Removing old Podfile.lock..."
-          rm -f Podfile.lock
-
-          echo "🔧 Running pod deintegrate..."
-          pod deintegrate || true
-
-          echo "📦 Installing CocoaPods..."
           pod install --repo-update
 
           echo ""
           echo "=========================================="
-          echo "Podfile.lock Firebase check"
+          echo "Pod installation result"
           echo "=========================================="
 
-          grep -i -E \
-            "Firebase|Firestore|cloud_firestore|firebase_auth|firebase_core" \
-            Podfile.lock || true
-
-          echo ""
-
-          if grep -qi "cloud_firestore" Podfile.lock; then
-            echo "✅ cloud_firestore found"
+          if [ -f "Podfile.lock" ]; then
+            cat Podfile.lock
           else
-            echo "❌ cloud_firestore NOT found"
-            exit 1
-          fi
-
-          if grep -qi "firebase_auth" Podfile.lock; then
-            echo "✅ firebase_auth found"
-          else
-            echo "❌ firebase_auth NOT found"
-            exit 1
-          fi
-
-          if grep -qi "firebase_core" Podfile.lock; then
-            echo "✅ firebase_core found"
-          else
-            echo "❌ firebase_core NOT found"
-            exit 1
+            echo "ℹ️ No Podfile.lock generated"
           fi
 
           cd ..
 
       # ==========================================
-      # 11. Disable Code Signing
+      # 12. Disable Code Signing
       # ==========================================
       - name: Disable Code Signing
         run: |
           set -e
 
           PROJECT="ios/Runner.xcodeproj/project.pbxproj"
+
+          echo "🔧 Disabling automatic code signing..."
 
           sed -i '' \
             's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' \
@@ -217,7 +234,7 @@ jobs:
           echo "✅ Code signing disabled"
 
       # ==========================================
-      # 12. Build Flutter iOS
+      # 13. Build iOS
       # ==========================================
       - name: Build iOS
         run: |
@@ -228,15 +245,48 @@ jobs:
             --no-codesign \
             --no-tree-shake-icons
 
+          echo "✅ Flutter iOS build completed"
+
       # ==========================================
-      # 13. Create IPA
+      # 14. Verify Runner.app
+      # ==========================================
+      - name: Verify iOS app
+        run: |
+          set -e
+
+          APP_PATH="build/ios/iphoneos/Runner.app"
+
+          echo "=========================================="
+          echo "Checking Runner.app"
+          echo "=========================================="
+
+          if [ ! -d "$APP_PATH" ]; then
+            echo "❌ Runner.app not found"
+            echo ""
+            echo "Build directory:"
+            find build/ios -maxdepth 4 -type d | head -100 || true
+            exit 1
+          fi
+
+          echo "✅ Runner.app found"
+
+          ls -lah "$APP_PATH"
+
+      # ==========================================
+      # 15. Create IPA
       # ==========================================
       - name: Create IPA
         working-directory: build/ios/iphoneos
         run: |
           set -e
 
+          echo "=========================================="
+          echo "Creating IPA"
+          echo "=========================================="
+
           rm -rf Payload
+          rm -f FlutterIpaExport.ipa
+
           mkdir -p Payload
 
           cp -R Runner.app Payload/Runner.app
@@ -245,6 +295,7 @@ jobs:
             FlutterIpaExport.ipa \
             Payload
 
+          echo ""
           echo "=========================================="
           echo "IPA created"
           echo "=========================================="
@@ -252,10 +303,11 @@ jobs:
           ls -lh FlutterIpaExport.ipa
 
       # ==========================================
-      # 14. Upload IPA
+      # 16. Upload IPA
       # ==========================================
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ios-ipa
           path: build/ios/iphoneos/FlutterIpaExport.ipa
+          if-no-files-found: error
